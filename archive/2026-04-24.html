@@ -239,8 +239,75 @@ body {
   font-size: 0.7em;
   color: var(--faint);
   font-family: var(--mono-font);
-  margin-top: 4px;
   opacity: 0.7;
+}
+.score-chip {
+  position: relative;
+  display: inline-block;
+  margin-top: 4px;
+  cursor: help;
+}
+.score-chip .score-debug {
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
+}
+.score-chip:hover .score-debug,
+.score-chip:focus-within .score-debug,
+.score-chip.open .score-debug {
+  opacity: 1;
+  color: var(--text);
+}
+.score-breakdown {
+  display: none;
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-width: 300px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  font-size: 0.75em;
+  font-family: var(--mono-font);
+  color: var(--text);
+  line-height: 1.5;
+  white-space: normal;
+}
+.score-chip:hover .score-breakdown,
+.score-chip:focus-within .score-breakdown,
+.score-chip.open .score-breakdown {
+  display: block;
+}
+.score-breakdown-row {
+  display: flex;
+  gap: 8px;
+}
+.score-breakdown-val {
+  min-width: 3.6em;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  font-weight: 600;
+  flex-shrink: 0;
+}
+.score-breakdown-val.pos { color: color-mix(in srgb, var(--accent-cool) 80%, var(--text)); }
+.score-breakdown-val.neg { color: color-mix(in srgb, #c43939 70%, var(--text)); }
+.score-breakdown-label {
+  flex: 1;
+  word-break: break-word;
+  color: var(--faint);
+}
+.score-breakdown-total {
+  border-top: 1px dashed color-mix(in srgb, var(--faint) 40%, transparent);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.score-breakdown-total .score-breakdown-label {
+  color: var(--text);
+  font-weight: 600;
 }
 .show-more {
   display: block;
@@ -836,6 +903,71 @@ body {
     return score;
   }
 
+  // Same maths as scoreEvent but returns the contributing parts for the
+  // per-event debug panel. Kept separate so the hot selection loop stays
+  // a pure sum. Anything that would add 0 is omitted.
+  function scoreBreakdown(event, profile) {
+    var parts = [];
+    var total = 0;
+    var facetGlobal = profile.facet_global || 0;
+    var facets = event.facet_cosines || {};
+    var fTiers = profile.facet_tiers || {};
+    var fTierW = profile.facet_tier_weights || {};
+    for (var fname in facets) {
+      var tier = fTiers[fname] || 'neutral';
+      var fw = fTierW[tier];
+      if (fw == null || fw === 0) continue;
+      var fc = facetGlobal * fw * facets[fname];
+      var contrib = 0;
+      if (fw > 0 && fc > 0) contrib = fc;
+      else if (fw < 0 && fc < 0) contrib = fc;
+      if (contrib !== 0) {
+        parts.push({ label: 'facet ' + fname + ' (' + tier + ')', value: contrib });
+        total += contrib;
+      }
+    }
+    var rules = event.rules_fired || [];
+    var ruleW = profile.rule_weights || {};
+    for (var i = 0; i < rules.length; i++) {
+      var rw = ruleW[rules[i]];
+      if (rw != null && rw !== 0) {
+        parts.push({ label: 'rule ' + rules[i], value: rw });
+        total += rw;
+      }
+    }
+    var suburbW = (profile.suburb_weights || {})[event.suburb_tier];
+    if (suburbW != null && suburbW !== 0) {
+      parts.push({ label: 'suburb ' + event.suburb_tier, value: suburbW });
+      total += suburbW;
+    }
+    var subs = event.subcategories || [];
+    var tierMap = profile.subcategory_tiers || {};
+    var tierBonuses = profile.tier_bonuses || {};
+    if (subs.length > 0) {
+      var tbSum = 0, tbCount = 0;
+      var tagParts = [];
+      for (var j = 0; j < subs.length; j++) {
+        var st = tierMap[subs[j]] || 'neutral';
+        var tb = tierBonuses[st];
+        if (tb != null) {
+          tbSum += tb;
+          tbCount++;
+          tagParts.push(subs[j] + ':' + st);
+        }
+      }
+      if (tbCount > 0) {
+        var avg = tbSum / tbCount;
+        if (avg !== 0) {
+          var label = 'tags avg (' + tagParts.join(', ') + ')';
+          parts.push({ label: label, value: avg });
+          total += avg;
+        }
+      }
+    }
+    parts.sort(function (a, b) { return Math.abs(b.value) - Math.abs(a.value); });
+    return { total: total, parts: parts };
+  }
+
   function isPinned(event, profile) {
     // Matches Python: priority_venue pins, but generic_dating un-pins.
     // `profile.pinning_rules` is already filtered by rule_states at
@@ -1045,8 +1177,11 @@ body {
     return withKey.map(function (wk) { return wk.item; });
   }
 
-  function renderEventHtml(item) {
+  function renderEventHtml(item, profile) {
     var ev = item.event;
+    if (profile && !item.breakdown) {
+      item.breakdown = scoreBreakdown(ev, profile);
+    }
     var cls = item.is_expanded ? 'event extra' : 'event';
     var parts = ['<article class="' + cls + '">'];
     if (ev.venue) parts.push('<div class="venue">' + escapeHtml(ev.venue) + '</div>');
@@ -1067,7 +1202,35 @@ body {
       var pcls = (low === 'free' || low === 'free event') ? 'price free' : 'price';
       parts.push('<div class="' + pcls + '">' + escapeHtml(ev.price) + '</div>');
     }
-    parts.push('<div class="score-debug">score ' + item.score.toFixed(2) + '</div>');
+    var chipInner = '<div class="score-debug">score ' + item.score.toFixed(2) + '</div>';
+    if (item.breakdown && item.breakdown.parts.length) {
+      var bd = item.breakdown;
+      var rows = [];
+      for (var bi = 0; bi < bd.parts.length; bi++) {
+        var p = bd.parts[bi];
+        var cls = p.value >= 0 ? 'pos' : 'neg';
+        var val = (p.value >= 0 ? '+' : '') + p.value.toFixed(2);
+        rows.push(
+          '<div class="score-breakdown-row">' +
+          '<span class="score-breakdown-val ' + cls + '">' + val + '</span>' +
+          '<span class="score-breakdown-label">' + escapeHtml(p.label) + '</span>' +
+          '</div>'
+        );
+      }
+      var totalCls = bd.total >= 0 ? 'pos' : 'neg';
+      var totalVal = (bd.total >= 0 ? '+' : '') + bd.total.toFixed(2);
+      rows.push(
+        '<div class="score-breakdown-row score-breakdown-total">' +
+        '<span class="score-breakdown-val ' + totalCls + '">' + totalVal + '</span>' +
+        '<span class="score-breakdown-label">total</span>' +
+        '</div>'
+      );
+      chipInner +=
+        '<div class="score-breakdown" role="tooltip">' + rows.join('') + '</div>';
+    }
+    parts.push(
+      '<div class="score-chip" tabindex="0">' + chipInner + '</div>'
+    );
     var badges = [];
     var subs = ev.subcategories || [];
     for (var i = 0; i < subs.length; i++) {
@@ -1079,7 +1242,7 @@ body {
     return parts.join('\n');
   }
 
-  function renderCategoryHtml(catKey, block) {
+  function renderCategoryHtml(catKey, block, profile) {
     var curated = [], expanded = [];
     for (var i = 0; i < block.length; i++) {
       (block[i].is_expanded ? expanded : curated).push(block[i]);
@@ -1093,7 +1256,9 @@ body {
       '<section class="category">',
       '<h3 class="category-header">' + escapeHtml(display) +
         '<span class="count">' + curated.length + '</span></h3>',
-      '<div class="events">\n' + curated.map(renderEventHtml).join('\n') + '\n</div>',
+      '<div class="events">\n' + curated.map(function (it) {
+        return renderEventHtml(it, profile);
+      }).join('\n') + '\n</div>',
     ];
     if (expanded.length > 0) {
       parts.push(
@@ -1103,14 +1268,16 @@ body {
       );
       parts.push(
         '<div class="events events-expanded" hidden>\n' +
-        expanded.map(renderEventHtml).join('\n') + '\n</div>'
+        expanded.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>'
       );
     }
     parts.push('</section>');
     return parts.join('\n');
   }
 
-  function renderDayHtml(dayIso, byCatMap) {
+  function renderDayHtml(dayIso, byCatMap, profile) {
     var heading = formatDayHeading(dayIso);
     var daySlug = slugify(heading);
     var sections = [];
@@ -1118,7 +1285,7 @@ body {
       var catKey = CATEGORY_ORDER[i];
       var block = byCatMap[catKey];
       if (!block || block.length === 0) continue;
-      var section = renderCategoryHtml(catKey, block);
+      var section = renderCategoryHtml(catKey, block, profile);
       if (section) sections.push(section);
     }
     if (sections.length === 0) return '';
@@ -1597,7 +1764,7 @@ body {
   // ============================================================
   //  Render orchestration
   // ============================================================
-  function rebuildDayPanels(ranking, days) {
+  function rebuildDayPanels(ranking, days, profile) {
     var mainEl = document.getElementById('main');
     if (!mainEl) return;
     // Remove existing .day nodes (but keep settings-view intact — its
@@ -1608,7 +1775,7 @@ body {
     var settingsView = document.getElementById('settings-view');
     var tpl = document.createElement('div');
     for (var j = 0; j < days.length; j++) {
-      var h = renderDayHtml(days[j], ranking[days[j]]);
+      var h = renderDayHtml(days[j], ranking[days[j]], profile);
       if (!h) continue;
       tpl.innerHTML = h;
       var dayEl = tpl.firstElementChild;
@@ -1639,7 +1806,7 @@ body {
     var tabsEl = document.querySelector('.day-tabs');
     if (tabsEl) tabsEl.innerHTML = renderTabsHtml(days, dayCounts);
 
-    rebuildDayPanels(ranking, days);
+    rebuildDayPanels(ranking, days, profile);
     updateSettingsBadge();
 
     // Reactivate whichever tab was active. If it disappeared under the
@@ -1831,6 +1998,15 @@ body {
 
     var showMore = e.target.closest && e.target.closest('.show-more');
     if (showMore) { toggleShowMore(showMore); return; }
+
+    // Score breakdown chip: tap toggles .open on mobile; mouse users
+    // get :hover automatically. Clicking outside any chip closes them.
+    var chipEl = e.target.closest && e.target.closest('.score-chip');
+    var openChips = document.querySelectorAll('.score-chip.open');
+    for (var oc = 0; oc < openChips.length; oc++) {
+      if (openChips[oc] !== chipEl) openChips[oc].classList.remove('open');
+    }
+    if (chipEl) { chipEl.classList.toggle('open'); return; }
 
     var action = e.target.closest && e.target.closest('[data-action]');
     if (action) {
