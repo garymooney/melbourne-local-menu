@@ -159,6 +159,21 @@ body {
   display: flex;
   flex-direction: column;
 }
+/* Expanded "show more" set — visually subdued so they read as
+ * supplementary suggestions, not core picks. */
+.event.extra {
+  border-left-color: var(--rule);
+  border-left-style: dashed;
+  background: transparent;
+  opacity: 0.78;
+}
+.event.extra .venue,
+.event.extra .title {
+  font-weight: 500;
+}
+.event.extra .title {
+  color: var(--muted);
+}
 .venue {
   font-size: 1.05em;
   font-weight: 700;
@@ -326,7 +341,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 5 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Extrasensory Space</div>
 <div class="suburb">Preston</div>
 <a class="title" href="https://events.humanitix.com/go-o-d-gurl-diss43ah" target="_blank" rel="noopener">GO(O)D GURL DISS43AH</a>
@@ -336,7 +351,7 @@ body {
 <div class="score-debug">score 0.13</div>
 <div class="badges"><span class="pill subcategory">#experimental</span><span class="pill subcategory">#electronic</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Grace Darling Hotel</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/ash-felt-with-japes-and-will-edgar" target="_blank" rel="noopener">ash felt With Japes &amp; Will Edgar</a>
@@ -346,7 +361,7 @@ body {
 <div class="score-debug">score 0.39</div>
 <div class="badges"><span class="pill subcategory">#indie-rock</span><span class="pill subcategory">#electronic</span><span class="pill subcategory">#experimental</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Grace Darling Hotel</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/satisfaction-album-launch" target="_blank" rel="noopener">Satisfaction ALBUM LAUNCH</a>
@@ -356,7 +371,7 @@ body {
 <div class="score-debug">score 0.21</div>
 <div class="badges"><span class="pill subcategory">#indie-rock</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Thornbury Bowls Club</div>
 <div class="suburb">Thornbury</div>
 <a class="title" href="https://events.humanitix.com/special-guest-single-launch" target="_blank" rel="noopener">Special Guest &#x27;The New VR Ted Bundy Biopic&#x27; Single Launch</a>
@@ -366,7 +381,7 @@ body {
 <div class="score-debug">score 0.50</div>
 <div class="badges"><span class="pill subcategory">#experimental</span><span class="pill subcategory">#electronic</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Victoria Star Cruises</div>
 <div class="suburb">Docklands</div>
 <a class="title" href="https://events.humanitix.com/masquerade-latin-cruise-melbourne" target="_blank" rel="noopener">Masquerade Latin Cruise - Melbourne - NEW DATE</a>
@@ -414,7 +429,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 2 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Ian Potter Auditorium (G52)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/biomedical-sciences/event/52076-dap-metabolism-ecr-showcase-from-secreted-to" target="_blank" rel="noopener">DAP Metabolism ECR Showcase: From Secreted to Spatially Constrained: Mapping Proteomes In Vivo using TurboID</a>
@@ -424,7 +439,7 @@ body {
 <div class="score-debug">score 0.10</div>
 <div class="badges"><span class="pill subcategory">#lecture</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Noel Shaw Gallery (104)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/Archives_Special_Collections/event/52002-in-conversation-with-the-ground-tours" target="_blank" rel="noopener">In conversation with the Ground Tours</a>
@@ -492,7 +507,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 50 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">ASMY - Gokula House Meditation &amp; Yoga Centre</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://www.eventbrite.com.au/e/sacred-friday-meditation-tickets-1985698156640" target="_blank" rel="noopener">Sacred Friday Meditation</a>
@@ -502,7 +517,7 @@ body {
 <div class="score-debug">score 0.25</div>
 <div class="badges"><span class="pill subcategory">#meditation</span><span class="pill subcategory">#yoga</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Centre for a Compassionate Society</div>
 <div class="suburb">Clifton Hill</div>
 <a class="title" href="https://events.humanitix.com/come-to-the-quiet-an-urban-retreat" target="_blank" rel="noopener">Come to the Quiet - an Urban Retreat</a>
@@ -512,7 +527,7 @@ body {
 <div class="score-debug">score 0.36</div>
 <div class="badges"><span class="pill subcategory">#art</span><span class="pill subcategory">#meditation</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://classbento.com.au/cocktail-making-class-melbourne-0" target="_blank" rel="noopener">Cocktail Making Class</a>
@@ -522,7 +537,7 @@ body {
 <div class="score-debug">score 0.62</div>
 <div class="badges"><span class="pill subcategory">#cocktail-tasting</span><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://classbento.com.au/distillery-tour-and-cocktail-masterclass-melbourne" target="_blank" rel="noopener">Distillery Tour and Cocktail Masterclass</a>
@@ -532,7 +547,7 @@ body {
 <div class="score-debug">score 0.61</div>
 <div class="badges"><span class="pill subcategory">#cocktail-tasting</span><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/american-smoking-bbq-cooking-class-0" target="_blank" rel="noopener">American Smoking BBQ Cooking Class</a>
@@ -542,7 +557,7 @@ body {
 <div class="score-debug">score 0.36</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/asian-and-international-cooking-workshop-for-schools-melbourne" target="_blank" rel="noopener">Asian and International Cooking Workshop for Schools</a>
@@ -552,7 +567,7 @@ body {
 <div class="score-debug">score 0.46</div>
 <div class="badges"><span class="pill subcategory">#cooking</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/asian-street-food-cooking-class-0" target="_blank" rel="noopener">Asian Street Food Cooking Class</a>
@@ -562,7 +577,7 @@ body {
 <div class="score-debug">score 0.45</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/central-vietnamese-cooking-class" target="_blank" rel="noopener">Central Vietnamese Cooking Class</a>
@@ -572,7 +587,7 @@ body {
 <div class="score-debug">score 0.50</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/chinese-cooking-class" target="_blank" rel="noopener">Chinese Cooking Class</a>
@@ -582,7 +597,7 @@ body {
 <div class="score-debug">score 0.45</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/chinese-cooking-class-light-and-easy-recipes" target="_blank" rel="noopener">Chinese Cooking Class: Light and Easy Recipes</a>
@@ -592,7 +607,7 @@ body {
 <div class="score-debug">score 0.52</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/dumpling-cooking-class-0" target="_blank" rel="noopener">Dumpling Cooking Class</a>
@@ -602,7 +617,7 @@ body {
 <div class="score-debug">score 0.31</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/filled-pasta-from-the-emilia-romagna-region" target="_blank" rel="noopener">Emilia Romagna Filled Pasta Cooking Class</a>
@@ -612,7 +627,7 @@ body {
 <div class="score-debug">score 0.41</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://classbento.com.au/french-cooking-class-melbourne-0" target="_blank" rel="noopener">French Cooking Class</a>
@@ -622,7 +637,7 @@ body {
 <div class="score-debug">score 0.41</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/german-cooking-class-beyond-the-bratwurst-melbourne" target="_blank" rel="noopener">German Cooking Class: Beyond the Bratwurst</a>
@@ -632,7 +647,7 @@ body {
 <div class="score-debug">score 0.32</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/greek-cooking-class-melbourne" target="_blank" rel="noopener">Greek Cooking Class</a>
@@ -642,7 +657,7 @@ body {
 <div class="score-debug">score 0.36</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/indian-cooking-class" target="_blank" rel="noopener">Indian Cooking Class</a>
@@ -652,7 +667,7 @@ body {
 <div class="score-debug">score 0.39</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://classbento.com.au/italian-cooking-class-melbourne-1" target="_blank" rel="noopener">Italian Cooking Class</a>
@@ -662,7 +677,7 @@ body {
 <div class="score-debug">score 0.39</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/japanese-cooking-class" target="_blank" rel="noopener">Japanese Cooking Class</a>
@@ -672,7 +687,7 @@ body {
 <div class="score-debug">score 0.41</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/japanese-street-food-cooking-class-0" target="_blank" rel="noopener">Japanese Street Food Cooking Class</a>
@@ -682,7 +697,7 @@ body {
 <div class="score-debug">score 0.51</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/japanese-winter-cooking-class" target="_blank" rel="noopener">Japanese Winter Cooking Class</a>
@@ -692,7 +707,7 @@ body {
 <div class="score-debug">score 0.50</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://classbento.com.au/mexican-cooking-class-melbourne-1" target="_blank" rel="noopener">Mexican Cooking Class</a>
@@ -702,7 +717,7 @@ body {
 <div class="score-debug">score 0.33</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/middle-eastern-bbq-cooking-class-0" target="_blank" rel="noopener">Middle Eastern BBQ Cooking Class</a>
@@ -712,7 +727,7 @@ body {
 <div class="score-debug">score 0.30</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/middle-eastern-cooking-master-class" target="_blank" rel="noopener">Middle Eastern Cooking Master Class</a>
@@ -722,7 +737,7 @@ body {
 <div class="score-debug">score 0.27</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://classbento.com.au/moroccan-cooking-class-melbourne-0" target="_blank" rel="noopener">Moroccan Cooking Class</a>
@@ -732,7 +747,7 @@ body {
 <div class="score-debug">score 0.26</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/native-australian-cooking-class-melbourne" target="_blank" rel="noopener">Native Australian Cooking Class</a>
@@ -742,7 +757,7 @@ body {
 <div class="score-debug">score 0.34</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://classbento.com.au/premium-cocktail-making-masterclass-shake-stir-and-sip-melbourne" target="_blank" rel="noopener">Premium Cocktail Making Masterclass: Shake, Stir and Sip</a>
@@ -752,7 +767,7 @@ body {
 <div class="score-debug">score 0.48</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/school-holiday-cooking-workshop" target="_blank" rel="noopener">School Holiday Cooking Workshop</a>
@@ -762,7 +777,7 @@ body {
 <div class="score-debug">score 0.19</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/southeast-asian-cooking-class-cambodia-to-sri-lanka-melbourne" target="_blank" rel="noopener">Southeast Asian Cooking Class: Cambodia to Sri Lanka</a>
@@ -772,7 +787,7 @@ body {
 <div class="score-debug">score 0.44</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://classbento.com.au/spanish-cooking-class-melbourne" target="_blank" rel="noopener">Spanish Cooking Class</a>
@@ -782,7 +797,7 @@ body {
 <div class="score-debug">score 0.32</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/thai-cooking-class-0" target="_blank" rel="noopener">Thai Cooking Class</a>
@@ -792,7 +807,7 @@ body {
 <div class="score-debug">score 0.52</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/turkish-cooking-class-istanbul-and-beyond" target="_blank" rel="noopener">Turkish Cooking Class: Istanbul and Beyond</a>
@@ -802,7 +817,7 @@ body {
 <div class="score-debug">score 0.45</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Thornbury</div>
 <a class="title" href="https://classbento.com.au/ultimate-arepas-cooking-masterclass-melbourne" target="_blank" rel="noopener">Ultimate Arepas Cooking Masterclass</a>
@@ -812,7 +827,7 @@ body {
 <div class="score-debug">score 0.39</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vegan-gnocchi-cooking-class" target="_blank" rel="noopener">Vegan Gnocchi Cooking Class</a>
@@ -822,7 +837,7 @@ body {
 <div class="score-debug">score 0.41</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vegan-vietnamese-cooking-class" target="_blank" rel="noopener">Vegan Vietnamese Cooking Class</a>
@@ -832,7 +847,7 @@ body {
 <div class="score-debug">score 0.51</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://classbento.com.au/vegan-vietnamese-cooking-for-the-cooler-months" target="_blank" rel="noopener">Vegan Vietnamese Cooking Class for Autumn</a>
@@ -842,7 +857,7 @@ body {
 <div class="score-debug">score 0.52</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vegetarian-vietnamese-cooking-class-melbourne" target="_blank" rel="noopener">Vegetarian Vietnamese Cooking Class</a>
@@ -852,7 +867,7 @@ body {
 <div class="score-debug">score 0.45</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://classbento.com.au/vietnamese-cooking-class" target="_blank" rel="noopener">Vietnamese Cooking Class</a>
@@ -862,7 +877,7 @@ body {
 <div class="score-debug">score 0.42</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vietnamese-cooking-class-food-from-hanoi-melbourne" target="_blank" rel="noopener">Vietnamese Cooking Class: Food from Hanoi</a>
@@ -872,7 +887,7 @@ body {
 <div class="score-debug">score 0.55</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vietnamese-cooking-class-history-through-food-melbourne" target="_blank" rel="noopener">Vietnamese Cooking Class: History Through Food</a>
@@ -882,7 +897,7 @@ body {
 <div class="score-debug">score 0.54</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vietnamese-cooking-class-spring-rolls-melbourne" target="_blank" rel="noopener">Vietnamese Cooking Class: Spring Rolls</a>
@@ -892,7 +907,7 @@ body {
 <div class="score-debug">score 0.35</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vietnamese-inspired-winter-cooking-class" target="_blank" rel="noopener">Vietnamese Inspired Winter Cooking Class</a>
@@ -902,7 +917,7 @@ body {
 <div class="score-debug">score 0.46</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vietnamese-seafood-cooking-class-melbourne" target="_blank" rel="noopener">Vietnamese Seafood Cooking Class</a>
@@ -912,7 +927,7 @@ body {
 <div class="score-debug">score 0.46</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ClassBento</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://classbento.com.au/vietnamese-street-food-cooking-class-melbourne" target="_blank" rel="noopener">Vietnamese Street Food Cooking Class</a>
@@ -922,7 +937,7 @@ body {
 <div class="score-debug">score 0.46</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Gokula House Meditation &amp; Yoga Centre</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/sacred-friday-meditation" target="_blank" rel="noopener">Sacred Friday Meditation</a>
@@ -932,7 +947,7 @@ body {
 <div class="score-debug">score 0.34</div>
 <div class="badges"><span class="pill subcategory">#meditation</span><span class="pill subcategory">#yoga</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Mixed Zoning</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://events.humanitix.com/easy-as-pie" target="_blank" rel="noopener">Easy as Pie</a>
@@ -942,7 +957,7 @@ body {
 <div class="score-debug">score 0.27</div>
 <div class="badges"><span class="pill subcategory">#pop-up</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Otao Kitchen</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://otaokitchen.rezdy.com/chooseQuantity?productId=310701&amp;preferredDate=2026-04-24&amp;preferredTime=6%3A30+PM&amp;catalogId=90507&amp;iframe=1" target="_blank" rel="noopener">Cooking with Australian Ingredients Masterclass</a>
@@ -952,7 +967,7 @@ body {
 <div class="score-debug">score 0.38</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Otao Kitchen</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://otaokitchen.rezdy.com/chooseQuantity?productId=83238&amp;preferredDate=2026-04-24&amp;preferredTime=2%3A00+PM&amp;catalogId=90507&amp;iframe=1" target="_blank" rel="noopener">Japanese Cooking Masterclass</a>
@@ -962,7 +977,7 @@ body {
 <div class="score-debug">score 0.51</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Bouverie Centre</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/bouverie-ftw-ip-2026" target="_blank" rel="noopener">Families and Trauma Work (in person)</a>
@@ -972,7 +987,7 @@ body {
 <div class="score-debug">score 0.04</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Great Hall- Brunswick Neighbourhood House</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/ren-faire-ready" target="_blank" rel="noopener">Ren Faire Ready! Guided costume-making for fantasy adventurers</a>
@@ -982,7 +997,7 @@ body {
 <div class="score-debug">score 0.23</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">TreeProject Depot/Nursery</div>
 <div class="suburb">Kensington</div>
 <a class="title" href="https://events.humanitix.com/weekly-growers-group-fridays-at-kensington-depot-nursery-2026" target="_blank" rel="noopener">Weekly Growers Group - Fridays at Kensington Depot / Nursery</a>
@@ -1035,7 +1050,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 4 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Ian Potter Museum of Art</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/museums-collections/event/51113-a-velvet-ant-a-flower-and-a-bird" target="_blank" rel="noopener">A velvet ant, a flower and a bird</a>
@@ -1045,7 +1060,7 @@ body {
 <div class="score-debug">score 0.10</div>
 <div class="badges"><span class="pill subcategory">#exhibition</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Noel Shaw Gallery (104)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/Archives_Special_Collections/event/52001-ground-tours" target="_blank" rel="noopener">Ground Tours</a>
@@ -1055,7 +1070,7 @@ body {
 <div class="score-debug">score 0.11</div>
 <div class="badges"><span class="pill subcategory">#gallery</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Noel Shaw Gallery (104)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/Archives_Special_Collections/event/48284-the-grand-tour" target="_blank" rel="noopener">The Grand Tour</a>
@@ -1065,7 +1080,7 @@ body {
 <div class="score-debug">score 0.12</div>
 <div class="badges"><span class="pill subcategory">#gallery</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Science Gallery Melbourne</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/museums-collections/event/51928-distraction" target="_blank" rel="noopener">DISTRACTION</a>
@@ -1103,7 +1118,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 2 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Brunswick Library</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://www.merri-bek.vic.gov.au/exploring-merri-bek/events/whats-on/youth-takeover/?date=24-04-2026" target="_blank" rel="noopener">Youth Takeover Night Brunswick</a>
@@ -1113,7 +1128,7 @@ body {
 <div class="score-debug">score 0.09</div>
 <div class="badges"><span class="pill subcategory">#misc</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Melbourne Chess Club</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://events.humanitix.com/2026-mcc-anzac-day-weekender" target="_blank" rel="noopener">2026 MCC ANZAC Day Weekender</a>
@@ -1203,7 +1218,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 9 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">20-24 Tinning St</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/auction-rave-fundraiser" target="_blank" rel="noopener">Sleepless Festival and Fractal Doona Presents: Auction Rave Fundraiser</a>
@@ -1213,7 +1228,7 @@ body {
 <div class="score-debug">score 0.36</div>
 <div class="badges"><span class="pill subcategory">#experimental</span><span class="pill subcategory">#electronic</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Eastmint</div>
 <div class="suburb">Northcote</div>
 <a class="title" href="https://events.humanitix.com/radical-synthesis-or-nu-or-assembly-or-prudence-rees-lee" target="_blank" rel="noopener">Radical Synthesis | Nū | Assembly | Prudence Rees-Lee</a>
@@ -1223,7 +1238,7 @@ body {
 <div class="score-debug">score 0.76</div>
 <div class="badges"><span class="pill subcategory">#experimental</span><span class="pill subcategory">#electronic</span><span class="pill subcategory">#jazz</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Howler</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/40-40-melbourne-anthony-pappa-b2b-kasey-taylor-open-to-close" target="_blank" rel="noopener">40/40 Melbourne - Anthony Pappa B2B Kasey Taylor &quot;Open to Close&#x27;</a>
@@ -1233,7 +1248,7 @@ body {
 <div class="score-debug">score 0.12</div>
 <div class="badges"><span class="pill subcategory">#electronic</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">JOLT Arts</div>
 <div class="suburb">Northcote</div>
 <a class="title" href="https://events.humanitix.com/sensible-antixx-records-present-sensible-serenades" target="_blank" rel="noopener">Sensible Antixx Records Present: Sensible Serenades</a>
@@ -1243,7 +1258,7 @@ body {
 <div class="score-debug">score 0.48</div>
 <div class="badges"><span class="pill subcategory">#indie</span><span class="pill subcategory">#folk</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">MISCELLANIA</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/kinah-pres-anchored-by-heart" target="_blank" rel="noopener">Kinah pres. Anchored by Heart feat. MAZ, Karani, Mothafunk + more</a>
@@ -1253,7 +1268,7 @@ body {
 <div class="score-debug">score 0.42</div>
 <div class="badges"><span class="pill subcategory">#experimental</span><span class="pill subcategory">#electronic</span><span class="pill subcategory">#world</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Nighthawks</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/clit-split-dolls-and-jj-sizza" target="_blank" rel="noopener">Clit Split, DOLLS &amp; JJ Sizza LIVE at Nighthawks</a>
@@ -1263,7 +1278,7 @@ body {
 <div class="score-debug">score 0.41</div>
 <div class="badges"><span class="pill subcategory">#electronic</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Nighthawks</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/jack-gaby" target="_blank" rel="noopener">Jack Gaby - Golden hour tour homecoming</a>
@@ -1273,7 +1288,7 @@ body {
 <div class="score-debug">score 0.39</div>
 <div class="badges"><span class="pill subcategory">#indie-rock</span><span class="pill subcategory">#folk</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Nighthawks</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/sonny-la-monte-bb-sabina-hannah-potter-at-nighthawks-4wne8ds2" target="_blank" rel="noopener">Sonny La Monte, BB Sabina, Hannah Potter at Nighthawks</a>
@@ -1283,7 +1298,7 @@ body {
 <div class="score-debug">score 0.46</div>
 <div class="badges"><span class="pill subcategory">#indie-rock</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Grace Darling Hotel</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/go-go-toboggan-w-jim-jims-imfreshmeat" target="_blank" rel="noopener">Go Go Toboggan w/ Jim Jims, Imfreshmeat</a>
@@ -1331,7 +1346,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 1 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Cafe Gummo</div>
 <div class="suburb">Thornbury</div>
 <a class="title" href="https://events.humanitix.com/feral-prom-2026" target="_blank" rel="noopener">Feral PROM! 2026</a>
@@ -1429,7 +1444,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 10 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">44 La Trobe St</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.eventbrite.com.au/e/italian-cooking-classes-tickets-1981091678540" target="_blank" rel="noopener">Italian Cooking classes</a>
@@ -1439,7 +1454,7 @@ body {
 <div class="score-debug">score 0.22</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">53 Little Baillie St</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://events.humanitix.com/the-school-of-music-and-imagination-studio-retreat-with-darren-eden-and-andrew-mcsweeney-hecylccr" target="_blank" rel="noopener">The School of Music &amp; Imagination - Studio Retreat with Darren Eden &amp; Andrew McSweeney</a>
@@ -1449,7 +1464,7 @@ body {
 <div class="score-debug">score 0.09</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Ashtanga Yoga Centre of Melbourne</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://www.eventbrite.com.au/e/community-yoga-all-levels-welcome-tickets-1309303314459" target="_blank" rel="noopener">Community Yoga - All Levels Welcome</a>
@@ -1459,7 +1474,7 @@ body {
 <div class="score-debug">score 0.54</div>
 <div class="badges"><span class="pill subcategory">#yoga</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">CERES Community Environment Park</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://events.humanitix.com/autumn-peak-walking-workshop" target="_blank" rel="noopener">Autumn&#x27;s Peak Walking Workshop</a>
@@ -1469,7 +1484,7 @@ body {
 <div class="score-debug">score 0.40</div>
 <div class="badges"><span class="pill subcategory">#meditation</span><span class="pill subcategory">#yoga</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Otter Street Pocket Park</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://www.yarracity.vic.gov.au/things-to-do/events/mend-public-day" target="_blank" rel="noopener">Mend in Public Day</a>
@@ -1479,7 +1494,7 @@ body {
 <div class="score-debug">score 0.08</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">R. L. Foote Design Studio</div>
 <div class="suburb">Clifton Hill</div>
 <a class="title" href="https://events.humanitix.com/6-week-slip-casting-course" target="_blank" rel="noopener">6 Week Slip Casting Course</a>
@@ -1489,7 +1504,7 @@ body {
 <div class="score-debug">score 0.23</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Sabby</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/sabby-botc" target="_blank" rel="noopener">Blood on the Clocktower</a>
@@ -1499,7 +1514,7 @@ body {
 <div class="score-debug">score 0.20</div>
 <div class="badges"><span class="pill subcategory">#ttrpg</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Span Community House</div>
 <div class="suburb">Thornbury</div>
 <a class="title" href="https://events.humanitix.com/copy-of-maanz-mosaic-association-inner-north" target="_blank" rel="noopener">Mosaic in the Inner North</a>
@@ -1509,7 +1524,7 @@ body {
 <div class="score-debug">score 0.20</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Tableflip Games</div>
 <div class="suburb">Pascoe Vale South</div>
 <a class="title" href="https://events.humanitix.com/vault-403-opening-day" target="_blank" rel="noopener">Vault 403 Opening Day</a>
@@ -1519,7 +1534,7 @@ body {
 <div class="score-debug">score 0.23</div>
 <div class="badges"><span class="pill subcategory">#ttrpg</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Oratory</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://events.humanitix.com/unconditional-self-therapy" target="_blank" rel="noopener">Introduction to Unconditional Self-Therapy</a>
@@ -1557,7 +1572,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 6 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Carlton Gardens</div>
 <div class="suburb">Carlton</div>
 <a class="title" href="https://events.humanitix.com/founders-walk-ongoing" target="_blank" rel="noopener">Founders Walk (Melbourne)</a>
@@ -1567,7 +1582,7 @@ body {
 <div class="score-debug">score 0.18</div>
 <div class="badges"><span class="pill subcategory">#tour</span><span class="pill subcategory">#festival</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Champagne Problems</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/sips-in-the-city-bottomless-brunch" target="_blank" rel="noopener">SIPS IN THE CITY BOTTOMLESS BRUNCH</a>
@@ -1577,7 +1592,7 @@ body {
 <div class="score-debug">score 0.09</div>
 <div class="badges"><span class="pill subcategory">#food-hall</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Champagne Problems</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/boozy-bottomless-brunch-vsucpvfk" target="_blank" rel="noopener">Boozy Bottomless Brunch</a>
@@ -1587,7 +1602,7 @@ body {
 <div class="score-debug">score 0.09</div>
 <div class="badges"><span class="pill subcategory">#karaoke</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Citrus Fitzroy</div>
 <div class="suburb">Fitzroy North</div>
 <a class="title" href="https://events.humanitix.com/srilankan-peace-meal" target="_blank" rel="noopener">Sri Lankan Peace Meal</a>
@@ -1597,7 +1612,7 @@ body {
 <div class="score-debug">score 0.08</div>
 <div class="badges"><span class="pill subcategory">#food-hall</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Evies Disco Diner</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://events.humanitix.com/boozy-bottomless-brunch" target="_blank" rel="noopener">Boozy Bottomless Brunch Saturdays</a>
@@ -1607,7 +1622,7 @@ body {
 <div class="score-debug">score 0.17</div>
 <div class="badges"><span class="pill subcategory">#karaoke</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Southern Cross Train Station</div>
 <div class="suburb">Docklands</div>
 <a class="title" href="https://events.humanitix.com/wander-to-macedon-v-line-adventure-day" target="_blank" rel="noopener">Wander to Macedon Autumn Leaves V/Line Adventure Day</a>
@@ -1668,7 +1683,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 2 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">284 Smith St</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/disco-saloon-golden-daytime" target="_blank" rel="noopener">Disco Saloon Golden Daytime</a>
@@ -1678,7 +1693,7 @@ body {
 <div class="score-debug">score 0.01</div>
 <div class="badges"><span class="pill subcategory">#festival</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Lumen People</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://events.humanitix.com/kye-arnot-live-at-lumen" target="_blank" rel="noopener">Kye Arnot - Live at Lumen</a>
@@ -1726,7 +1741,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 2 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Champagne Video</div>
 <div class="suburb">Fitzroy North</div>
 <a class="title" href="https://events.humanitix.com/big-queer-movie-club-presents-love-lies-bleeding-2024" target="_blank" rel="noopener">Big Queer Movie Club presents: Love Lies Bleeding (2024)</a>
@@ -1736,7 +1751,7 @@ body {
 <div class="score-debug">score 0.22</div>
 <div class="badges"><span class="pill subcategory">#film</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Kathleen Syme Library and Community Centre</div>
 <div class="suburb">Carlton</div>
 <a class="title" href="https://events.humanitix.com/free-film-screening-discussion-event-black-and-cuba-dir-robin-j-hayes-2013" target="_blank" rel="noopener">Free Film Screening + Discussion Event: &quot;Black and Cuba&quot; (dir. Robin J. Hayes, 2013)</a>
@@ -1814,7 +1829,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 12 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">2 Lygon Street</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://www.merri-bek.vic.gov.au/exploring-merri-bek/events/events-from-public/public-event/city-nature-challenge-pollinator-workshop/" target="_blank" rel="noopener">City Nature Challenge Pollinator Workshop</a>
@@ -1824,7 +1839,7 @@ body {
 <div class="score-debug">score 0.10</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">26 Louisa Street</div>
 <div class="suburb">Coburg</div>
 <a class="title" href="https://www.merri-bek.vic.gov.au/exploring-merri-bek/events/events-from-public/public-event/mend-in-public-day/" target="_blank" rel="noopener">Mend in Public Day</a>
@@ -1834,7 +1849,7 @@ body {
 <div class="score-debug">score 0.21</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">AKA Studio Yoga</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://events.humanitix.com/temple-eden-sapphic-sugar-spice" target="_blank" rel="noopener">Temple Eden Sapphic: Sugar &amp; Spice</a>
@@ -1844,7 +1859,7 @@ body {
 <div class="score-debug">score 0.61</div>
 <div class="badges"><span class="pill subcategory">#authentic-relating</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Ashtanga Yoga Centre of Melbourne</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://www.eventbrite.com.au/e/yoga-for-tight-bodies-tickets-1309307386639" target="_blank" rel="noopener">Yoga for Tight Bodies</a>
@@ -1854,7 +1869,7 @@ body {
 <div class="score-debug">score 0.60</div>
 <div class="badges"><span class="pill subcategory">#yoga</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ASMY - Gokula House Meditation &amp; Yoga Centre</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/sunday-kirtan-meditation-gfcpgq7p" target="_blank" rel="noopener">Sunday Kirtan Meditation</a>
@@ -1864,7 +1879,7 @@ body {
 <div class="score-debug">score 0.82</div>
 <div class="badges"><span class="pill subcategory">#meditation</span><span class="pill subcategory">#breathwork</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">CERES</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://school.ceres.org.au/workshops/wild-weed-foraging-04-26/" target="_blank" rel="noopener">Wild Weed Foraging</a>
@@ -1874,7 +1889,7 @@ body {
 <div class="score-debug">score 0.60</div>
 <div class="badges"><span class="pill subcategory">#cooking</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Fortress Melbourne</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/dungeons-and-flagons-fortress-melbourne" target="_blank" rel="noopener">Dungeons &amp; Flagons @ Fortress Melbourne</a>
@@ -1884,7 +1899,7 @@ body {
 <div class="score-debug">score 0.18</div>
 <div class="badges"><span class="pill subcategory">#ttrpg</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Gokula House Meditation &amp; Yoga Centre</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://www.eventbrite.com.au/e/sunday-meditation-gathering-tickets-1986506274743" target="_blank" rel="noopener">Sunday Meditation Gathering</a>
@@ -1894,7 +1909,7 @@ body {
 <div class="score-debug">score 0.18</div>
 <div class="badges"><span class="pill subcategory">#meditation</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Green Monday Studios</div>
 <div class="suburb">Carlton</div>
 <a class="title" href="https://events.humanitix.com/depthoffield" target="_blank" rel="noopener">Depth of Field Sundays</a>
@@ -1904,7 +1919,7 @@ body {
 <div class="score-debug">score 0.40</div>
 <div class="badges"><span class="pill subcategory">#meditation</span><span class="pill subcategory">#yoga</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Kathleen Syme Library and Community Centre</div>
 <div class="suburb">Carlton</div>
 <a class="title" href="https://www.eventbrite.com.au/e/free-meditation-uplift-your-wellbeing-carlton-melbourne-tickets-849272505927" target="_blank" rel="noopener">Free Meditation - Uplift your wellbeing @ Carlton , Melbourne</a>
@@ -1914,7 +1929,7 @@ body {
 <div class="score-debug">score 0.83</div>
 <div class="badges"><span class="pill subcategory">#meditation</span><span class="pill subcategory">#breathwork</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Library at The Dock</div>
 <div class="suburb">Docklands</div>
 <a class="title" href="https://events.humanitix.com/felt-crafts" target="_blank" rel="noopener">Felt crafts</a>
@@ -1924,7 +1939,7 @@ body {
 <div class="score-debug">score 0.22</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Library at the Dock - Meeting Room 1</div>
 <div class="suburb">Docklands</div>
 <a class="title" href="https://events.humanitix.com/pride-and-peril-lgbt-dungeons-and-dragons" target="_blank" rel="noopener">Pride &amp; Peril: LGBT+ Dungeons and Dragons</a>
@@ -1962,7 +1977,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 2 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">233 Sydney Rd</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://www.merri-bek.vic.gov.au/exploring-merri-bek/events/events-from-public/public-event/han-fu-art-experience-in-brunswick2/" target="_blank" rel="noopener">HAN FU Art Experience in Brunswick</a>
@@ -1972,7 +1987,7 @@ body {
 <div class="score-debug">score 0.11</div>
 <div class="badges"><span class="pill subcategory">#gallery</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Fortress Melbourne</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/artisan-s-guild-fortressmelb" target="_blank" rel="noopener">ARTISAN&#x27;S GUILD @fortressmelb</a>
@@ -2010,7 +2025,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 1 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Evies Disco Diner</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://events.humanitix.com/boozy-bottomless-brunch-sundays" target="_blank" rel="noopener">Boozy Bottomless Brunch Sundays</a>
@@ -2141,7 +2156,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 10 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">International College of Meditation &amp; Healing</div>
 <div class="suburb">Northcote</div>
 <a class="title" href="https://events.humanitix.com/gain-freedom-by-changing-your-mindset-metaphysics-class" target="_blank" rel="noopener">Gain Freedom by Changing your Mindset (Metaphysics Class)</a>
@@ -2151,7 +2166,7 @@ body {
 <div class="score-debug">score 0.49</div>
 <div class="badges"><span class="pill subcategory">#meditation</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Kadampa Meditation Centre Melbourne - Brunswick</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/free-midday-guided-meditation-classes" target="_blank" rel="noopener">Free Midday Guided Meditation Classes</a>
@@ -2161,7 +2176,7 @@ body {
 <div class="score-debug">score 0.38</div>
 <div class="badges"><span class="pill subcategory">#meditation</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/knitting-for-beginners-with-clare-s2pkwnu6" target="_blank" rel="noopener">Knitting for Beginners with Clare</a>
@@ -2171,7 +2186,7 @@ body {
 <div class="score-debug">score 0.15</div>
 <div class="badges"><span class="pill subcategory">#craft</span><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/tool-your-own-leather-bookmark-with-jupiter-dzu43xh2" target="_blank" rel="noopener">Tool your own Leather Bookmark with Jupiter</a>
@@ -2181,7 +2196,7 @@ body {
 <div class="score-debug">score 0.11</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/dungeons-and-dragons-for-complete-beginners-with-raize-6n5w2j6u" target="_blank" rel="noopener">Dungeons and Dragons for Complete Beginners with Raize</a>
@@ -2191,7 +2206,7 @@ body {
 <div class="score-debug">score 0.31</div>
 <div class="badges"><span class="pill subcategory">#ttrpg</span><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/winter-bushwalking-for-every-body-with-clare" target="_blank" rel="noopener">Strolling is better than Doom Scrolling: Autumn Bushwalking with Clare</a>
@@ -2201,7 +2216,7 @@ body {
 <div class="score-debug">score 0.15</div>
 <div class="badges"><span class="pill subcategory">#walking</span><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/knitting-for-beginners-with-clare-11/" target="_blank" rel="noopener">Knitting for Beginners with Clare</a>
@@ -2211,7 +2226,7 @@ body {
 <div class="score-debug">score 0.05</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/tool-your-own-leather-bookmark-with-jupiter-2/" target="_blank" rel="noopener">Tool your own Leather Bookmark with Jupiter</a>
@@ -2221,7 +2236,7 @@ body {
 <div class="score-debug">score 0.02</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/dungeons-and-dragons-for-complete-beginners-with-raize-7/" target="_blank" rel="noopener">Dungeons and Dragons for Complete Beginners with Raize</a>
@@ -2231,7 +2246,7 @@ body {
 <div class="score-debug">score 0.14</div>
 <div class="badges"><span class="pill subcategory">#ttrpg</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/strolling-is-better-than-doom-scrolling-autumn-bushwalking-with-clare/" target="_blank" rel="noopener">Strolling is better than Doom Scrolling: Autumn Bushwalking with Clare</a>
@@ -2274,7 +2289,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 1 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Diskin Life Fitzroy</div>
 <div class="suburb">East Melbourne</div>
 <a class="title" href="https://events.humanitix.com/the-big-event-yzjc8paq" target="_blank" rel="noopener">The BIG Event:    Health through a DIFFERENT lens   (In Fitzroy)</a>
@@ -2360,7 +2375,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 6 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Forum Theatre</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.humanitix.com/the-end-of-the-world-as-we-know-it-how-to-survive-or-even-thrive-in-the-new-global-disorder" target="_blank" rel="noopener">The end of the world as we know it: how to survive (or even thrive) in the new global disorder</a>
@@ -2370,7 +2385,7 @@ body {
 <div class="score-debug">score 0.22</div>
 <div class="badges"><span class="pill subcategory">#talk</span><span class="pill subcategory">#lecture</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Forum Theatre (153)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/arts/event/51896-the-end-of-the-world-as-we-know-it-how-to-survive" target="_blank" rel="noopener">The end of the world as we know it: how to survive (or even thrive) in the new global disorder</a>
@@ -2380,7 +2395,7 @@ body {
 <div class="score-debug">score 0.12</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Ian Potter Auditorium (G52)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/biomedical-sciences/event/52098-understanding-early-embryonic-development-and" target="_blank" rel="noopener">Understanding early embryonic development and congenital birth defects using human embryo models</a>
@@ -2390,7 +2405,7 @@ body {
 <div class="score-debug">score 0.02</div>
 <div class="badges"><span class="pill subcategory">#lecture</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Joseph Beuys Cafe</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/power-with-not-power-over" target="_blank" rel="noopener">Power With not Power Over</a>
@@ -2400,7 +2415,7 @@ body {
 <div class="score-debug">score 0.14</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Little Bookroom</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://events.humanitix.com/duck-matt-stanton" target="_blank" rel="noopener">MEET AND GREET: Duck: Look Who&#x27;s Talking! by Matt Stanton</a>
@@ -2410,7 +2425,7 @@ body {
 <div class="score-debug">score 0.12</div>
 <div class="badges"><span class="pill subcategory">#misc</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Little Bookroom</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://events.humanitix.com/storytime-4fq6te7n" target="_blank" rel="noopener">Storytime</a>
@@ -2448,7 +2463,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 7 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Affirmation Station</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://events.humanitix.com/art-express-zx8zcdg9" target="_blank" rel="noopener">Art Express</a>
@@ -2458,7 +2473,7 @@ body {
 <div class="score-debug">score 0.45</div>
 <div class="badges"><span class="pill subcategory">#art</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Easey Art Space</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/life-drawing-easey-art-space" target="_blank" rel="noopener">Life Drawing - Easey Art Space</a>
@@ -2468,7 +2483,7 @@ body {
 <div class="score-debug">score 0.19</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/diy-screen-printing-tote-bags-with-maddy-vp8fzhze" target="_blank" rel="noopener">DIY Screen Printing Tote Bags with Maddy</a>
@@ -2478,7 +2493,7 @@ body {
 <div class="score-debug">score 0.08</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/teacup-soy-candle-making-with-maddy-gteu2sk4" target="_blank" rel="noopener">Teacup Soy Candle Making for Mothers Day with Maddy</a>
@@ -2488,7 +2503,7 @@ body {
 <div class="score-debug">score 0.05</div>
 <div class="badges"><span class="pill subcategory">#craft</span><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/diy-screen-printing-tote-bags-with-maddy-3/" target="_blank" rel="noopener">DIY Screen Printing Tote Bags with Maddy</a>
@@ -2498,7 +2513,7 @@ body {
 <div class="score-debug">score 0.01</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/teacup-soy-candle-making-for-mothers-day-with-maddy/" target="_blank" rel="noopener">Teacup Soy Candle Making for Mothers Day with Maddy</a>
@@ -2508,7 +2523,7 @@ body {
 <div class="score-debug">score 0.00</div>
 <div class="badges"><span class="pill subcategory">#craft</span><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">ZERYA</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/copy-of-wardrobe-styling" target="_blank" rel="noopener">Art of Repairing</a>
@@ -2576,7 +2591,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 1 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">La Di Da</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/linguas-language-exchange-at-la-di-da" target="_blank" rel="noopener">Linguas Language Exchange at La Di Da</a>
@@ -2662,7 +2677,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 8 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/the-art-of-flash-fiction-with-melissa" target="_blank" rel="noopener">The Art of Flash Fiction with Melissa</a>
@@ -2672,7 +2687,7 @@ body {
 <div class="score-debug">score 0.04</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Law G08</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/MLS/event/51740-2026-melbourne-university-law-review-annual-lecture-hu" target="_blank" rel="noopener">2026 Melbourne University Law Review Annual Lecture: Human rights and law reform</a>
@@ -2682,7 +2697,7 @@ body {
 <div class="score-debug">score 0.10</div>
 <div class="badges"><span class="pill subcategory">#lecture</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Le Club</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/cocktails-at-le-club-with-rise" target="_blank" rel="noopener">Cocktails at Le Club With RISE</a>
@@ -2692,7 +2707,7 @@ body {
 <div class="score-debug">score 0.11</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/the-art-of-flash-fiction-with-melissa/" target="_blank" rel="noopener">The Art of Flash Fiction with Melissa</a>
@@ -2702,7 +2717,7 @@ body {
 <div class="score-debug">score 0.04</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Melbourne Connect: 700 Swanston Street Carlton</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/melbourneconnect/event/52048-the-future-of-ownership" target="_blank" rel="noopener">The Future of Ownership</a>
@@ -2712,7 +2727,7 @@ body {
 <div class="score-debug">score 0.00</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Trainscendence</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/career-pathfinding-for-creatives-sessions-2-6-29-april" target="_blank" rel="noopener">Career Pathfinding for Creatives - Sessions 2 - 6 (29 April)</a>
@@ -2722,7 +2737,7 @@ body {
 <div class="score-debug">score 0.08</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Village Cinemas Crown</div>
 <div class="suburb">Southbank</div>
 <a class="title" href="https://events.humanitix.com/the-devil-wears-prada-pre-screening-with-rise" target="_blank" rel="noopener">The Devil Wears Prada - Pre-Screening with RISE</a>
@@ -2732,7 +2747,7 @@ body {
 <div class="score-debug">score 0.27</div>
 <div class="badges"><span class="pill subcategory">#film</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Zoom Webinar</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/CILIS/event/51691-whats-coming-for-indonesia-as-prabowo-consolidates" target="_blank" rel="noopener">What’s Coming for Indonesia as Prabowo Consolidates His Power?</a>
@@ -2820,7 +2835,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 10 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">25 Dawson St</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://www.merri-bek.vic.gov.au/exploring-merri-bek/events/events-from-public/public-event/circular-campus-to-community-hands-in-the-hanger-with-headphones-making-sessions-/?date=29-04-2026" target="_blank" rel="noopener">Circular Campus to Community: Hands-in-the-Hanger-with-Headphones Making Sessions</a>
@@ -2830,7 +2845,7 @@ body {
 <div class="score-debug">score 0.34</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/colourful-koi-an-intro-to-gouache-painting-with-emilie-hfhw69gj" target="_blank" rel="noopener">An Intro to Gouache Painting with Jess</a>
@@ -2840,7 +2855,7 @@ body {
 <div class="score-debug">score 0.18</div>
 <div class="badges"><span class="pill subcategory">#craft</span><span class="pill subcategory">#cooking</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/kokedama-moss-balls-with-maria-f9te8dxv" target="_blank" rel="noopener">Kokedama Moss Balls with Maria</a>
@@ -2850,7 +2865,7 @@ body {
 <div class="score-debug">score 0.19</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Laneway Learning</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/watercolour-for-beginners-galaxies-and-stars-with-emilie-dylmtg7j" target="_blank" rel="noopener">Watercolour for Beginners: Galaxies and Stars with Jess</a>
@@ -2860,7 +2875,7 @@ body {
 <div class="score-debug">score 0.11</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/colourful-koi-an-intro-to-gouache-painting-with-emilie-3/" target="_blank" rel="noopener">An Intro to Gouache Painting with Jess</a>
@@ -2870,7 +2885,7 @@ body {
 <div class="score-debug">score 0.08</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/kokedama-moss-balls-with-maria-4/" target="_blank" rel="noopener">Kokedama Moss Balls with Maria</a>
@@ -2880,7 +2895,7 @@ body {
 <div class="score-debug">score 0.03</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Level 3 Rooms 14</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.lanewaylearning.com/melbourne/classes/watercolour-for-beginners-galaxies-and-stars-with-emilie-5/" target="_blank" rel="noopener">Watercolour for Beginners: Galaxies and Stars with Jess</a>
@@ -2890,7 +2905,7 @@ body {
 <div class="score-debug">score 0.04</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Otao Kitchen</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://otaokitchen.rezdy.com/chooseQuantity?productId=562817&amp;preferredDate=2026-04-29&amp;preferredTime=6%3A30+PM&amp;catalogId=90507&amp;iframe=1" target="_blank" rel="noopener">Quick &amp; Tasty Cooking Class</a>
@@ -2900,7 +2915,7 @@ body {
 <div class="score-debug">score 0.43</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Russian House Community Centre</div>
 <div class="suburb">Fitzroy</div>
 <a class="title" href="https://events.humanitix.com/fitzroy-dance-class-jhoom-bollywood-wednesday-29th-april-2026" target="_blank" rel="noopener">Fitzroy Dance Class - Jhoom Bollywood - Wednesday 29th April 2026</a>
@@ -2910,7 +2925,7 @@ body {
 <div class="score-debug">score 0.17</div>
 <div class="badges"><span class="pill subcategory">#dance</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Hanger (Building 516. Floor 02. Room 001)</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/hands-in-the-hanger-with-headphones" target="_blank" rel="noopener">Circular Campus to Community: Hands-in-the-Hanger-with-Headphones Making Sessions</a>
@@ -2958,7 +2973,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 2 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">IMAX Melbourne (Museums Victoria)</div>
 <div class="suburb">Carlton</div>
 <a class="title" href="https://events.humanitix.com/foodie-walk-chinatown-delights-5km-walk-easy" target="_blank" rel="noopener">Foodie Walk Wednesday Chinatown Delights  5km Walk Easy</a>
@@ -2968,7 +2983,7 @@ body {
 <div class="score-debug">score 0.30</div>
 <div class="badges"><span class="pill subcategory">#food-hall</span><span class="pill subcategory">#festival</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Science Gallery Melbourne</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/museums-collections/event/50939-distraction" target="_blank" rel="noopener">DISTRACTION</a>
@@ -3054,7 +3069,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 3 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">614 High St</div>
 <div class="suburb">Thornbury</div>
 <a class="title" href="https://events.humanitix.com/tgmbea" target="_blank" rel="noopener">the greatest music bill ever assembled</a>
@@ -3064,7 +3079,7 @@ body {
 <div class="score-debug">score 0.35</div>
 <div class="badges"><span class="pill subcategory">#folk</span><span class="pill subcategory">#experimental</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Federation Hall - 5/7-17 Grant Street</div>
 <div class="suburb">Southbank</div>
 <a class="title" href="https://events.unimelb.edu.au/finearts-music/event/51755-international-jazz-day-with-jamie-oehlers-and" target="_blank" rel="noopener">International Jazz Day with Jamie Oehlers and Masters &amp;amp; Apprentices</a>
@@ -3074,7 +3089,7 @@ body {
 <div class="score-debug">score 0.48</div>
 <div class="badges"><span class="pill subcategory">#jazz</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Grace Darling Hotel</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/nathan-wong-welcome-to-25-single-launch" target="_blank" rel="noopener">Nathan Wong - &#x27;Welcome to 25&#x27; - Single Launch</a>
@@ -3112,7 +3127,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 9 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">ACMI</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://www.acmi.net.au/whats-on/spotlight-on-hong-kong-horror/" target="_blank" rel="noopener">Spotlight on Hong Kong Horror</a>
@@ -3122,7 +3137,7 @@ body {
 <div class="score-debug">score 0.15</div>
 <div class="badges"><span class="pill subcategory">#film</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Business Hub</div>
 <div class="suburb">Docklands</div>
 <a class="title" href="https://events.humanitix.com/localising-protection-gender-and-inclusion-delivery-in-the-pacific" target="_blank" rel="noopener">Localising Protection, Gender and Inclusion Delivery in the Pacific</a>
@@ -3132,7 +3147,7 @@ body {
 <div class="score-debug">score 0.01</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Federation Hall - 5/7-17 Grant Street</div>
 <div class="suburb">Southbank</div>
 <a class="title" href="https://events.unimelb.edu.au/finearts-music/event/51522-art-forum-simone-slee" target="_blank" rel="noopener">Art Forum: Simone Slee</a>
@@ -3142,7 +3157,7 @@ body {
 <div class="score-debug">score 0.06</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Hayball</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/stop-counting-towers-start-building-places" target="_blank" rel="noopener">Stop Counting Towers. Start Building Places</a>
@@ -3152,7 +3167,7 @@ body {
 <div class="score-debug">score 0.20</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Room 920</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/ALC/event/51711-indigenous-knowledge-for-an-inter-nations-law" target="_blank" rel="noopener">Indigenous Knowledge for an Inter-Nations Law: Indigenous Approaches as International Law</a>
@@ -3162,7 +3177,7 @@ body {
 <div class="score-debug">score 0.09</div>
 <div class="badges"><span class="pill subcategory">#lecture</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">University House</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.humanitix.com/lethbridge-wine-dinner" target="_blank" rel="noopener">Lethbridge Wine Dinner</a>
@@ -3172,7 +3187,7 @@ body {
 <div class="score-debug">score 0.12</div>
 <div class="badges"><span class="pill subcategory">#wine-tasting</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">WILD AT HEART studios</div>
 <div class="suburb">North Melbourne</div>
 <a class="title" href="https://events.humanitix.com/what-does-a-record-label-do-q3hta3ga" target="_blank" rel="noopener">WHAT DOES A RECORD LABEL DO?</a>
@@ -3182,7 +3197,7 @@ body {
 <div class="score-debug">score 0.16</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">William Macmahon Ball Theatre (107)</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/Robert_Cripps_Institute/event/51841-from-studio-to-cityscape" target="_blank" rel="noopener">From Studio to Cityscape: Collaboration and Conservation of Painted Outdoor Sculpture</a>
@@ -3192,7 +3207,7 @@ body {
 <div class="score-debug">score 0.18</div>
 <div class="badges"><span class="pill subcategory">#talk</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Woodward Conference Centre</div>
 <div class="suburb">Parkville</div>
 <a class="title" href="https://events.unimelb.edu.au/FBE/event/2026griffinlecture" target="_blank" rel="noopener">Griffin Economic History Public Lecture: Roots of Extremism</a>
@@ -3255,7 +3270,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 6 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Balam Balam Place</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/mamas-make-and-move" target="_blank" rel="noopener">Mamas Make &amp; Move</a>
@@ -3265,7 +3280,7 @@ body {
 <div class="score-debug">score 0.30</div>
 <div class="badges"><span class="pill subcategory">#movement</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">CERES</div>
 <div class="suburb">Brunswick East</div>
 <a class="title" href="https://school.ceres.org.au/workshops/intro-to-working-in-therapeutic-horticulture-04-26/" target="_blank" rel="noopener">Intro to Working in Therapeutic Horticulture</a>
@@ -3275,7 +3290,7 @@ body {
 <div class="score-debug">score 0.52</div>
 <div class="badges"><span class="pill subcategory">#workshop</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Otao Kitchen</div>
 <div class="suburb">Abbotsford</div>
 <a class="title" href="https://otaokitchen.rezdy.com/chooseQuantity?productId=91999&amp;preferredDate=2026-04-30&amp;preferredTime=6%3A31+PM&amp;catalogId=90507&amp;iframe=1" target="_blank" rel="noopener">Dumplings Party</a>
@@ -3285,7 +3300,7 @@ body {
 <div class="score-debug">score 0.35</div>
 <div class="badges"><span class="pill subcategory">#cooking</span><span class="pill date-idea">date idea</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">RMIT University - Melbourne City Campus</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/crafty-sessions" target="_blank" rel="noopener">Craft, Chat and Chill</a>
@@ -3295,7 +3310,7 @@ body {
 <div class="score-debug">score 0.28</div>
 <div class="badges"><span class="pill subcategory">#craft</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">Span Community House</div>
 <div class="suburb">Thornbury</div>
 <a class="title" href="https://events.humanitix.com/make-and-mend-weekly-sewing-group" target="_blank" rel="noopener">Make and Mend - Weekly sewing group</a>
@@ -3305,7 +3320,7 @@ body {
 <div class="score-debug">score 0.10</div>
 <div class="badges"><span class="pill subcategory">#craft</span><span class="pill subcategory">#cooking</span></div>
 </article>
-<article class="event">
+<article class="event extra">
 <div class="venue">The Bouverie Centre</div>
 <div class="suburb">Brunswick</div>
 <a class="title" href="https://events.humanitix.com/bouverie-cp-ip-2026" target="_blank" rel="noopener">Child&#x27;s Play (in person)</a>
@@ -3348,7 +3363,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 1 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">Hua Lu Peking Duck</div>
 <div class="suburb">Melbourne</div>
 <a class="title" href="https://events.humanitix.com/hay-shed-hill-at-hua-lu-peking-duck" target="_blank" rel="noopener">Hay Shed Hill at Hua Lu Peking Duck</a>
@@ -3386,7 +3401,7 @@ body {
 </div>
 <button class="show-more" type="button" aria-expanded="false">Show 1 more</button>
 <div class="events events-expanded" hidden>
-<article class="event">
+<article class="event extra">
 <div class="venue">New Guernica</div>
 <div class="suburb">Collingwood</div>
 <a class="title" href="https://events.humanitix.com/free-entry-2-guerns-thurs" target="_blank" rel="noopener">FREE ENTRY BEFORE 11PM - GUERNS THURS - $5 Pots, Seltzers $6.5 Vodkas</a>
