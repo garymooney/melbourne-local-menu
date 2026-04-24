@@ -133,6 +133,13 @@ body {
   border-radius: 4px;
   border-left: 6px solid var(--dark);
   margin: 1.2em 0 0.6em;
+  /* Pin under the site-header (which is sticky at top:0) so the
+   * category being scrolled stays visible. --header-offset is set
+   * by JS from .site-header.offsetHeight; the fallback covers the
+   * pre-JS render. */
+  position: sticky;
+  top: var(--header-offset, 120px);
+  z-index: 5;
 }
 .category-header .count {
   font-weight: 500;
@@ -3420,6 +3427,19 @@ body {
 <script>
 
 (function () {
+  // Sync --header-offset to the actual rendered .site-header height so
+  // .category-header sticks flush below it. Re-runs on resize because
+  // the day-tabs row can wrap.
+  var siteHeader = document.querySelector('.site-header');
+  function syncHeaderOffset() {
+    if (!siteHeader) return;
+    document.documentElement.style.setProperty(
+      '--header-offset', siteHeader.offsetHeight + 'px'
+    );
+  }
+  syncHeaderOffset();
+  window.addEventListener('resize', syncHeaderOffset);
+
   var tabs = Array.prototype.slice.call(document.querySelectorAll('.day-tab'));
   var panels = Array.prototype.slice.call(document.querySelectorAll('.day'));
   if (!tabs.length) return;
