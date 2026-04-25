@@ -167,6 +167,16 @@ body {
   border-left-style: dashed;
   background: transparent;
   opacity: 0.78;
+  position: relative;
+}
+/* When the score-chip tooltip is open, lift the card above the sticky
+   category header. The card's `opacity: 0.78` creates a stacking context
+   that would otherwise trap the tooltip's z-index inside it, letting
+   the next .category-header (z-index 5) render on top. */
+.event:has(.score-chip:hover),
+.event:has(.score-chip:focus-within),
+.event:has(.score-chip.open) {
+  z-index: 50;
 }
 .event.extra .venue,
 .event.extra .title {
