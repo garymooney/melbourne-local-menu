@@ -1710,15 +1710,14 @@ body {
   var SUBURB_TIER_SECTION_LABELS = {
     home: 'Home', local: 'Local', included: 'Included', outside: 'Outside',
   };
+  // Included tier always weights 0 (no slider) — it's the "kept but
+  // not boosted" tier. Outside tier is hard-filtered, so no slider.
   var SUBURB_WEIGHT_FIELDS = [
     { tier: 'home',     label: 'Home weight',
       hint: 'Bonus added for events in your "Home" suburb.',
       min: 0, max: 0.4, step: 0.01 },
     { tier: 'local',    label: 'Local weight',
       hint: 'Bonus added for events in any "Local" suburb.',
-      min: 0, max: 0.4, step: 0.01 },
-    { tier: 'included', label: 'Included weight',
-      hint: 'Bonus added for events in any "Included" suburb (CBD, etc.).',
       min: 0, max: 0.4, step: 0.01 },
   ];
 
@@ -1951,7 +1950,7 @@ body {
     // Suburb tier weights
     var curSw = profile.suburb_tier_weights || {};
     var defSw = defaultProfile.suburb_tier_weights || {};
-    var swKeys = ['home', 'local', 'included'];
+    var swKeys = ['home', 'local'];
     for (var swk = 0; swk < swKeys.length; swk++) {
       if (curSw[swKeys[swk]] != null && curSw[swKeys[swk]] !== defSw[swKeys[swk]]) count++;
     }
