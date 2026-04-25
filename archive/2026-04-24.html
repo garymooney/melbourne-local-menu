@@ -1391,7 +1391,8 @@ body {
       var tags = tax[catKey];
       if (!tags || !tags.length) continue;
       var display = CATEGORY_DISPLAY[catKey] || catKey;
-      var rows = tags.map(renderSubcatRow).join('\n');
+      var sortedTags = tags.slice().sort();
+      var rows = sortedTags.map(renderSubcatRow).join('\n');
       parts.push(
         '<div class="subcat-group">' +
           '<h4 class="subcat-group-heading">' + escapeHtml(display) + '</h4>' +
