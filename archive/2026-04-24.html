@@ -459,35 +459,6 @@ body {
 
 .settings-panel[hidden] { display: none; }
 
-.settings-preview-row {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 1em;
-  padding: 10px 14px;
-  background: var(--card-bg);
-  border-radius: 6px;
-  border-left: 3px solid var(--accent-cool);
-}
-.settings-preview-row .settings-hint {
-  font-size: 0.88em;
-  color: var(--muted);
-  line-height: 1.4;
-}
-.settings-preview-btn {
-  flex: 0 0 auto;
-  background: var(--accent-cool);
-  color: #fff;
-  border: none;
-  padding: 8px 16px;
-  border-radius: 6px;
-  font: inherit;
-  font-weight: 600;
-  font-size: 0.88em;
-  cursor: pointer;
-}
-.settings-preview-btn:hover { filter: brightness(1.08); }
-
 .subcat-group { margin-bottom: 1.4em; }
 .subcat-group-heading {
   font-size: 0.78em;
@@ -1641,12 +1612,6 @@ body {
         '<button class="settings-subtab" role="tab" data-subtab="shape" ' +
           'aria-selected="false">Shape</button>' +
       '</nav>' +
-      '<div class="settings-preview-row">' +
-        '<span class="settings-hint">Changes apply instantly. ' +
-          'Day tab counts update as you tier.</span>' +
-        '<button class="settings-preview-btn" type="button" ' +
-          'data-action="preview">Back to last day</button>' +
-      '</div>' +
       '<div class="settings-panel" data-subtab="subcategories">' +
         renderSubcatGroups() +
         '<div class="settings-actions">' +
@@ -2043,10 +2008,7 @@ body {
 
     var action = e.target.closest && e.target.closest('[data-action]');
     if (action) {
-      if (action.dataset.action === 'preview') {
-        var target = lastDayTab || firstAvailableDayTab();
-        if (target) activate(target, { updateHash: true });
-      } else if (action.dataset.action === 'reset-subcategories') {
+      if (action.dataset.action === 'reset-subcategories') {
         // Reset to the shipped defaults (not empty) so the baseline
         // taste seeding is restored.
         var base = defaultProfile.subcategory_tiers || {};
