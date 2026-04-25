@@ -1377,13 +1377,9 @@ body {
   function renderSubcatGroups() {
     var tax = profile.subcategory_taxonomy || {};
     var parts = [
-      '<p class="facet-intro">Subcategories are discrete tags an extractor ' +
-      'assigns to each event (jazz, yoga, cooking, shibari, etc.). They ' +
-      'answer <em>what is this event</em>, whereas facets answer <em>what ' +
-      'does it feel like</em>. Use these for specific genre / style / ' +
-      'technique preferences you have within a category. <strong>Love' +
-      '</strong> promotes events with that tag, <strong>Avoid</strong> ' +
-      'demotes them. Bonuses are averaged across an event\'s tags.</p>'
+      '<p class="facet-intro">Tags an extractor assigns to each event ' +
+      '(jazz, yoga, cooking, shibari, etc.). Bonuses are averaged across ' +
+      'an event\'s tags.</p>'
     ];
     for (var i = 0; i < CATEGORY_ORDER.length; i++) {
       var catKey = CATEGORY_ORDER[i];
@@ -1506,10 +1502,9 @@ body {
       rows.push(renderRuleRow(r, defaults[r]));
     }
     return (
-      '<p class="facet-intro">Rules are boolean signals the server computes ' +
-      'per event. <strong>Priority venue</strong> and <strong>Priority artist' +
-      '</strong> can additionally <em>pin</em> their events above the score ' +
-      'floor (use the third chip). Every other rule is a simple on/off.</p>' +
+      '<p class="facet-intro">Boolean signals computed per event. ' +
+      '<strong>Priority venue</strong> and <strong>Priority artist</strong> ' +
+      'can additionally <em>pin</em> their events; the rest are on/off.</p>' +
       '<div class="subcat-group">' + rows.join('\n') + '</div>'
     );
   }
@@ -1568,8 +1563,8 @@ body {
   function renderShapePanel() {
     var rows = SHAPE_FIELDS.map(renderShapeRow).join('\n');
     return (
-      '<p class="facet-intro">Shape controls affect the ranking overall ' +
-      'rather than any single event. Changes apply live.</p>' +
+      '<p class="facet-intro">Affect the ranking overall rather than ' +
+      'any single event.</p>' +
       '<div class="subcat-group">' + rows + '</div>'
     );
   }
@@ -1584,14 +1579,10 @@ body {
       return '<div class="settings-placeholder">No facets in profile.</div>';
     }
     return (
-      '<p class="facet-intro">Facets match each event against a <em>vibe' +
-      '</em> &mdash; a recognisable event feel (meditation-y, corporate-' +
-      'y, avant-garde-y, etc.) rather than a concrete category. Each row ' +
-      'below asks: <em>does this event read like this vibe?</em>. Set ' +
-      '<strong>Love</strong> to surface matching events, <strong>Avoid' +
-      '</strong> to demote them, <strong>Neutral</strong> to ignore the ' +
-      'facet. Defaults reflect Gary\'s preferences &mdash; flip any ' +
-      'facet either direction to match yours.</p>' +
+      '<p class="facet-intro">Match each event against a <em>vibe</em> ' +
+      '&mdash; a recognisable feel (meditation-y, corporate-y, ' +
+      'avant-garde-y, etc.). Each row asks: <em>does this event read ' +
+      'like this vibe?</em></p>' +
       '<div class="subcat-group">' +
         rows.join('\n') +
       '</div>'
