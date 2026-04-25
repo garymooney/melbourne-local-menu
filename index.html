@@ -1377,9 +1377,8 @@ body {
   function renderSubcatGroups() {
     var tax = profile.subcategory_taxonomy || {};
     var parts = [
-      '<p class="facet-intro">Tags an extractor assigns to each event ' +
-      '(jazz, yoga, cooking, shibari, etc.). Bonuses are averaged across ' +
-      'an event\'s tags.</p>'
+      '<p class="facet-intro">What kind of event this is &mdash; jazz, ' +
+      'yoga, cooking, shibari, and so on. Each event can carry a few tags.</p>'
     ];
     for (var i = 0; i < CATEGORY_ORDER.length; i++) {
       var catKey = CATEGORY_ORDER[i];
@@ -1502,9 +1501,9 @@ body {
       rows.push(renderRuleRow(r, defaults[r]));
     }
     return (
-      '<p class="facet-intro">Boolean signals computed per event. ' +
-      '<strong>Priority venue</strong> and <strong>Priority artist</strong> ' +
-      'can additionally <em>pin</em> their events; the rest are on/off.</p>' +
+      '<p class="facet-intro">Specific situations the menu can react to ' +
+      '&mdash; events at favourite venues, events from favourite artists, ' +
+      'dating events, and so on.</p>' +
       '<div class="subcat-group">' + rows.join('\n') + '</div>'
     );
   }
@@ -1563,8 +1562,9 @@ body {
   function renderShapePanel() {
     var rows = SHAPE_FIELDS.map(renderShapeRow).join('\n');
     return (
-      '<p class="facet-intro">Affect the ranking overall rather than ' +
-      'any single event.</p>' +
+      '<p class="facet-intro">Overall dials for how the menu is shaped ' +
+      '&mdash; how strict, how varied, and how strongly your loved / ' +
+      'liked / avoided tags move events.</p>' +
       '<div class="subcat-group">' + rows + '</div>'
     );
   }
@@ -1579,10 +1579,9 @@ body {
       return '<div class="settings-placeholder">No facets in profile.</div>';
     }
     return (
-      '<p class="facet-intro">Match each event against a <em>vibe</em> ' +
-      '&mdash; a recognisable feel (meditation-y, corporate-y, ' +
-      'avant-garde-y, etc.). Each row asks: <em>does this event read ' +
-      'like this vibe?</em></p>' +
+      '<p class="facet-intro">The overall <em>vibe</em> of an event ' +
+      '&mdash; meditation-y, corporate-y, avant-garde-y, and so on. ' +
+      'Tier the vibes you want more or less of.</p>' +
       '<div class="subcat-group">' +
         rows.join('\n') +
       '</div>'
@@ -1595,7 +1594,7 @@ body {
     view.innerHTML = (
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
         '<button class="settings-subtab" role="tab" data-subtab="subcategories" ' +
-          'aria-selected="true">Subcategories</button>' +
+          'aria-selected="true">Tags</button>' +
         '<button class="settings-subtab" role="tab" data-subtab="facets" ' +
           'aria-selected="false">Facets</button>' +
         '<button class="settings-subtab" role="tab" data-subtab="rules" ' +
@@ -1607,7 +1606,7 @@ body {
         renderSubcatGroups() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
-            'data-action="reset-subcategories">Reset all subcategories</button>' +
+            'data-action="reset-subcategories">Reset all tags</button>' +
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="facets" hidden>' +
