@@ -381,10 +381,21 @@ body {
   flex-direction: row;
   align-items: center;
   justify-content: center;
-  padding: 6px 9px;
-  color: var(--muted);
-  font-size: 1.1em;
+  /* Square box: equal width/height; the inner gear glyph centres in it.
+     Thicker outline + slightly stronger color makes the control more
+     obvious next to the day buttons. */
+  width: 38px;
+  height: 38px;
+  padding: 0;
+  border-width: 2px;
+  border-color: var(--muted);
+  color: var(--dark);
+  font-size: 1.15em;
   line-height: 1;
+}
+.day-tab.settings-tab:hover {
+  border-color: var(--accent-cool);
+  color: var(--accent-cool);
 }
 .day-tab.settings-tab[aria-selected="true"] {
   background: var(--accent-cool);
