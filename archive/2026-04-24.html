@@ -69,16 +69,23 @@ body {
   border-radius: 8px;
   line-height: 1.2;
 }
+/* Header row holds the scrolling day-tabs and the static gear button.
+   Gear lives outside .day-tabs so day buttons can never scroll under it. */
+.tabs-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  margin: 0 -1em;
+  padding: 4px 1em 8px;
+}
 .day-tabs {
   display: flex;
   gap: 4px;
   overflow-x: auto;
   scrollbar-width: thin;
-  padding: 4px 0 8px;
-  margin: 0 -1em;
-  padding-left: 1em;
-  padding-right: 1em;
   -webkit-overflow-scrolling: touch;
+  flex: 1 1 auto;
+  min-width: 0;
 }
 .day-tab {
   flex: 0 0 auto;
@@ -365,44 +372,40 @@ body {
   line-height: 1.4;
 }
 
-/* --- Settings tab sits at the end of day-tabs, separated by a divider. */
-/* Divider hidden — settings tab is sticky and always pinned to the
-   right edge, so the visual separator is unnecessary. Keep the DOM
-   element so removing the rule re-enables it without JS changes. */
-.tab-divider { display: none; }
+/* --- Settings tab is a compact icon-only button, always visible at
+   the right edge of the header (never scrolls). Lives outside
+   .day-tabs as a flex sibling, so day buttons can never slide under it. */
 .day-tab.settings-tab {
+  position: relative;
+  flex: 0 0 auto;
   flex-direction: row;
   align-items: center;
-  gap: 6px;
+  justify-content: center;
+  padding: 6px 9px;
   color: var(--muted);
-  /* Pin to right edge of the horizontally-scrolling day-tabs nav so
-     the gear is always one click away regardless of which day tab
-     is in view. Background matches the header so day buttons that
-     scroll under it stay invisible; box-shadow softens the edge. */
-  position: sticky;
-  right: 0;
-  background: var(--bg);
-  box-shadow: -12px 0 14px -8px var(--bg);
-  z-index: 2;
+  font-size: 1.1em;
+  line-height: 1;
 }
 .day-tab.settings-tab[aria-selected="true"] {
   background: var(--accent-cool);
   border-color: var(--accent-cool);
   color: #fff;
-  box-shadow: -12px 0 14px -8px var(--bg);
 }
-.settings-gear { font-size: 1.05em; line-height: 1; }
+.settings-gear { line-height: 1; }
 .settings-badge {
-  display: inline-block;
-  min-width: 1.4em;
-  padding: 0 5px;
-  font-size: 0.72em;
+  position: absolute;
+  top: -6px;
+  right: -6px;
+  min-width: 1.1em;
+  padding: 0 4px;
+  font-size: 0.62em;
   font-weight: 700;
   text-align: center;
   border-radius: 8px;
   background: var(--accent-warm);
   color: #fff;
-  line-height: 1.4;
+  line-height: 1.5;
+  pointer-events: none;
 }
 .settings-badge[hidden] { display: none; }
 
@@ -680,7 +683,10 @@ body {
 <div class="container">
 <header class="site-header">
 <h1 class="site-title">Melbourne menu — week of 2026-04-24</h1>
+<div class="tabs-row">
 <nav class="day-tabs" role="tablist" aria-label="Days"></nav>
+<button class="day-tab settings-tab" role="tab" id="tab-settings" aria-controls="settings-view" aria-selected="false" tabindex="-1" data-tab="settings" aria-label="Settings" title="Settings"><span class="settings-gear" aria-hidden="true">⚙</span><span class="settings-badge" hidden>0</span></button>
+</div>
 </header>
 <main id="main">
 <section id="settings-view" role="tabpanel" aria-labelledby="tab-settings" hidden></section>
@@ -1343,18 +1349,8 @@ body {
         '</button>'
       );
     }
-    // Visual divider + Settings tab at the end. The gear + label stays
-    // sticky in the header, so Settings is always one click away.
-    buttons.push('<span class="tab-divider" aria-hidden="true"></span>');
-    buttons.push(
-      '<button class="day-tab settings-tab" role="tab" id="tab-settings" ' +
-      'aria-controls="settings-view" aria-selected="false" tabindex="-1" ' +
-      'data-tab="settings">' +
-        '<span class="settings-gear" aria-hidden="true">⚙</span>' +
-        '<span>Settings</span>' +
-        '<span class="settings-badge" hidden>0</span>' +
-      '</button>'
-    );
+    // Settings tab is a static element in the page template (lives outside
+    // .day-tabs so it can't be scrolled under). We only render day buttons here.
     return buttons.join('\n');
   }
 
