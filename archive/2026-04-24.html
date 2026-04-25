@@ -699,15 +699,42 @@ body {
   min-width: 3.2em;
   text-align: right;
 }
-.shape-row select[data-home-suburb] {
+.subcat-group-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+}
+.add-suburb-btn {
+  appearance: none;
+  background: transparent;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  width: 22px;
+  height: 22px;
+  font-size: 1em;
+  line-height: 1;
+  color: var(--muted);
+  cursor: pointer;
+  padding: 0;
+}
+.add-suburb-btn:hover { color: var(--dark); border-color: var(--dark); }
+.add-suburb-picker {
+  margin: 6px 0 10px;
+  display: flex;
+  gap: 6px;
+}
+.add-suburb-picker[hidden] { display: none; }
+.add-suburb-picker select {
   font: inherit;
-  font-size: 0.95em;
-  padding: 6px 10px;
+  font-size: 0.92em;
+  padding: 5px 8px;
   border: 1px solid var(--rule);
   border-radius: 6px;
   background: #fff;
   color: var(--dark);
-  min-width: 180px;
+  flex: 1;
+  min-width: 0;
 }
 
 </style>
@@ -1799,41 +1826,29 @@ body {
     );
   }
 
-  function currentHomeSuburb() {
-    var t = profile.suburb_tiers || {};
-    for (var k in t) {
-      if (t[k] === 'home') return k;
-    }
-    return '';
-  }
-
-  function renderHomeSuburbPicker() {
+  function renderAddSuburbPicker(tier, suburbsInTier) {
+    // Suburbs not currently in this tier — selecting one moves it here.
+    var inTier = {};
+    for (var i = 0; i < suburbsInTier.length; i++) inTier[suburbsInTier[i]] = true;
     var tax = (defaultProfile.suburb_taxonomy || []).slice().sort();
-    var current = currentHomeSuburb();
-    var opts = ['<option value="">—</option>'].concat(
-      tax.map(function (s) {
-        return (
-          '<option value="' + escapeHtml(s) + '"' +
-          (s === current ? ' selected' : '') + '>' +
-          escapeHtml(s) +
-          '</option>'
-        );
-      })
-    ).join('');
+    var opts = ['<option value="">Add a suburb…</option>'];
+    for (var j = 0; j < tax.length; j++) {
+      if (inTier[tax[j]]) continue;
+      opts.push(
+        '<option value="' + escapeHtml(tax[j]) + '">' +
+        escapeHtml(tax[j]) + '</option>'
+      );
+    }
     return (
-      '<div class="shape-row" data-home-picker="true">' +
-        '<div class="shape-text">' +
-          '<span class="shape-name">Your suburb</span>' +
-          '<span class="shape-hint">Pick where you live &mdash; ' +
-            'gets the home bonus.</span>' +
-        '</div>' +
-        '<select data-home-suburb>' + opts + '</select>' +
+      '<div class="add-suburb-picker" data-add-tier="' + tier + '" hidden>' +
+        '<select data-add-suburb-select="' + tier + '">' +
+          opts.join('') +
+        '</select>' +
       '</div>'
     );
   }
 
   function renderSuburbsPanel() {
-    // Home picker + weight sliders at top.
     var weightRows = SUBURB_WEIGHT_FIELDS.map(renderSuburbWeightRow).join('\n');
     // Group taxonomy by current tier.
     var tax = (defaultProfile.suburb_taxonomy || []).slice().sort();
@@ -1845,13 +1860,16 @@ body {
     var sections = [];
     for (var k = 0; k < SUBURB_TIERS_ORDER.length; k++) {
       var tk = SUBURB_TIERS_ORDER[k];
-      if (!groups[tk].length) continue;
       var rows = groups[tk].map(renderSuburbRow).join('\n');
       sections.push(
-        '<div class="subcat-group">' +
+        '<div class="subcat-group" data-suburb-tier="' + tk + '">' +
           '<h4 class="subcat-group-heading">' +
-            escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) +
+            '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '</span>' +
+            '<button type="button" class="add-suburb-btn" ' +
+              'data-add-suburb="' + tk + '" ' +
+              'aria-label="Add suburb to ' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '">+</button>' +
           '</h4>' +
+          renderAddSuburbPicker(tk, groups[tk]) +
           rows +
         '</div>'
       );
@@ -1860,8 +1878,7 @@ body {
       '<p class="facet-intro">Where an event is &mdash; your home ' +
       'patch, somewhere local, or further afield. Re-tier any suburb ' +
       'to bring its events in or push them out.</p>' +
-      '<div class="subcat-group">' + renderHomeSuburbPicker() +
-        weightRows + '</div>' +
+      '<div class="subcat-group">' + weightRows + '</div>' +
       sections.join('\n')
     );
   }
@@ -2274,17 +2291,29 @@ body {
     renderAll();
   }
 
-  function handleHomeSuburbChange(newHome) {
-    // Single-home model: demote any current home to local, then
-    // promote the new pick. Empty selection clears the current home
-    // (also down to local) without setting a new one.
-    profile.suburb_tiers = profile.suburb_tiers || {};
-    for (var s in profile.suburb_tiers) {
-      if (profile.suburb_tiers[s] === 'home') {
-        profile.suburb_tiers[s] = 'local';
-      }
+  function toggleAddSuburbPicker(tier) {
+    // Show only the picker for `tier`; hide any other open one. If
+    // `tier`'s picker was already open, close it.
+    var pickers = document.querySelectorAll('.add-suburb-picker');
+    var wantOpen = null;
+    for (var i = 0; i < pickers.length; i++) {
+      var p = pickers[i];
+      var isTarget = p.dataset.addTier === tier;
+      var isOpen = !p.hidden;
+      if (isTarget && !isOpen) wantOpen = p;
+      p.hidden = true;
     }
-    if (newHome) profile.suburb_tiers[newHome] = 'home';
+    if (wantOpen) {
+      wantOpen.hidden = false;
+      var sel = wantOpen.querySelector('select');
+      if (sel) sel.focus();
+    }
+  }
+
+  function handleAddSuburbToTier(tier, suburb) {
+    if (!suburb) return;
+    profile.suburb_tiers = profile.suburb_tiers || {};
+    profile.suburb_tiers[suburb] = tier;
     saveProfile();
     rerenderSettingsPreservingSubtab();
     renderAll();
@@ -2357,6 +2386,12 @@ body {
         handleSuburbTierChange(suburbRowChip.dataset.suburb, chip.dataset.value);
         return;
       }
+    }
+
+    var addSuburb = e.target.closest && e.target.closest('.add-suburb-btn');
+    if (addSuburb) {
+      toggleAddSuburbPicker(addSuburb.dataset.addSuburb);
+      return;
     }
 
     var ruleBtn = e.target.closest && e.target.closest('.rule-toggle');
@@ -2442,8 +2477,8 @@ body {
       handleShapeChange(e.target.dataset.shape, e.target.value);
     } else if (e.target.matches('.suburb-weight-input input[type="range"]')) {
       handleSuburbWeightChange(e.target.dataset.suburbWeight, e.target.value);
-    } else if (e.target.matches('select[data-home-suburb]')) {
-      handleHomeSuburbChange(e.target.value);
+    } else if (e.target.matches('select[data-add-suburb-select]')) {
+      handleAddSuburbToTier(e.target.dataset.addSuburbSelect, e.target.value);
     }
   });
 
