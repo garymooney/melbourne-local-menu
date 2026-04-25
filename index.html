@@ -515,6 +515,20 @@ body {
 .tri[aria-pressed="true"][data-value="neutral"] { background: var(--muted); color: #fff; }
 .tri[aria-pressed="true"][data-value="avoid"] { background: #c4452b; color: #fff; }
 
+/* Modified-state indicator: small accent dot before the row name when
+   the row's current value differs from the shipped default. Hooks off
+   data-modified="true" set by the row renderer + each handler. */
+.subcat-row[data-modified="true"] .subcat-name::before,
+.facet-row[data-modified="true"] .facet-name::before,
+.rule-row[data-modified="true"] .rule-name::before,
+.shape-row[data-modified="true"] .shape-name::before {
+  content: "● ";
+  color: var(--accent-warm);
+  font-size: 0.7em;
+  vertical-align: 1px;
+  margin-right: 3px;
+}
+
 .settings-actions {
   display: flex;
   justify-content: flex-end;
@@ -1361,6 +1375,42 @@ body {
   var TIERS = ['love', 'like', 'neutral', 'avoid'];
   var TIER_LABELS = { love: 'Love', like: 'Like', neutral: 'Meh', avoid: 'Avoid' };
 
+  // --- Modified-state helpers: a row is "modified" when its current
+  // value differs from the shipped default. The CSS hooks off
+  // [data-modified="true"] to draw a small accent dot in the row.
+  function isSubcatModified(tag) {
+    var cur = (profile.subcategory_tiers || {})[tag] || 'neutral';
+    var def = (defaultProfile.subcategory_tiers || {})[tag] || 'neutral';
+    return cur !== def;
+  }
+  function isFacetModified(name) {
+    var cur = (profile.facet_tiers || {})[name] || 'neutral';
+    var def = (defaultProfile.facet_tiers || {})[name] || 'neutral';
+    return cur !== def;
+  }
+  function isRuleModified(name) {
+    var cur = (profile.rule_states || {})[name] || 'on';
+    var def = (defaultProfile.rule_states || {})[name] || 'on';
+    return cur !== def;
+  }
+  function isShapeModified(field) {
+    var cur, def;
+    if (field === 'score_floor') {
+      cur = profile.score_floor; def = defaultProfile.score_floor;
+    } else if (field === 'diversity_category') {
+      cur = profile.diversity_category; def = defaultProfile.diversity_category;
+    } else if (field === 'diversity_subcategory') {
+      cur = profile.diversity_subcategory; def = defaultProfile.diversity_subcategory;
+    } else if (field === 'love_bonus') {
+      cur = (profile.tier_bonuses || {}).love;  def = (defaultProfile.tier_bonuses || {}).love;
+    } else if (field === 'like_bonus') {
+      cur = (profile.tier_bonuses || {}).like;  def = (defaultProfile.tier_bonuses || {}).like;
+    } else if (field === 'avoid_bonus') {
+      cur = (profile.tier_bonuses || {}).avoid; def = (defaultProfile.tier_bonuses || {}).avoid;
+    }
+    return cur != null && cur !== def;
+  }
+
   function renderSubcatRow(tag) {
     var tier = (profile.subcategory_tiers || {})[tag] || 'neutral';
     var chips = TIERS.map(function (t) {
@@ -1372,7 +1422,8 @@ body {
       );
     }).join('');
     return (
-      '<div class="subcat-row" data-subcat="' + escapeHtml(tag) + '">' +
+      '<div class="subcat-row" data-subcat="' + escapeHtml(tag) + '" ' +
+        'data-modified="' + (isSubcatModified(tag) ? 'true' : 'false') + '">' +
         '<span class="subcat-name">' + escapeHtml(tag) + '</span>' +
         '<div class="tri-state" role="radiogroup" aria-label="' +
           escapeHtml(tag) + ' tier">' + chips + '</div>' +
@@ -1417,7 +1468,8 @@ body {
       .replace(/_/g, ' ')
       .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
     return (
-      '<div class="facet-row" data-facet="' + escapeHtml(name) + '">' +
+      '<div class="facet-row" data-facet="' + escapeHtml(name) + '" ' +
+        'data-modified="' + (isFacetModified(name) ? 'true' : 'false') + '">' +
         '<div class="facet-label">' +
           '<span class="facet-name">' + escapeHtml(displayName) + '</span>' +
           '<span class="facet-blurb">' + escapeHtml(blurb || '') + '</span>' +
@@ -1489,7 +1541,8 @@ body {
       );
     }
     return (
-      '<div class="rule-row" data-rule="' + escapeHtml(ruleName) + '">' +
+      '<div class="rule-row" data-rule="' + escapeHtml(ruleName) + '" ' +
+        'data-modified="' + (isRuleModified(ruleName) ? 'true' : 'false') + '">' +
         '<div class="rule-text">' +
           '<span class="rule-name">' + escapeHtml(meta.label) +
             '<span class="rule-weight">' + sign + weight.toFixed(2) + '</span>' +
@@ -1551,7 +1604,8 @@ body {
     var v = shapeValue(f.key);
     if (v == null) v = 0;
     return (
-      '<div class="shape-row" data-shape="' + f.key + '">' +
+      '<div class="shape-row" data-shape="' + f.key + '" ' +
+        'data-modified="' + (isShapeModified(f.key) ? 'true' : 'false') + '">' +
         '<div class="shape-text">' +
           '<span class="shape-name">' + escapeHtml(f.label) + '</span>' +
           '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>' +
@@ -1834,6 +1888,7 @@ body {
           chips[j].setAttribute('aria-pressed',
             chips[j].dataset.value === tier ? 'true' : 'false');
         }
+        rows[i].dataset.modified = isSubcatModified(tag) ? 'true' : 'false';
       }
     }
     renderAll();
@@ -1873,6 +1928,7 @@ body {
           btn.setAttribute('aria-pressed', next === 'on' ? 'true' : 'false');
           btn.textContent = next === 'on' ? 'On' : 'Off';
         }
+        rows[i].dataset.modified = isRuleModified(ruleName) ? 'true' : 'false';
       }
     }
     saveProfile();
@@ -1890,6 +1946,7 @@ body {
           chips[j].setAttribute('aria-pressed',
             chips[j].dataset.value === newState ? 'true' : 'false');
         }
+        rows[i].dataset.modified = isRuleModified(ruleName) ? 'true' : 'false';
       }
     }
     saveProfile();
@@ -1914,6 +1971,7 @@ body {
     if (row) {
       var disp = row.querySelector('.shape-value');
       if (disp) disp.textContent = v.toFixed(2);
+      row.dataset.modified = isShapeModified(field) ? 'true' : 'false';
     }
     saveProfile();
     renderAll();
@@ -1931,6 +1989,7 @@ body {
           chips[j].setAttribute('aria-pressed',
             chips[j].dataset.value === tier ? 'true' : 'false');
         }
+        rows[i].dataset.modified = isFacetModified(name) ? 'true' : 'false';
       }
     }
     renderAll();
