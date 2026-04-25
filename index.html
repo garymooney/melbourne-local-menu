@@ -1216,6 +1216,22 @@ body {
       bump(winner);
     }
 
+    // Empty-block fallback: nothing cleared the floor — admit the best
+    // remaining candidate provided it clears (floor - 0.2) so a thin
+    // block doesn't silently disappear.
+    if (selected.length === 0 && rest.length > 0) {
+      var fIdx = -1;
+      var fAdj = -Infinity;
+      for (var k = 0; k < rest.length; k++) {
+        var adj2 = rest[k].score -
+          diversityPenaltyFor(rest[k].event, priorCats, priorSubs, profile);
+        if (adj2 > fAdj) { fAdj = adj2; fIdx = k; }
+      }
+      if (fAdj >= floor - 0.2) {
+        selected.push(rest.splice(fIdx, 1)[0]);
+      }
+    }
+
     selected.sort(function (a, b) { return b.score - a.score; });
     return selected;
   }
