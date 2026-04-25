@@ -1713,11 +1713,9 @@ body {
   // Included tier always weights 0 (no slider) — it's the "kept but
   // not boosted" tier. Outside tier is hard-filtered, so no slider.
   var SUBURB_WEIGHT_FIELDS = [
-    { tier: 'home',     label: 'Home weight',
-      hint: 'Bonus added for events in your "Home" suburb.',
+    { tier: 'home',  label: 'Home bonus',  hint: '',
       min: 0, max: 0.4, step: 0.01 },
-    { tier: 'local',    label: 'Local weight',
-      hint: 'Bonus added for events in any "Local" suburb.',
+    { tier: 'local', label: 'Local bonus', hint: '',
       min: 0, max: 0.4, step: 0.01 },
   ];
 
@@ -1728,12 +1726,15 @@ body {
   function renderSuburbWeightRow(f) {
     var v = suburbWeightValue(f.tier);
     if (v == null) v = 0;
+    var hint = f.hint
+      ? '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>'
+      : '';
     return (
       '<div class="shape-row" data-suburb-weight="' + f.tier + '" ' +
         'data-modified="' + (isSuburbWeightModified(f.tier) ? 'true' : 'false') + '">' +
         '<div class="shape-text">' +
           '<span class="shape-name">' + escapeHtml(f.label) + '</span>' +
-          '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>' +
+          hint +
         '</div>' +
         '<div class="suburb-weight-input">' +
           '<input type="range" data-suburb-weight="' + f.tier + '" ' +
@@ -1794,9 +1795,6 @@ body {
       );
     }
     return (
-      '<p class="facet-intro">How strongly each suburb moves events. ' +
-      'Drag a suburb between tiers to re-prioritise it; un-tier (—) to ' +
-      'leave it neutral.</p>' +
       '<div class="subcat-group">' + weightRows + '</div>' +
       sections.join('\n')
     );
