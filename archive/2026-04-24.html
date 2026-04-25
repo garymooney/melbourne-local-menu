@@ -470,7 +470,7 @@ body {
 }
 .subcat-row {
   display: grid;
-  grid-template-columns: minmax(120px, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: center;
   gap: 10px;
   padding: 6px 2px;
@@ -488,6 +488,10 @@ body {
   border: 1px solid var(--rule);
   border-radius: 6px;
   overflow: hidden;
+  /* Don't let the grid shrink the chip group below its content width
+     (was clipping "Avoid" on narrow phones via overflow: hidden). */
+  flex-shrink: 0;
+  min-width: max-content;
 }
 .tri {
   background: transparent;
@@ -501,6 +505,8 @@ body {
   letter-spacing: 0.3px;
   border-right: 1px solid var(--rule);
   transition: background 0.12s, color 0.12s;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 .tri:last-child { border-right: none; }
 .tri:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
