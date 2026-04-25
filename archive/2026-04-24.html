@@ -366,23 +366,30 @@ body {
 }
 
 /* --- Settings tab sits at the end of day-tabs, separated by a divider. */
-.tab-divider {
-  flex: 0 0 auto;
-  width: 1px;
-  align-self: stretch;
-  background: var(--rule);
-  margin: 0 6px;
-}
+/* Divider hidden — settings tab is sticky and always pinned to the
+   right edge, so the visual separator is unnecessary. Keep the DOM
+   element so removing the rule re-enables it without JS changes. */
+.tab-divider { display: none; }
 .day-tab.settings-tab {
   flex-direction: row;
   align-items: center;
   gap: 6px;
   color: var(--muted);
+  /* Pin to right edge of the horizontally-scrolling day-tabs nav so
+     the gear is always one click away regardless of which day tab
+     is in view. Background matches the header so day buttons that
+     scroll under it stay invisible; box-shadow softens the edge. */
+  position: sticky;
+  right: 0;
+  background: var(--bg);
+  box-shadow: -12px 0 14px -8px var(--bg);
+  z-index: 2;
 }
 .day-tab.settings-tab[aria-selected="true"] {
   background: var(--accent-cool);
   border-color: var(--accent-cool);
   color: #fff;
+  box-shadow: -12px 0 14px -8px var(--bg);
 }
 .settings-gear { font-size: 1.05em; line-height: 1; }
 .settings-badge {
