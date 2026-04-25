@@ -45,7 +45,11 @@ body {
 .container {
   max-width: 900px;
   margin: 0 auto;
-  padding: 0 1em 3em;
+  /* Bottom padding leaves room for the score-breakdown tooltip on the
+     last row of the last day to render below its card without pushing
+     the document height (which would jitter the page height as users
+     hover the bottom items). Tooltip max height ~240px. */
+  padding: 0 1em 280px;
 }
 .site-header {
   position: sticky;
