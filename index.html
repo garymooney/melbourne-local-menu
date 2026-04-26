@@ -1998,6 +1998,11 @@ body {
     var view = document.getElementById('settings-view');
     if (!view) return;
     view.innerHTML = (
+      '<p class="facet-intro settings-storage-note">' +
+        'Changes are saved in this browser only — they stick across visits ' +
+        'on this device but won\'t follow you to another browser or to ' +
+        'incognito mode.' +
+      '</p>' +
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
         '<button class="settings-subtab" role="tab" data-subtab="subcategories" ' +
           'aria-selected="true">Tags</button>' +
