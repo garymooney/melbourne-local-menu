@@ -386,20 +386,29 @@ body {
 .add-cal-option {
   appearance: none;
   text-align: left;
-  padding: 7px 10px;
+  padding: 6px 10px;
   font: inherit;
-  font-size: 0.82em;
   color: var(--text);
   background: transparent;
   border: 0;
   border-radius: 4px;
   cursor: pointer;
   white-space: nowrap;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
 }
 .add-cal-option:hover,
 .add-cal-option:focus-visible {
   background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
   outline: none;
+}
+.add-cal-option-label {
+  font-size: 0.82em;
+}
+.add-cal-option-hint {
+  font-size: 0.7em;
+  color: var(--faint);
 }
 .show-more {
   display: block;
@@ -2790,10 +2799,10 @@ body {
     pop.className = 'add-cal-popover';
     pop.setAttribute('role', 'menu');
     var options = [
-      { label: 'Google Calendar', kind: 'google' },
-      { label: 'Outlook (personal)', kind: 'outlook-live' },
-      { label: 'Outlook (work / 365)', kind: 'outlook-office' },
-      { label: 'Download .ics', kind: 'ics' },
+      { label: 'Google Calendar', hint: 'opens in browser', kind: 'google' },
+      { label: 'Outlook (personal)', hint: 'opens in browser', kind: 'outlook-live' },
+      { label: 'Outlook (work / 365)', hint: 'opens in browser', kind: 'outlook-office' },
+      { label: 'Download .ics', hint: 'desktop Outlook, Apple Calendar', kind: 'ics' },
     ];
     for (var i = 0; i < options.length; i++) {
       var opt = options[i];
@@ -2802,7 +2811,14 @@ body {
       b.className = 'add-cal-option';
       b.setAttribute('role', 'menuitem');
       b.dataset.kind = opt.kind;
-      b.textContent = opt.label;
+      var labelSpan = document.createElement('span');
+      labelSpan.className = 'add-cal-option-label';
+      labelSpan.textContent = opt.label;
+      var hintSpan = document.createElement('span');
+      hintSpan.className = 'add-cal-option-hint';
+      hintSpan.textContent = opt.hint;
+      b.appendChild(labelSpan);
+      b.appendChild(hintSpan);
       pop.appendChild(b);
     }
     pop._anchorBtn = btn;
