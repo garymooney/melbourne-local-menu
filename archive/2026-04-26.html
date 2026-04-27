@@ -406,11 +406,6 @@ body {
   height: 13px;
   display: block;
 }
-.add-cal-plus {
-  font-weight: 700;
-  font-size: 1.1em;
-  line-height: 1;
-}
 .add-cal-btn:hover,
 .add-cal-btn[aria-expanded="true"] {
   color: var(--text);
@@ -1628,7 +1623,12 @@ body {
       'data-event-id="' + escapeHtml(String(ev.id)) + '" ' +
       'aria-label="Add to calendar" title="Add to calendar" ' +
       'aria-haspopup="menu" aria-expanded="false">' +
-        '<span class="add-cal-plus" aria-hidden="true">+</span>' +
+        // SVG "+" rather than the text glyph: the text "+" sits high in
+        // its line-box and never aligns with the calendar SVG below.
+        '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+        '<rect x="6.75" y="2" width="2.5" height="12" rx="0.8"/>' +
+        '<rect x="2" y="6.75" width="12" height="2.5" rx="0.8"/>' +
+        '</svg>' +
         // Modern calendar-app icon: rounded body, thick filled header
         // band, no binder posts, 3x2 grid of date cells with one circle
         // highlight to read as "today selected".
