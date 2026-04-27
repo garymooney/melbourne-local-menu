@@ -387,7 +387,11 @@ body {
   margin-top: 6px;
 }
 .add-cal-btn {
-  padding: 2px 6px;
+  /* Asymmetric padding: the "+" SVG has ~3px of empty space on its left
+     (bars are centred in their viewBox) while the calendar SVG sits flush
+     to its right edge. Trim the left pill padding so the visual gap
+     between glyph and pill edge matches on both sides. */
+  padding: 2px 6px 2px 4px;
   font: inherit;
   font-size: 0.72em;
   color: var(--faint);
