@@ -1625,9 +1625,11 @@ body {
       'aria-haspopup="menu" aria-expanded="false">' +
         // SVG "+" rather than the text glyph: the text "+" sits high in
         // its line-box and never aligns with the calendar SVG below.
+        // Bars sized smaller than the icon's edges so the "+" visually
+        // weighs less than the adjacent calendar.
         '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<rect x="6.75" y="2" width="2.5" height="12" rx="0.8"/>' +
-        '<rect x="2" y="6.75" width="12" height="2.5" rx="0.8"/>' +
+        '<rect x="7.2" y="4" width="1.6" height="8" rx="0.5"/>' +
+        '<rect x="4" y="7.2" width="8" height="1.6" rx="0.5"/>' +
         '</svg>' +
         // Modern calendar-app icon: rounded body, thick filled header
         // band, no binder posts, 3x2 grid of date cells with one circle
