@@ -396,6 +396,20 @@ body {
   border-radius: 10px;
   cursor: pointer;
   letter-spacing: 0.2px;
+  display: inline-flex;
+  align-items: center;
+  gap: 3px;
+  line-height: 1;
+}
+.add-cal-btn svg {
+  width: 12px;
+  height: 12px;
+  display: block;
+}
+.add-cal-plus {
+  font-weight: 700;
+  font-size: 1.1em;
+  line-height: 1;
 }
 .add-cal-btn:hover,
 .add-cal-btn[aria-expanded="true"] {
@@ -1612,7 +1626,16 @@ body {
       '<span class="add-cal-wrap">' +
       '<button class="add-cal-btn" type="button" ' +
       'data-event-id="' + escapeHtml(String(ev.id)) + '" ' +
-      'aria-haspopup="menu" aria-expanded="false">+ cal</button>' +
+      'aria-label="Add to calendar" title="Add to calendar" ' +
+      'aria-haspopup="menu" aria-expanded="false">' +
+        '<span class="add-cal-plus" aria-hidden="true">+</span>' +
+        // Bootstrap-icons "calendar-event" — viewBox 0 0 16 16. Sized via
+        // .add-cal-btn svg in CSS.
+        '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+        '<path d="M11 6.5a.5.5 0 0 1 .5-.5h1a.5.5 0 0 1 .5.5v1a.5.5 0 0 1-.5.5h-1a.5.5 0 0 1-.5-.5z"/>' +
+        '<path d="M3.5 0a.5.5 0 0 1 .5.5V1h8V.5a.5.5 0 0 1 1 0V1h1a2 2 0 0 1 2 2v11a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2V3a2 2 0 0 1 2-2h1V.5a.5.5 0 0 1 .5-.5M2 2a1 1 0 0 0-1 1v1h14V3a1 1 0 0 0-1-1zm13 3H1v9a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1z"/>' +
+        '</svg>' +
+      '</button>' +
       '</span>'
     );
     parts.push('</article>');
