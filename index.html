@@ -2962,10 +2962,10 @@ body {
     pop.className = 'add-cal-popover';
     pop.setAttribute('role', 'menu');
     var options = [
+      { label: 'Download .ics', hint: 'desktop Outlook, Apple Calendar, etc.', kind: 'ics' },
       { label: 'Google Calendar', hint: 'opens in browser', kind: 'google' },
       { label: 'Outlook (personal)', hint: 'opens in browser', kind: 'outlook-live' },
       { label: 'Outlook (work / 365)', hint: 'opens in browser', kind: 'outlook-office' },
-      { label: 'Download .ics', hint: 'desktop Outlook, Apple Calendar', kind: 'ics' },
     ];
     for (var i = 0; i < options.length; i++) {
       var opt = options[i];
