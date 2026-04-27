@@ -167,12 +167,50 @@ body {
 }
 .event {
   border-left: 3px solid var(--accent-warm);
-  padding: 10px 14px;
+  padding: 10px 38px 10px 14px;
   background: var(--card-bg);
   border-radius: 0 6px 6px 0;
   display: flex;
   flex-direction: column;
+  position: relative;
 }
+.event.pinned {
+  border-left-color: var(--accent-cool);
+  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+.pin-btn {
+  position: absolute;
+  top: 6px;
+  right: 6px;
+  width: 26px;
+  height: 26px;
+  padding: 0;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  border: 0;
+  border-radius: 50%;
+  color: var(--faint);
+  cursor: pointer;
+  opacity: 0.55;
+  transition: opacity 0.12s, color 0.12s, background 0.12s;
+}
+.pin-btn svg {
+  width: 16px;
+  height: 16px;
+  display: block;
+  transform: rotate(35deg);
+}
+.pin-btn:hover {
+  opacity: 1;
+  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
+}
+.pin-btn[aria-pressed="true"] {
+  opacity: 1;
+  color: var(--accent-cool);
+}
+.event.pinned .pin-btn { opacity: 1; }
 .event.extra {
   border-left-color: var(--rule);
   border-left-style: dashed;
@@ -1010,6 +1048,12 @@ body {
     if (shape.love_bonus  != null) merged.tier_bonuses.love  = shape.love_bonus;
     if (shape.like_bonus  != null) merged.tier_bonuses.like  = shape.like_bonus;
     if (shape.avoid_bonus != null) merged.tier_bonuses.avoid = shape.avoid_bonus;
+
+    // Pinned event ids — list of event ids the user has pinned via the
+    // per-card pin button. Stored as an array; consumed via a Set for O(1)
+    // membership tests during render. Defaults to [].
+    var pinned = stored.pinned_event_ids;
+    merged.pinned_event_ids = Array.isArray(pinned) ? pinned.slice() : [];
     return merged;
   }
 
@@ -1032,11 +1076,22 @@ body {
           like_bonus:  (profile.tier_bonuses || {}).like,
           avoid_bonus: (profile.tier_bonuses || {}).avoid,
         },
+        pinned_event_ids: profile.pinned_event_ids || [],
       }));
     } catch (_) {}
   }
 
   var profile = mergeProfile(defaultProfile, loadStoredProfile());
+
+  // O(1) membership tests for renderEventHtml / renderCategoryHtml. Rebuilt
+  // by refreshPinnedSet() whenever the user toggles a pin.
+  var PINNED_SET = new Set(profile.pinned_event_ids || []);
+  function refreshPinnedSet() {
+    PINNED_SET = new Set(profile.pinned_event_ids || []);
+  }
+  function isUserPinned(ev) {
+    return PINNED_SET.has(String(ev.id));
+  }
 
   var CATEGORY_ORDER = defaultProfile.category_order || [
     'live_music', 'watch', 'hands_on', 'movement', 'go_somewhere', 'other',
@@ -1442,7 +1497,11 @@ body {
     var venue = (ev.venue || '').toLowerCase();
     var sub = (ev.subcategory || '').toLowerCase();
     var name = (ev.title || '').toLowerCase();
-    return [venue === 'tbd' ? 1 : 0, venue, sub, name];
+    // Pinned events sort to the very top of the section (key 0); everything
+    // else gets key 1 and falls through to the existing tbd / venue / sub /
+    // name ordering.
+    var pinKey = isUserPinned(ev) ? 0 : 1;
+    return [pinKey, venue === 'tbd' ? 1 : 0, venue, sub, name];
   }
 
   function compareKeys(a, b) {
@@ -1466,9 +1525,29 @@ body {
     if (profile && !item.breakdown) {
       item.breakdown = scoreBreakdown(ev, profile);
     }
+    var pinned = isUserPinned(ev);
     var cls = item.is_expanded ? 'event extra' : 'event';
     if (item.is_fallback) cls += ' fallback';
+    if (pinned) cls += ' pinned';
     var parts = ['<article class="' + cls + '">'];
+    parts.push(
+      '<button class="pin-btn" type="button" ' +
+      'data-event-id="' + escapeHtml(String(ev.id)) + '" ' +
+      'aria-pressed="' + (pinned ? 'true' : 'false') + '" ' +
+      'aria-label="' + (pinned ? 'Unpin event' : 'Pin event to top') + '" ' +
+      'title="' + (pinned ? 'Unpin' : 'Pin to top') + '">' +
+      // Filled when pinned, outlined when not. Bootstrap-icons pushpin
+      // (viewBox 0 0 16 16) — sized via .pin-btn svg in CSS.
+      (pinned
+        ? '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+          '<path d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354"/>' +
+          '</svg>'
+        : '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+          '<path d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354m1.58 1.408-.002-.001zm-.002-.001.002.001A3 3 0 0 0 6 2.5V7a.5.5 0 0 1-.276.447h-.002l-.012.007-.054.03a5 5 0 0 0-.827.58c-.318.278-.585.596-.725.936h7.792c-.14-.34-.407-.658-.725-.936a5 5 0 0 0-.881-.61l-.012-.006h-.002A.5.5 0 0 1 10 7V2.5c0-.317.062-.622.174-.893L5.726 1.554z"/>' +
+          '</svg>'
+      ) +
+      '</button>'
+    );
     if (ev.venue) parts.push('<div class="venue">' + escapeHtml(ev.venue) + '</div>');
     if (ev.suburb) parts.push('<div class="suburb">' + escapeHtml(ev.suburb) + '</div>');
     parts.push(
@@ -1543,7 +1622,12 @@ body {
   function renderCategoryHtml(catKey, block, profile) {
     var curated = [], expanded = [];
     for (var i = 0; i < block.length; i++) {
-      (block[i].is_expanded ? expanded : curated).push(block[i]);
+      var it = block[i];
+      // Pinned items always render in the main (curated) list — never
+      // tucked under "Show more" — even if scoring/diversity put them in
+      // the expanded bucket.
+      if (it.is_expanded && !isUserPinned(it.event)) expanded.push(it);
+      else curated.push(it);
     }
     if (curated.length === 0 && expanded.length === 0) return '';
     curated = sortForDisplay(curated);
@@ -1597,17 +1681,23 @@ body {
     );
   }
 
-  function renderTabsHtml(days, dayCounts) {
+  function renderTabsHtml(days, dayCounts, activeSlug) {
     var buttons = [];
     for (var i = 0; i < days.length; i++) {
       var heading = formatDayHeading(days[i]);
       var daySlug = slugify(heading);
       var date = heading.substring(dayShort(heading).length).trim();
       var count = dayCounts[days[i]] || 0;
+      // Pre-mark the active tab inline so the highlight is present the
+      // instant the new HTML lands. Without this, replacing tabsEl.innerHTML
+      // briefly leaves every tab unselected before activate() flips one
+      // back on, which reads as a flash.
+      var isActive = activeSlug && daySlug === activeSlug;
       buttons.push(
         '<button class="day-tab" role="tab" id="tab-' + daySlug + '" ' +
         'aria-controls="day-' + daySlug + '" ' +
-        'aria-selected="false" tabindex="-1" ' +
+        'aria-selected="' + (isActive ? 'true' : 'false') + '" ' +
+        'tabindex="' + (isActive ? '0' : '-1') + '" ' +
         'data-tab="' + daySlug + '">' +
           '<span class="tab-weekday">' + escapeHtml(dayShort(heading)) + '</span>' +
           '<span class="tab-date">' + escapeHtml(date) + '</span>' +
@@ -2340,7 +2430,7 @@ body {
     var dayCounts = computeDayCounts(ranking);
 
     var tabsEl = document.querySelector('.day-tabs');
-    if (tabsEl) tabsEl.innerHTML = renderTabsHtml(days, dayCounts);
+    if (tabsEl) tabsEl.innerHTML = renderTabsHtml(days, dayCounts, activeTab);
 
     rebuildDayPanels(ranking, days, profile);
     updateSettingsBadge();
@@ -2873,7 +2963,27 @@ body {
     if (url) window.open(url, '_blank', 'noopener');
   }
 
+  function togglePin(eventId) {
+    var id = String(eventId);
+    var list = (profile.pinned_event_ids || []).slice();
+    var idx = list.indexOf(id);
+    if (idx === -1) list.push(id);
+    else list.splice(idx, 1);
+    profile.pinned_event_ids = list;
+    refreshPinnedSet();
+    saveProfile();
+    renderAll();
+  }
+
   document.addEventListener('click', function (e) {
+    // Pin button — toggle pinned state, persist, re-render. Handled before
+    // the calendar picker so a pin click doesn't open / close the picker.
+    var pinBtn = e.target.closest && e.target.closest('.pin-btn');
+    if (pinBtn) {
+      togglePin(pinBtn.dataset.eventId);
+      return;
+    }
+
     // Calendar picker — handle option clicks first, then button toggle,
     // then close-on-outside-click. Order matters so an option click in
     // an open popover doesn't close before firing.
