@@ -1825,8 +1825,8 @@ body {
     var meta = RULE_META[ruleName] || { label: ruleName, hint: '' };
     var bits = ruleDisplayBits(ruleName);
     var html = escapeHtml(meta.label);
-    if (bits.weight !== null) {
-      var sign = bits.weight >= 0 ? '+' : '';
+    if (bits.weight !== null && bits.weight !== 0) {
+      var sign = bits.weight > 0 ? '+' : '';
       html += '<span class="rule-weight">' + sign + bits.weight.toFixed(2) + '</span>';
     }
     if (bits.action) {
