@@ -387,7 +387,7 @@ body {
   margin-top: 6px;
 }
 .add-cal-btn {
-  padding: 2px 8px;
+  padding: 2px 6px;
   font: inherit;
   font-size: 0.72em;
   color: var(--faint);
@@ -398,7 +398,9 @@ body {
   letter-spacing: 0.2px;
   display: inline-flex;
   align-items: center;
-  gap: 3px;
+  /* gap=0: each SVG already has whitespace inside its viewBox so the
+     visible glyphs don't actually touch even with 0 gap. */
+  gap: 0;
   line-height: 1;
 }
 .add-cal-btn svg {
