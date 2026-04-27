@@ -45,11 +45,12 @@ body {
 .container {
   max-width: 900px;
   margin: 0 auto;
-  /* Bottom padding leaves room for the score-breakdown tooltip on the
-     last row of the last day to render below its card without pushing
-     the document height (which would jitter the page height as users
-     hover the bottom items). Tooltip max height ~240px. */
-  padding: 0 1em 280px;
+  /* The byline + acknowledgement footer below the last day already
+     reserve ~250px of space, which absorbs the score-breakdown
+     tooltip overflow (max ~240px) on the last row of cards without
+     adding extra invisible padding. Tooltip's z-index keeps it above
+     the footer text when they overlap. */
+  padding: 0 1em 1em;
 }
 .site-header {
   position: sticky;
