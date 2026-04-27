@@ -1629,23 +1629,17 @@ body {
       'aria-label="Add to calendar" title="Add to calendar" ' +
       'aria-haspopup="menu" aria-expanded="false">' +
         '<span class="add-cal-plus" aria-hidden="true">+</span>' +
-        // Custom calendar icon with prominent 3-unit binder posts on top
-        // (Bootstrap's calendar-event has 1-unit stems that vanish at this
-        // display size, so the silhouette read as a plain file). Hollow
-        // body via even-odd fill: outer rounded rect + inner rect = hole,
-        // leaving a clear header band + body outline.
+        // Modern calendar-app icon: rounded body, thick filled header
+        // band, no binder posts, 3x2 grid of date cells with one circle
+        // highlight to read as "today selected".
         '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<rect x="3.5" y="0.5" width="1.5" height="3" rx="0.6"/>' +
-        '<rect x="11" y="0.5" width="1.5" height="3" rx="0.6"/>' +
-        '<path fill-rule="evenodd" d="M1 4.5a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v9.5a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2zm1.5 0v10h11v-10h-11z"/>' +
-        // 3x2 grid of date cells in the body — softly rounded so they
-        // read as date pills rather than rectangular building windows.
-        '<rect x="3.75" y="6.5" width="2" height="2" rx="0.6"/>' +
-        '<rect x="7" y="6.5" width="2" height="2" rx="0.6"/>' +
-        '<rect x="10.25" y="6.5" width="2" height="2" rx="0.6"/>' +
-        '<rect x="3.75" y="10.5" width="2" height="2" rx="0.6"/>' +
-        '<rect x="7" y="10.5" width="2" height="2" rx="0.6"/>' +
-        '<rect x="10.25" y="10.5" width="2" height="2" rx="0.6"/>' +
+        '<path fill-rule="evenodd" d="M1 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2zm1.5 2v8h11V5h-11z"/>' +
+        '<rect x="4" y="6.5" width="1.5" height="1.5" rx="0.4"/>' +
+        '<rect x="7.25" y="6.5" width="1.5" height="1.5" rx="0.4"/>' +
+        '<circle cx="11.5" cy="7.25" r="1.1"/>' +
+        '<rect x="4" y="10" width="1.5" height="1.5" rx="0.4"/>' +
+        '<rect x="7.25" y="10" width="1.5" height="1.5" rx="0.4"/>' +
+        '<rect x="10.5" y="10" width="1.5" height="1.5" rx="0.4"/>' +
         '</svg>' +
       '</button>' +
       '</span>'
