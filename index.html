@@ -1638,9 +1638,13 @@ body {
         '<rect x="3.5" y="0.5" width="1.5" height="3" rx="0.6"/>' +
         '<rect x="11" y="0.5" width="1.5" height="3" rx="0.6"/>' +
         '<path fill-rule="evenodd" d="M1 4a1.5 1.5 0 0 1 1.5-1.5h11A1.5 1.5 0 0 1 15 4v10.5a1.5 1.5 0 0 1-1.5 1.5h-11A1.5 1.5 0 0 1 1 14.5V4zm1.5 3v7.5h11V7h-11z"/>' +
-        // Event-marker dot in the top-right of the body — same flourish
-        // as Bootstrap calendar-event, restored on the new silhouette.
-        '<rect x="10.5" y="8.75" width="2" height="2" rx="0.4"/>' +
+        // 2x2 grid of date cells in the body — reads as "calendar grid"
+        // rather than the single-dot version which (with the two posts on
+        // top) looked like a car battery + indicator light.
+        '<rect x="4" y="8.25" width="2" height="2" rx="0.3"/>' +
+        '<rect x="10" y="8.25" width="2" height="2" rx="0.3"/>' +
+        '<rect x="4" y="11.5" width="2" height="2" rx="0.3"/>' +
+        '<rect x="10" y="11.5" width="2" height="2" rx="0.3"/>' +
         '</svg>' +
       '</button>' +
       '</span>'
