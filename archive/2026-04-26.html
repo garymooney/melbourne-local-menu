@@ -727,6 +727,13 @@ body {
   color: var(--faint);
   margin-left: 6px;
 }
+.rule-action {
+  display: inline-block;
+  font-size: 0.78em;
+  font-style: italic;
+  color: var(--faint);
+  margin-left: 6px;
+}
 .rule-toggle {
   flex: 0 0 auto;
   background: transparent;
@@ -1784,25 +1791,54 @@ body {
     }).join('');
   }
 
+  function ruleDisplayBits(ruleName) {
+    // Returns the {weight, action} pair to render next to the rule label.
+    // Computed from the CURRENT state so the chip the user clicks updates
+    // the visible bonus + action wording in lockstep.
+    //   weight: number, or null when the rule is filter-only and a number
+    //           would be misleading (the `free` rule).
+    //   action: short verb-phrase describing what the active state does
+    //           beyond the bonus — "always shown", "hide tag", "free only".
+    var state = (profile.rule_states || {})[ruleName] || 'on';
+    var stateOpts = (defaultProfile.rule_state_options || {})[ruleName];
+    var defaultWeight = (defaultProfile.rule_weights || {})[ruleName] || 0;
+    var weight = 0;
+    var action = '';
+    if (stateOpts) {
+      for (var oi = 0; oi < stateOpts.length; oi++) {
+        if (stateOpts[oi].value === state) { weight = stateOpts[oi].weight; break; }
+      }
+      if (ruleName === 'date_idea' && state === 'off') action = 'hide tag';
+    } else if (PIN_CAPABLE_SET[ruleName]) {
+      weight = (state === 'off') ? 0 : defaultWeight;
+      if (state === 'pin') action = 'always shown';
+    } else if (ruleName === 'free') {
+      // Filter-only — events are excluded, no bonus involved.
+      return { weight: null, action: state === 'on' ? 'hide paid events' : '' };
+    } else {
+      weight = (state === 'off') ? 0 : defaultWeight;
+    }
+    return { weight: weight, action: action };
+  }
+
+  function ruleNameInnerHtml(ruleName) {
+    var meta = RULE_META[ruleName] || { label: ruleName, hint: '' };
+    var bits = ruleDisplayBits(ruleName);
+    var html = escapeHtml(meta.label);
+    if (bits.weight !== null) {
+      var sign = bits.weight >= 0 ? '+' : '';
+      html += '<span class="rule-weight">' + sign + bits.weight.toFixed(2) + '</span>';
+    }
+    if (bits.action) {
+      html += '<span class="rule-action">' + escapeHtml(bits.action) + '</span>';
+    }
+    return html;
+  }
+
   function renderRuleRow(ruleName, weight) {
     var meta = RULE_META[ruleName] || { label: ruleName, hint: '' };
     var state = (profile.rule_states || {})[ruleName] || 'on';
-    // For rules with rule_state_options, the active weight is the picked
-    // option's weight, not the row's static "default" weight.
     var stateOpts = (defaultProfile.rule_state_options || {})[ruleName];
-    var displayWeight = weight;
-    var hasWeightSignal = !stateOpts || stateOpts.some(function (o) {
-      return o.weight !== 0;
-    });
-    if (stateOpts) {
-      for (var oi = 0; oi < stateOpts.length; oi++) {
-        if (stateOpts[oi].value === state) {
-          displayWeight = stateOpts[oi].weight;
-          break;
-        }
-      }
-    }
-    var sign = displayWeight >= 0 ? '+' : '';
     var control;
     if (stateOpts) {
       var chips = stateOpts.map(function (o) {
@@ -1833,15 +1869,11 @@ body {
         '</button>'
       );
     }
-    var weightSpan = hasWeightSignal
-      ? '<span class="rule-weight">' + sign + displayWeight.toFixed(2) + '</span>'
-      : '';
     return (
       '<div class="rule-row" data-rule="' + escapeHtml(ruleName) + '" ' +
         'data-modified="' + (isRuleModified(ruleName) ? 'true' : 'false') + '">' +
         '<div class="rule-text">' +
-          '<span class="rule-name">' + escapeHtml(meta.label) + weightSpan +
-          '</span>' +
+          '<span class="rule-name">' + ruleNameInnerHtml(ruleName) + '</span>' +
           '<span class="rule-hint">' + escapeHtml(meta.hint) + '</span>' +
         '</div>' +
         control +
@@ -2392,6 +2424,8 @@ body {
           btn.setAttribute('aria-pressed', next === 'on' ? 'true' : 'false');
           btn.textContent = next === 'on' ? 'On' : 'Off';
         }
+        var nameSpan = rows[i].querySelector('.rule-name');
+        if (nameSpan) nameSpan.innerHTML = ruleNameInnerHtml(ruleName);
         rows[i].dataset.modified = isRuleModified(ruleName) ? 'true' : 'false';
       }
     }
@@ -2410,6 +2444,8 @@ body {
           chips[j].setAttribute('aria-pressed',
             chips[j].dataset.value === newState ? 'true' : 'false');
         }
+        var nameSpan = rows[i].querySelector('.rule-name');
+        if (nameSpan) nameSpan.innerHTML = ruleNameInnerHtml(ruleName);
         rows[i].dataset.modified = isRuleModified(ruleName) ? 'true' : 'false';
       }
     }
