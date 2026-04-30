@@ -3443,7 +3443,30 @@ body.has-banner > *:not(.deep-link-banner) {
     return Promise.resolve();
   }
 
+  // Strip selection state without triggering renderAll. Removes the
+  // .selected class from any cards in the current DOM and the
+  // .has-selection body class. Cheap (no rebuild) so it can run on
+  // every click without stomping on open popovers, score-chip toggles,
+  // or other transient UI state. The companion pin keeps the card
+  // visible after the halo fades.
+  function clearSelectionVisuals() {
+    if (SELECTED_SET.size === 0) return;
+    SELECTED_SET.clear();
+    syncSelectionClass();
+    var prev = document.querySelectorAll('.event.selected');
+    for (var i = 0; i < prev.length; i++) {
+      prev[i].classList.remove('selected');
+    }
+  }
+
   document.addEventListener('click', function (e) {
+    // Selection clears on ANY click — pin button, score chip, copy /
+    // share / calendar buttons, day tab, settings chip, even an
+    // unhandled click on empty card surface. Runs FIRST so even
+    // returns from the handlers below take effect with selection
+    // already cleared. Cheap visual-only update; no renderAll.
+    clearSelectionVisuals();
+
     // Pin button — toggle pinned state, persist, re-render. Handled before
     // the calendar picker so a pin click doesn't open / close the picker.
     var pinBtn = e.target.closest && e.target.closest('.pin-btn');
@@ -3618,15 +3641,6 @@ body.has-banner > *:not(.deep-link-banner) {
       return;
     }
 
-    // Selection clears on ANY click — the warm halo is only ever set
-    // via deep-link (focusEventCard), never by user interaction. The
-    // deep-link target is also pinned so it stays visible after the
-    // halo fades. No-op if nothing is currently selected.
-    if (SELECTED_SET.size > 0) {
-      SELECTED_SET.clear();
-      syncSelectionClass();
-      renderAll();
-    }
   });
 
   // Shape sliders emit 'input' while dragging and 'change' on release.
