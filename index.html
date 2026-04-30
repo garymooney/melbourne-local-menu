@@ -3375,7 +3375,45 @@ body.has-banner > *:not(.deep-link-banner) {
     profile.pinned_event_ids = list;
     refreshPinnedSet();
     saveProfile();
+    renderAllAnimated();
+  }
+
+  // Wraps renderAll with a FLIP animation: capture each event card's
+  // bounding rect BEFORE the rebuild, run renderAll, then for each
+  // surviving card translate it from its old position back to the
+  // pre-rebuild spot and animate to identity. Cards that were in the
+  // old DOM but missing from the new just vanish; new cards just
+  // appear. Used for pin/unpin so the layout shift is visible
+  // movement rather than a teleport.
+  function renderAllAnimated() {
+    if (!('animate' in document.createElement('div'))) {
+      // Web Animations API unavailable — fall back to plain rebuild.
+      renderAll();
+      return;
+    }
+    var prev = document.querySelectorAll('.event[id^="event-"]');
+    var oldRects = {};
+    for (var i = 0; i < prev.length; i++) {
+      oldRects[prev[i].id] = prev[i].getBoundingClientRect();
+    }
     renderAll();
+    var next = document.querySelectorAll('.event[id^="event-"]');
+    for (var j = 0; j < next.length; j++) {
+      var el = next[j];
+      var oldRect = oldRects[el.id];
+      if (!oldRect) continue;  // new card; just appears in place
+      var newRect = el.getBoundingClientRect();
+      var dx = oldRect.left - newRect.left;
+      var dy = oldRect.top - newRect.top;
+      if (dx === 0 && dy === 0) continue;
+      el.animate(
+        [
+          { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
+          { transform: 'translate(0, 0)' }
+        ],
+        { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+      );
+    }
   }
 
   function flashSuccess(btn) {
