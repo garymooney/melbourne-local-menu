@@ -3655,20 +3655,14 @@ body {
   // Deep-link to an event card from a hash like #event-<id>. Marks the
   // card as selected (so it's pulled into the main curated list, not
   // tucked under "Show more"), activates the right day tab, scrolls
-  // the card into view, and surfaces a visible status banner so a
-  // missing event (rolled-off / stale link) is obvious rather than
-  // silent.
+  // the card into view. If the event can't be surfaced for any reason
+  // (stale id, past day, cropped from display window), a single
+  // "unavailable" banner explains what happened.
   function focusEventCard(eventId) {
     var idStr = String(eventId);
     var ev = eventsById[idStr];
     if (!ev) {
-      // Stale or wrong id — show a clear "not found" banner. Better
-      // than silently doing nothing on an invalid deep link.
-      showDeepLinkBanner({
-        kind: 'missing',
-        title: "This event isn't in the current menu",
-        body: 'It may have rolled off, or the link could be from a previous week.',
-      });
+      showEventUnavailableBanner();
       return;
     }
     if (!SELECTED_SET.has(idStr)) {
@@ -3686,16 +3680,10 @@ body {
     setTimeout(function () {
       var card = document.getElementById('event-' + idStr);
       if (!card) {
-        // Shouldn't happen — selection-bypass guarantees the event
-        // renders even below the floor. If we land here it's a bug
-        // (e.g. event's day is past the display window's crop).
-        showDeepLinkBanner({
-          kind: 'unrendered',
-          title: 'Found "' + (ev.title || 'event') + '"',
-          body: "but its day (" + (ev.day || '?') +
-            ") isn't in the displayed window. The pipeline only shows " +
-            "events from today onwards.",
-        });
+        // Selection-bypass should keep the event rendering even below
+        // the floor; if we land here the event's day was cropped past
+        // the display window (i.e. it's already happened).
+        showEventUnavailableBanner();
         return;
       }
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -3703,18 +3691,23 @@ body {
   }
 
   // Floating banner shown when a deep-link can't surface its target
-  // card. Click anywhere on the banner (or the × button) to dismiss.
-  function showDeepLinkBanner(opts) {
+  // card. One generic "unavailable" message covers both missing-from-
+  // data and rolled-off-the-display-window cases — the user doesn't
+  // care which; either way the link is dead. Tap anywhere on the
+  // banner (or the × button) to dismiss.
+  function showEventUnavailableBanner() {
     var existing = document.getElementById('deep-link-banner');
     if (existing) existing.remove();
     var banner = document.createElement('div');
     banner.id = 'deep-link-banner';
-    banner.className = 'deep-link-banner deep-link-banner--' + (opts.kind || 'info');
+    banner.className = 'deep-link-banner';
     banner.innerHTML =
       '<button class="deep-link-banner__close" type="button" ' +
         'aria-label="Dismiss">×</button>' +
-      '<div class="deep-link-banner__title">' + escapeHtml(opts.title) + '</div>' +
-      '<div class="deep-link-banner__body">' + escapeHtml(opts.body) + '</div>';
+      '<div class="deep-link-banner__title">Event unavailable</div>' +
+      '<div class="deep-link-banner__body">' +
+        "It's already happened, or no longer in this week's menu." +
+      '</div>';
     banner.addEventListener('click', function () { banner.remove(); });
     document.body.appendChild(banner);
   }
