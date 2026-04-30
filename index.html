@@ -1532,6 +1532,32 @@ body.has-banner > *:not(.deep-link-banner) {
     return i < 0 ? heading : heading.substring(0, i);
   }
 
+  // Match recommend.format_menu_title's "<day><suffix> <Mon> <Year>"
+  // shape (e.g. "30th Apr 2026") so the JS-updated subtitle reads
+  // identically to a freshly server-rendered one.
+  var SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
+                      'Jul','Aug','Sep','Oct','Nov','Dec'];
+  function formatPrettyWeek(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T12:00:00');
+    if (isNaN(d.getTime())) return iso;
+    var day = d.getDate();
+    var suffix;
+    if (day >= 11 && day <= 13) suffix = 'th';
+    else if (day % 10 === 1) suffix = 'st';
+    else if (day % 10 === 2) suffix = 'nd';
+    else if (day % 10 === 3) suffix = 'rd';
+    else suffix = 'th';
+    return day + suffix + ' ' + SHORT_MONTHS[d.getMonth()] +
+      ' ' + d.getFullYear();
+  }
+  function updateSiteSubtitle(iso) {
+    var el = document.querySelector('.site-subtitle');
+    if (!el) return;
+    var pretty = formatPrettyWeek(iso);
+    if (pretty) el.textContent = 'Week of ' + pretty;
+  }
+
   // ============================================================
   //  Scoring — JS port of recommend._score_event
   // ============================================================
@@ -2982,6 +3008,12 @@ body.has-banner > *:not(.deep-link-banner) {
     var displayDays = payload.display_window_days || 7;
     var cropIso = cropAnchorIso();
     days = days.filter(function (d) { return d >= cropIso; }).slice(0, displayDays);
+
+    // Subtitle (Week of <pretty>) tracks the FIRST DISPLAYED day, not
+    // the static week_start the page was published with — past days
+    // get cropped at midnight so the server-rendered "Week of 29th Apr"
+    // would be stale on later visits.
+    updateSiteSubtitle(days[0] || cropIso);
 
     var dayCounts = computeDayCounts(ranking);
 
