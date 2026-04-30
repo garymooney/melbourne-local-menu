@@ -74,15 +74,41 @@ body {
   border-bottom: 1px solid var(--rule);
   padding-top: 1em;
 }
+/* Brand mark — mirrors the OG banner aesthetic: warm-light card with
+   a vertical accent gradient stripe on the left, "Melbourne" in dark
+   + "Local Menu" in the warm accent on one line, and the week subtitle
+   in muted grey below. */
+.site-brand {
+  display: flex;
+  align-items: stretch;
+  margin: 0 0 0.6em;
+  border-radius: 6px;
+  overflow: hidden;
+  background: color-mix(in srgb, var(--accent-warm) 4%, var(--card-bg));
+}
+.site-brand-stripe {
+  width: 8px;
+  background: linear-gradient(180deg, var(--accent-warm), var(--accent-cool));
+  flex: 0 0 auto;
+}
+.site-brand-text {
+  flex: 1 1 auto;
+  padding: 10px 14px;
+}
 .site-title {
-  font-size: 1.5em;
+  font-size: 1.55em;
   font-weight: 800;
-  margin: 0 0 0.6em 0;
-  padding: 12px 16px;
-  color: #fff;
-  background: linear-gradient(90deg, var(--accent-warm), var(--accent-cool));
-  border-radius: 8px;
-  line-height: 1.2;
+  margin: 0;
+  line-height: 1.1;
+  letter-spacing: -0.2px;
+}
+.site-title-melbourne { color: var(--dark); }
+.site-title-localmenu { color: var(--accent-warm); margin-left: 0.3em; }
+.site-subtitle {
+  font-size: 0.82em;
+  color: var(--muted);
+  margin: 4px 0 0;
+  font-weight: 500;
 }
 /* Header row holds the scrolling day-tabs and the static gear button.
    Gear lives outside .day-tabs so day buttons can never scroll under it. */
@@ -1123,7 +1149,13 @@ body.has-banner > *:not(.deep-link-banner) {
 <body>
 <div class="container">
 <header class="site-header">
-<h1 class="site-title">Melbourne Local Menu - Week of 29th Apr 2026</h1>
+<div class="site-brand">
+<div class="site-brand-stripe" aria-hidden="true"></div>
+<div class="site-brand-text">
+<h1 class="site-title"><span class="site-title-melbourne">Melbourne</span><span class="site-title-localmenu">Local Menu</span></h1>
+<p class="site-subtitle">Week of 29th Apr 2026</p>
+</div>
+</div>
 <div class="tabs-row">
 <nav class="day-tabs" role="tablist" aria-label="Days"></nav>
 <span class="tabs-divider" aria-hidden="true"></span>
