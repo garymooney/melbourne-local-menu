@@ -29,9 +29,9 @@ p { color: var(--muted); margin: 0 0 1.6em; }
 <script>
   var SITE_PATH = '/melbourne-local-menu/';
   (function () {
-    var m = location.pathname.match(/\/e\/([^\/]+)\.html$/);
-    var target = m ? SITE_PATH + '#event-' + m[1] : SITE_PATH;
-    window.location.replace(target);
+    var m = location.pathname.match(/\/(?:e\/)?([^\/]+)\.html$/);
+    var id = m ? m[1] : 'unavailable';
+    window.location.replace(SITE_PATH + '#event-' + id);
   })();
 </script>
 </body>
