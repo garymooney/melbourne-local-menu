@@ -211,39 +211,46 @@ body.has-selection .event:not(.selected) {
 /* Deep-link status banner — shown when a shared link points at an
    event that's no longer in the menu (rolled-off / stale week) or
    that for any other reason can't be rendered into a card. Sits at
-   the bottom-centre of the viewport, dismissable by tap. */
+   the top-centre of the viewport, dismissable by tap. */
 .deep-link-banner {
   position: fixed;
   left: 50%;
-  bottom: 1.2em;
+  top: 1.2em;
   transform: translateX(-50%);
   max-width: 92vw;
   width: 380px;
-  padding: 12px 36px 12px 14px;
+  padding: 14px 38px 14px 16px;
   border-radius: 10px;
   background: var(--card-bg);
   color: var(--text);
-  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  box-shadow: 0 4px 18px rgba(0, 0, 0, 0.22);
   border-left: 4px solid var(--accent-warm);
   cursor: pointer;
-  z-index: 50;
-  font-size: 0.92em;
+  z-index: 1000;
+  font-size: 0.95em;
 }
-.deep-link-banner__title { font-weight: 700; margin: 0 0 2px; }
+.deep-link-banner__title { font-weight: 700; margin: 0 0 3px; font-size: 1.02em; }
 .deep-link-banner__body { color: var(--muted); font-size: 0.92em; line-height: 1.4; }
 .deep-link-banner__close {
   position: absolute;
   top: 6px; right: 8px;
-  width: 24px; height: 24px;
+  width: 26px; height: 26px;
   padding: 0;
   background: transparent;
   border: 0;
   color: var(--muted);
-  font-size: 1.2em;
+  font-size: 1.3em;
   line-height: 1;
   cursor: pointer;
 }
 .deep-link-banner__close:hover { color: var(--text); }
+/* When the banner is up, fade the rest of the page so attention goes
+   to the message. The banner itself is excluded from the fade. */
+body.has-banner > *:not(.deep-link-banner) {
+  opacity: 0.35;
+  transition: opacity 0.2s ease;
+  pointer-events: none;
+}
 .pin-btn {
   position: absolute;
   top: 6px;
@@ -3709,14 +3716,16 @@ body.has-selection .event:not(.selected) {
     }, 80);
   }
 
-  // Floating banner shown when a deep-link can't surface its target
+  // Top-of-page banner shown when a deep-link can't surface its target
   // card. One generic "unavailable" message covers both missing-from-
   // data and rolled-off-the-display-window cases — the user doesn't
-  // care which; either way the link is dead. Tap anywhere on the
-  // banner (or the × button) to dismiss.
+  // care which; either way the link is dead. Adds body.has-banner so
+  // the rest of the page fades, drawing the eye to the banner. Tap
+  // anywhere on the banner (or the × button) to dismiss + un-fade.
   function showEventUnavailableBanner() {
     var existing = document.getElementById('deep-link-banner');
     if (existing) existing.remove();
+    document.body.classList.add('has-banner');
     var banner = document.createElement('div');
     banner.id = 'deep-link-banner';
     banner.className = 'deep-link-banner';
@@ -3727,7 +3736,10 @@ body.has-selection .event:not(.selected) {
       '<div class="deep-link-banner__body">' +
         "It's already happened, or no longer in this week's menu." +
       '</div>';
-    banner.addEventListener('click', function () { banner.remove(); });
+    banner.addEventListener('click', function () {
+      banner.remove();
+      document.body.classList.remove('has-banner');
+    });
     document.body.appendChild(banner);
   }
 
