@@ -1656,24 +1656,29 @@ body {
       var day = ev.day;
       var cat = ev.category;
       if (!day || !cat) continue;
-      // User-selected events bypass every display filter (free-only,
-      // suburb-outside, score floor) so a deep-linked or hand-tapped
-      // card always renders — even a low-score, paid, outside-suburb
-      // event the user explicitly opted into seeing.
+      // User-selected OR user-pinned events bypass every display
+      // filter (free-only, suburb-outside, score floor) so a deep-
+      // linked or hand-pinned card always renders — even a low-score,
+      // paid, outside-suburb event the user explicitly opted into.
       var sel = isUserSelected(ev);
+      var userPin = isUserPinned(ev);
+      var bypass = sel || userPin;
       // "Free events only" toggle: On → drop paid events; Off → no filter.
-      if (freeOnly && !ev.is_free && !sel) continue;
+      if (freeOnly && !ev.is_free && !bypass) continue;
       // Outside-tier suburbs are filtered by default; user can re-tier
       // in the Suburbs sub-tab to surface them.
       var sn = ev.suburb_normalized;
       var stier = sn ? (sTiers[sn] || 'outside') : 'outside';
-      if (stier === 'outside' && !sel) continue;
+      if (stier === 'outside' && !bypass) continue;
       if (!byDayCat[day]) byDayCat[day] = {};
       if (!byDayCat[day][cat]) byDayCat[day][cat] = [];
       byDayCat[day][cat].push({
         event: ev,
         score: scoreEvent(ev, profile),
-        pinned: isPinned(ev, profile),
+        // Combine rule-pinned (priority_venue) with user-pinned. Both
+        // force-bypass the score floor in selectWithDiversity and
+        // skip the "Show more" expansion bucket in renderCategoryHtml.
+        pinned: isPinned(ev, profile) || userPin,
         selected: sel,
         is_expanded: false,
       });
