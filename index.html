@@ -1315,6 +1315,16 @@ body.has-banner > *:not(.deep-link-banner) {
     // membership tests during render. Defaults to [].
     var pinned = stored.pinned_event_ids;
     merged.pinned_event_ids = Array.isArray(pinned) ? pinned.slice() : [];
+
+    // Appearance — 'auto' | 'light' | 'dark'. Default 'auto' so the
+    // page follows the OS preference until the user explicitly picks
+    // an override in the Settings appearance picker.
+    if (stored.theme === 'light' || stored.theme === 'dark' ||
+        stored.theme === 'auto') {
+      merged.theme = stored.theme;
+    } else {
+      merged.theme = 'auto';
+    }
     return merged;
   }
 
@@ -1338,6 +1348,7 @@ body.has-banner > *:not(.deep-link-banner) {
           avoid_bonus: (profile.tier_bonuses || {}).avoid,
         },
         pinned_event_ids: profile.pinned_event_ids || [],
+        theme: profile.theme || 'auto',
       }));
     } catch (_) {}
   }
