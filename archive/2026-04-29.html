@@ -3570,35 +3570,6 @@ body.has-banner > *:not(.deep-link-banner) {
     setTimeout(function () { btn.classList.remove('flash'); }, 1200);
   }
 
-  // Format the share `text` payload — when/where + a one-line vibe.
-  // Apps like WhatsApp / iMessage / Telegram include this in the
-  // message body. Messenger may still prefer the URL preview, but the
-  // text helps everywhere else.
-  var SHARE_WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
-  var SHARE_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
-  function formatShareDay(iso) {
-    if (!iso) return '';
-    var d = new Date(iso + 'T00:00:00');
-    if (isNaN(d.getTime())) return iso;
-    return SHARE_WEEKDAYS[d.getDay()] + ' ' + d.getDate() +
-      ' ' + SHARE_MONTHS[d.getMonth()];
-  }
-  function buildShareText(ev) {
-    var lines = [];
-    var when = [];
-    var day = formatShareDay(ev.day);
-    if (day) when.push(day);
-    if (ev.time_display) when.push(ev.time_display);
-    var where = [];
-    if (ev.venue) where.push(ev.venue);
-    if (ev.suburb) where.push(ev.suburb);
-    var top = [];
-    if (when.length) top.push(when.join(' '));
-    if (where.length) top.push(where.join(', '));
-    if (top.length) lines.push(top.join(' · '));
-    if (ev.context_line) lines.push(ev.context_line);
-    return lines.join('\n');
-  }
 
   // Per-event landing-page URL on our public site. Receivers tapping a
   // shared link land on a tiny static page with rich OG metadata, then
@@ -3675,28 +3646,28 @@ body.has-banner > *:not(.deep-link-banner) {
     }
 
     // Share button — native Web Share API on mobile; fallback to
-    // copy a rich-text payload on browsers without it (most desktops).
-    // url points at our landing page (own OG preview + brings the
-    // receiver back to our site), NOT the source URL.
+    // copy on browsers without it. The URL points at our landing
+    // page, whose OG metadata carries the title + when/where/blurb
+    // — chat apps (Messenger, WhatsApp, iMessage, Slack) unfurl it
+    // into a rich card automatically. We deliberately omit the
+    // share `text` field: Messenger sends `text` and `url` as TWO
+    // separate items (a plain message AND a link card), which looks
+    // ugly. Title + url alone yields one clean card.
     var shareBtn = e.target.closest && e.target.closest('.share-btn');
     if (shareBtn) {
       var shareEv = eventsById[shareBtn.dataset.eventId];
       if (shareEv && shareEv.id) {
-        var shareText = buildShareText(shareEv);
         var shareUrl = landingPageUrl(shareEv);
         if (navigator.share) {
           navigator.share({
             title: shareEv.title || 'Event',
-            text: shareText,
             url: shareUrl,
           }).catch(function () { /* user cancelled or unsupported */ });
         } else {
-          // Desktop fallback: copy "title\ntext\nurl" so paste produces
-          // the same rich payload mobile users see in their share sheet.
-          var fallback = (shareEv.title || 'Event') +
-            (shareText ? '\n' + shareText : '') +
-            '\n' + shareUrl;
-          copyText(fallback).then(function () { flashSuccess(shareBtn); });
+          // Desktop fallback: just the URL. Whatever the user pastes
+          // it into (Messenger, email, Slack…) handles unfurl on its
+          // own via the landing page's OG tags.
+          copyText(shareUrl).then(function () { flashSuccess(shareBtn); });
         }
       }
       return;
