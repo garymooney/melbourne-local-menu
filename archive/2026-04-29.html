@@ -296,9 +296,12 @@ body.has-banner > *:not(.deep-link-banner) {
   padding: 0 8px;
 }
 .event.pinned .pin-btn { opacity: 1; }
-/* Pinned cards need extra right-padding so the wider pin-button
-   ("PINNED" + icon ≈ 70px) doesn't overlap card content. */
-.event.pinned { padding-right: 84px; }
+/* When pinned, only the venue line shares its row with the wider
+   "pinned" + icon button — give it padding-right to clear the
+   button (~50px on top of .event's existing 38px right padding).
+   Title, description, and the action row sit BELOW the absolute-
+   positioned button so they keep the full content width. */
+.event.pinned .venue { padding-right: 50px; }
 .event.extra {
   border-left-color: var(--rule);
   border-left-style: dashed;
