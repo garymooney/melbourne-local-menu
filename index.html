@@ -215,10 +215,10 @@ body.has-selection .event:not(.selected) {
 .deep-link-banner {
   position: fixed;
   left: 50%;
-  /* Aligned with the vertical centre of the day-heading: site-header
-     (--header-offset) + 1.6em (top of heading) + ~1.5em (half-heading
-     height: 10px padding + ~1.75em line-box + 10px padding ≈ 3em). */
-  top: calc(var(--header-offset, 120px) + 3em);
+  /* Banner top aligned with day-heading BOTTOM: site-header
+     (--header-offset) + 1.6em (above heading) + ~3em (heading height
+     ≈ 10px padding + ~1.75em line-box + 10px padding) ≈ 4.6em. */
+  top: calc(var(--header-offset, 120px) + 4.6em);
   transform: translateX(-50%);
   max-width: 92vw;
   width: 380px;
