@@ -174,10 +174,6 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
-  /* Card body is click-toggle for selection (see JS handler). The
-     existing buttons / links inside still grab their own clicks first;
-     only "empty" card surface lands on the toggle. */
-  cursor: pointer;
   /* Pull deep-link / scrollIntoView targets clear of TWO stacked
      sticky bars: the site header (--header-offset, set live by
      syncHeaderOffset) and the category header (.category-header,
@@ -1268,21 +1264,14 @@ body {
     return PINNED_SET.has(String(ev.id));
   }
 
-  // Selected events — lightweight, ephemeral, runtime-only state. Tap
-  // a card to toggle. Selected cards always render in the main curated
-  // list (skipping the "Show more" expanded bucket) so the user can
-  // pin in place without promoting an event above the score floor like
-  // a real pin does. Cleared on page reload by design — selection is
-  // for the current browsing session, not a saved preference.
+  // Selected events — set ONLY by deep-link arrival (focusEventCard);
+  // never by user click. Provides a visible warm halo on the card the
+  // share/deep-link pointed at. Cleared by any subsequent click — a
+  // companion pin (added in focusEventCard) keeps the card visible
+  // after the halo fades.
   var SELECTED_SET = new Set();
   function isUserSelected(ev) {
     return SELECTED_SET.has(String(ev.id));
-  }
-  function toggleSelected(eventId) {
-    var id = String(eventId);
-    if (SELECTED_SET.has(id)) SELECTED_SET.delete(id);
-    else SELECTED_SET.add(id);
-    renderAll();
   }
 
   var CATEGORY_ORDER = defaultProfile.category_order || [
@@ -3582,16 +3571,13 @@ body {
       return;
     }
 
-    // Card body click → toggle selection. Runs LAST so all the
-    // specific button/link/chip handlers above get first dibs. Clicks
-    // on real interactive children (buttons, links) never reach here
-    // because those handlers `return` when matched. Defensive guard
-    // for anything else interactive (e.g. the score-chip already
-    // handled above, but belt-and-braces) skips card-level toggle.
-    var cardEl = e.target.closest && e.target.closest('.event');
-    if (cardEl && !e.target.closest('a, button, .score-chip')) {
-      var cardEvId = cardEl.id && cardEl.id.replace(/^event-/, '');
-      if (cardEvId) toggleSelected(cardEvId);
+    // Selection clears on ANY click — the warm halo is only ever set
+    // via deep-link (focusEventCard), never by user interaction. The
+    // deep-link target is also pinned so it stays visible after the
+    // halo fades. No-op if nothing is currently selected.
+    if (SELECTED_SET.size > 0) {
+      SELECTED_SET.clear();
+      renderAll();
     }
   });
 
@@ -3667,6 +3653,17 @@ body {
     }
     if (!SELECTED_SET.has(idStr)) {
       SELECTED_SET.add(idStr);
+    }
+    // Also pin the event. SELECTED_SET clears on the user's first
+    // click (anywhere) — without a pin the card would vanish back
+    // below the score floor. Pinning preserves it through the deselect
+    // and lets the user revisit the card later in the session; they
+    // can unpin from the card's own pin button when they're done.
+    if (!PINNED_SET.has(idStr)) {
+      profile.pinned_event_ids = (profile.pinned_event_ids || []).slice();
+      profile.pinned_event_ids.push(idStr);
+      refreshPinnedSet();
+      saveProfile();
     }
     // Re-render FIRST so the card lands in the curated list (selection
     // bypass kicks in once SELECTED_SET contains the id). activate()
