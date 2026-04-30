@@ -3243,6 +3243,36 @@ body {
     setTimeout(function () { btn.classList.remove('flash'); }, 1200);
   }
 
+  // Format the share `text` payload — when/where + a one-line vibe.
+  // Apps like WhatsApp / iMessage / Telegram include this in the
+  // message body. Messenger may still prefer the URL preview, but the
+  // text helps everywhere else.
+  var SHARE_WEEKDAYS = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+  var SHARE_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  function formatShareDay(iso) {
+    if (!iso) return '';
+    var d = new Date(iso + 'T00:00:00');
+    if (isNaN(d.getTime())) return iso;
+    return SHARE_WEEKDAYS[d.getDay()] + ' ' + d.getDate() +
+      ' ' + SHARE_MONTHS[d.getMonth()];
+  }
+  function buildShareText(ev) {
+    var lines = [];
+    var when = [];
+    var day = formatShareDay(ev.day);
+    if (day) when.push(day);
+    if (ev.time_display) when.push(ev.time_display);
+    var where = [];
+    if (ev.venue) where.push(ev.venue);
+    if (ev.suburb) where.push(ev.suburb);
+    var top = [];
+    if (when.length) top.push(when.join(' '));
+    if (where.length) top.push(where.join(', '));
+    if (top.length) lines.push(top.join(' · '));
+    if (ev.context_line) lines.push(ev.context_line);
+    return lines.join('\n');
+  }
+
   function fallbackCopyText(text) {
     var ta = document.createElement('textarea');
     ta.value = text;
@@ -3285,18 +3315,25 @@ body {
     }
 
     // Share button — native Web Share API on mobile; fallback to
-    // copy-link on browsers without it (most desktops).
+    // copy a rich-text payload on browsers without it (most desktops).
     var shareBtn = e.target.closest && e.target.closest('.share-btn');
     if (shareBtn) {
       var shareEv = eventsById[shareBtn.dataset.eventId];
       if (shareEv && shareEv.url) {
+        var shareText = buildShareText(shareEv);
         if (navigator.share) {
           navigator.share({
             title: shareEv.title || 'Event',
+            text: shareText,
             url: shareEv.url,
           }).catch(function () { /* user cancelled or unsupported */ });
         } else {
-          copyText(shareEv.url).then(function () { flashSuccess(shareBtn); });
+          // Desktop fallback: copy "title\ntext\nurl" so paste produces
+          // the same rich payload mobile users see in their share sheet.
+          var fallback = (shareEv.title || 'Event') +
+            (shareText ? '\n' + shareText : '') +
+            '\n' + shareEv.url;
+          copyText(fallback).then(function () { flashSuccess(shareBtn); });
         }
       }
       return;
