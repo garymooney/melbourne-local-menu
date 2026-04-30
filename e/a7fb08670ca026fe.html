@@ -13,13 +13,27 @@
 <meta property="twitter:card" content="summary">
 <meta property="twitter:title" content="Jazz School &quot;Kiss it Better Jam&quot;">
 <meta property="twitter:description" content="Mon 4 May · 7pm · The Retreat Hotel, Brunswick — Live jam session for singers, rappers, instrumentalists; rotating house band, funk-jazz groove.">
-<style>:root { color-scheme: light dark; --bg: #fafaf7; --card-bg: #fff; --text: #1a1a1a; --muted: #555; --faint: #888; --accent: #c4452b; --rule: #e5e5e5; }
+<style>:root {
+  color-scheme: light dark;
+  --bg: #fafaf7; --card-bg: #fff; --text: #1a1a1a;
+  --muted: #555; --faint: #888;
+  --accent: #c4452b; --rule: #e5e5e5;
+  --free-green: #3a9d3a;
+  --mono-font: 'SF Mono', Consolas, monospace;
+}
 @media (prefers-color-scheme: dark) {
-  :root { --bg: #15110d; --card-bg: #1d1915; --text: #f0f0f0; --muted: #bbb; --faint: #888; --accent: #ff6b4a; --rule: #333; }
+  :root {
+    --bg: #15110d; --card-bg: #1d1915; --text: #f0f0f0;
+    --muted: #bbb; --faint: #888;
+    --accent: #ff6b4a; --rule: #333;
+    --free-green: #5fbe5f;
+  }
 }
 * { box-sizing: border-box; }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5em 1em; line-height: 1.5; }
-.wrap { max-width: 560px; margin: 0 auto; }
+/* Match the rough width of a single card on the main menu rather than
+   stretching across the screen — landing page is a card, not an article. */
+.wrap { max-width: 420px; margin: 0 auto; }
 .brand { font-size: 0.78em; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin: 0 0 1.2em; }
 .brand a { color: inherit; text-decoration: none; }
 .brand a:hover { text-decoration: underline; }
@@ -29,8 +43,10 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
 .title { font-size: 1.18em; font-weight: 700; color: var(--accent); margin: 8px 0 0; line-height: 1.3; }
 .time { font-size: 0.92em; color: var(--muted); margin: 4px 0 0; }
 .description { font-size: 0.95em; color: var(--text); margin: 12px 0 0; }
-.price { display: inline-block; font-size: 0.85em; font-weight: 600; color: var(--text); margin: 10px 0 0; padding: 2px 8px; border: 1px solid var(--rule); border-radius: 10px; }
-.price.free { color: var(--accent); border-color: var(--accent); }
+/* Price styling mirrors the main menu — plain mono text, faint colour,
+   no pill. .free is the accent green. */
+.price { font-size: 0.85em; color: var(--faint); font-family: var(--mono-font); font-weight: 500; margin: 10px 0 0; }
+.price.free { color: var(--free-green); font-weight: 700; }
 .cta-row { display: flex; flex-direction: column; gap: 10px; margin-top: 1.2em; }
 .cta { display: block; padding: 12px 16px; border-radius: 8px; text-align: center; font-weight: 600; text-decoration: none; font-size: 0.96em; }
 .cta.primary { background: var(--accent); color: var(--bg); }
@@ -51,7 +67,7 @@ body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sa
     <p class="price free">free</p>
   </article>
   <div class="cta-row">
-    <a class="cta primary" href="../#event-a7fb08670ca026fe">Browse the full menu →</a>
+    <a class="cta primary" href="../#event-a7fb08670ca026fe">Back to Menu</a>
     <a class="cta secondary" href="https://retreathotelbrunswick.com.au/gigs/jazz-school-kiss-it-better-jam-retreat-hotel" target="_blank" rel="noopener">Open original event page →</a>
   </div>
   <p class="foot">Curated weekly · Melbourne Local Menu</p>
