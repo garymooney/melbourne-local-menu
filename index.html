@@ -3393,7 +3393,7 @@ body.has-banner > *:not(.deep-link-banner) {
     profile.pinned_event_ids = list;
     refreshPinnedSet();
     saveProfile();
-    renderAllAnimated();
+    renderAllAnimated(id);
   }
 
   // Wraps renderAll with a FLIP animation: capture each event card's
@@ -3403,7 +3403,13 @@ body.has-banner > *:not(.deep-link-banner) {
   // old DOM but missing from the new just vanish; new cards just
   // appear. Used for pin/unpin so the layout shift is visible
   // movement rather than a teleport.
-  function renderAllAnimated() {
+  //
+  // `highlightId` (optional) is the id of the card the user just acted
+  // on. That card gets z-index lifted for the animation's lifetime so
+  // it renders ABOVE the cards it passes through during travel — a
+  // jumping card under the others would lose visual priority. Once
+  // its animation finishes, the z-index is restored.
+  function renderAllAnimated(highlightId) {
     if (!('animate' in document.createElement('div'))) {
       // Web Animations API unavailable — fall back to plain rebuild.
       renderAll();
@@ -3416,6 +3422,16 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     renderAll();
     var next = document.querySelectorAll('.event[id^="event-"]');
+    var highlightEl = highlightId
+      ? document.getElementById('event-' + highlightId)
+      : null;
+    if (highlightEl) {
+      // .event already has position: relative, so z-index applies
+      // immediately. Higher than .event.pinned's existing 0/auto so
+      // the highlighted card flies above its (also-pinned) peers.
+      highlightEl.style.zIndex = 10;
+    }
+    var highlightAnim = null;
     for (var j = 0; j < next.length; j++) {
       var el = next[j];
       var oldRect = oldRects[el.id];
@@ -3424,13 +3440,22 @@ body.has-banner > *:not(.deep-link-banner) {
       var dx = oldRect.left - newRect.left;
       var dy = oldRect.top - newRect.top;
       if (dx === 0 && dy === 0) continue;
-      el.animate(
+      var anim = el.animate(
         [
           { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
           { transform: 'translate(0, 0)' }
         ],
         { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
       );
+      if (el === highlightEl) highlightAnim = anim;
+    }
+    if (highlightEl) {
+      var clearZ = function () { highlightEl.style.zIndex = ''; };
+      if (highlightAnim) highlightAnim.onfinish = clearZ;
+      // Even if the highlighted card had zero delta (no animation
+      // returned), drop the z-index after a short delay so it doesn't
+      // get stuck above its peers forever.
+      else setTimeout(clearZ, 340);
     }
   }
 
