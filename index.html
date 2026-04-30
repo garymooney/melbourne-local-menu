@@ -198,6 +198,14 @@ body {
     0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent),
     0 0 0 3px color-mix(in srgb, var(--accent-warm) 40%, transparent);
 }
+/* When any event is selected, fade everything else so the selected
+   card stands out. Uses :has() (Chrome 105+, Safari 15.4+, Firefox
+   121+); browsers without :has() simply skip this rule and behave as
+   before. */
+body:has(.event.selected) .event:not(.selected) {
+  opacity: 0.4;
+}
+.event { transition: opacity 0.2s ease; }
 
 /* Deep-link status banner — shown when a shared link points at an
    event that's no longer in the menu (rolled-off / stale week) or
