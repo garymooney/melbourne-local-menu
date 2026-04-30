@@ -9,60 +9,23 @@
 <meta property="og:url" content="https://garymooney.github.io/melbourne-local-menu/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Melbourne Local Menu">
-<style>:root {
-  color-scheme: light dark;
-  --bg: #fafaf7; --card-bg: #fff; --text: #1a1a1a;
-  --muted: #555; --faint: #888;
-  --accent: #c4452b; --rule: #e5e5e5;
-  --free-green: #3a9d3a;
-  --mono-font: 'SF Mono', Consolas, monospace;
-}
-@media (prefers-color-scheme: dark) {
-  :root {
-    --bg: #15110d; --card-bg: #1d1915; --text: #f0f0f0;
-    --muted: #bbb; --faint: #888;
-    --accent: #ff6b4a; --rule: #333;
-    --free-green: #5fbe5f;
-  }
-}
-* { box-sizing: border-box; }
-body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 1.5em 1em; line-height: 1.5; }
-/* Match the rough width of a single card on the main menu rather than
-   stretching across the screen — landing page is a card, not an article. */
-.wrap { max-width: 420px; margin: 0 auto; }
-.brand { font-size: 0.78em; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin: 0 0 1.2em; }
+<style>:root { color-scheme: light dark; --bg:#fafaf7; --text:#1a1a1a; --muted:#555; --accent:#c4452b; }
+@media (prefers-color-scheme: dark) { :root { --bg:#15110d; --text:#f0f0f0; --muted:#bbb; --accent:#ff6b4a; } }
+body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 3em 1em; line-height: 1.5; text-align: center; }
+.wrap { max-width: 460px; margin: 0 auto; }
+.brand { font-size: 0.78em; font-weight: 800; text-transform: uppercase; letter-spacing: 2px; color: var(--accent); margin: 0 0 2em; }
 .brand a { color: inherit; text-decoration: none; }
-.brand a:hover { text-decoration: underline; }
-.event { background: var(--card-bg); border-left: 3px solid var(--accent); border-radius: 0 8px 8px 0; padding: 14px 18px; }
-.venue { font-size: 0.85em; font-weight: 700; color: var(--muted); margin: 0; }
-.suburb { font-size: 0.76em; text-transform: uppercase; letter-spacing: 1.2px; color: var(--faint); margin: 2px 0 0; }
-.title { font-size: 1.18em; font-weight: 700; color: var(--accent); margin: 8px 0 0; line-height: 1.3; }
-.time { font-size: 0.92em; color: var(--muted); margin: 4px 0 0; }
-.description { font-size: 0.95em; color: var(--text); margin: 12px 0 0; }
-/* Price styling mirrors the main menu — plain mono text, faint colour,
-   no pill. .free is the accent green. */
-.price { font-size: 0.85em; color: var(--faint); font-family: var(--mono-font); font-weight: 500; margin: 10px 0 0; }
-.price.free { color: var(--free-green); font-weight: 700; }
-.cta-row { display: flex; flex-direction: column; gap: 10px; margin-top: 1.2em; }
-.cta { display: block; padding: 12px 16px; border-radius: 8px; text-align: center; font-weight: 600; text-decoration: none; font-size: 0.96em; }
-.cta.primary { background: var(--accent); color: var(--bg); }
-.cta.primary:hover { opacity: 0.9; }
-.cta.secondary { background: transparent; color: var(--accent); border: 1px solid var(--accent); }
-.cta.secondary:hover { background: color-mix(in srgb, var(--accent) 8%, transparent); }
-.foot { font-size: 0.78em; color: var(--faint); margin-top: 1.6em; text-align: center; }
-.notfound { text-align: center; padding: 2.5em 0; }
-.notfound h1 { font-size: 1.4em; margin: 0 0 0.4em; }
-.notfound p { color: var(--muted); margin: 0 0 1.6em; }
-</style>
+h1 { font-size: 1.4em; margin: 0 0 0.4em; }
+p { color: var(--muted); margin: 0 0 1.6em; }
+.cta { display: inline-block; padding: 12px 22px; border-radius: 8px; text-align: center; font-weight: 600; text-decoration: none; font-size: 0.96em; background: var(--accent); color: var(--bg); }
+.cta:hover { opacity: 0.9; }</style>
 </head>
 <body>
 <div class="wrap">
   <p class="brand"><a href="/">Melbourne Local Menu</a></p>
-  <div class="notfound">
-    <h1>This event isn't in the current menu</h1>
-    <p>It might have rolled off, or the link could be stale.</p>
-    <a class="cta primary" href="/">Browse what is on now →</a>
-  </div>
+  <h1>This event isn't in the current menu</h1>
+  <p>It might have rolled off, or the link could be stale.</p>
+  <a class="cta" href="/">Browse what is on now →</a>
 </div>
 <script>
   setTimeout(function () { window.location.replace('/'); }, 4000);

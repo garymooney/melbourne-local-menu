@@ -174,21 +174,28 @@ body {
   display: flex;
   flex-direction: column;
   position: relative;
+  /* Card body is click-toggle for selection (see JS handler). The
+     existing buttons / links inside still grab their own clicks first;
+     only "empty" card surface lands on the toggle. */
+  cursor: pointer;
 }
 .event.pinned {
   border-left-color: var(--accent-cool);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
-/* Card highlight when a deep-link (#event-<id>) lands on it from a
-   shared landing page. Brief warm-tinted box-shadow pulse so the user
-   sees which card the share pointed at. */
-@keyframes deepLinkPulse {
-  0%   { box-shadow: 0 0 0 0   color-mix(in srgb, var(--accent-warm) 50%, transparent); }
-  60%  { box-shadow: 0 0 0 6px color-mix(in srgb, var(--accent-warm) 18%, transparent); }
-  100% { box-shadow: 0 0 0 0   color-mix(in srgb, var(--accent-warm) 0%,  transparent); }
+/* Selected cards stay visible (skipping the "Show more" expansion) and
+   carry a subtle warm-tinted halo so the user remembers which ones
+   they tapped. Lighter visual weight than .pinned. */
+.event.selected {
+  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-warm) 55%, transparent);
+  background: color-mix(in srgb, var(--accent-warm) 5%, var(--card-bg));
 }
-.event.deep-link-target {
-  animation: deepLinkPulse 2.4s ease-out 1;
+.event.selected.pinned {
+  /* Pinned takes precedence on the inset border colour; selected
+     adds a warmer outer halo so both states are visible together. */
+  box-shadow:
+    0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent),
+    0 0 0 3px color-mix(in srgb, var(--accent-warm) 40%, transparent);
 }
 .pin-btn {
   position: absolute;
@@ -1219,6 +1226,23 @@ body {
     return PINNED_SET.has(String(ev.id));
   }
 
+  // Selected events — lightweight, ephemeral, runtime-only state. Tap
+  // a card to toggle. Selected cards always render in the main curated
+  // list (skipping the "Show more" expanded bucket) so the user can
+  // pin in place without promoting an event above the score floor like
+  // a real pin does. Cleared on page reload by design — selection is
+  // for the current browsing session, not a saved preference.
+  var SELECTED_SET = new Set();
+  function isUserSelected(ev) {
+    return SELECTED_SET.has(String(ev.id));
+  }
+  function toggleSelected(eventId) {
+    var id = String(eventId);
+    if (SELECTED_SET.has(id)) SELECTED_SET.delete(id);
+    else SELECTED_SET.add(id);
+    renderAll();
+  }
+
   var CATEGORY_ORDER = defaultProfile.category_order || [
     'live_music', 'watch', 'hands_on', 'movement', 'go_somewhere', 'other',
   ];
@@ -1702,9 +1726,11 @@ body {
       item.breakdown = scoreBreakdown(ev, profile);
     }
     var pinned = isUserPinned(ev);
+    var selected = isUserSelected(ev);
     var cls = item.is_expanded ? 'event extra' : 'event';
     if (item.is_fallback) cls += ' fallback';
     if (pinned) cls += ' pinned';
+    if (selected) cls += ' selected';
     var parts = [
       '<article class="' + cls + '" ' +
       'id="event-' + escapeHtml(String(ev.id)) + '">'
@@ -1855,10 +1881,14 @@ body {
     var curated = [], expanded = [];
     for (var i = 0; i < block.length; i++) {
       var it = block[i];
-      // Pinned items always render in the main (curated) list — never
-      // tucked under "Show more" — even if scoring/diversity put them in
-      // the expanded bucket.
-      if (it.is_expanded && !isUserPinned(it.event)) expanded.push(it);
+      // Pinned OR user-selected items always render in the main
+      // (curated) list — never tucked under "Show more" — even if
+      // scoring/diversity put them in the expanded bucket. Selection
+      // is the lighter cousin: tap a card to keep it visible without
+      // promoting it above the score floor.
+      var keepInCurated =
+        isUserPinned(it.event) || isUserSelected(it.event);
+      if (it.is_expanded && !keepInCurated) expanded.push(it);
       else curated.push(it);
     }
     if (curated.length === 0 && expanded.length === 0) return '';
@@ -3491,6 +3521,18 @@ body {
       }
       return;
     }
+
+    // Card body click → toggle selection. Runs LAST so all the
+    // specific button/link/chip handlers above get first dibs. Clicks
+    // on real interactive children (buttons, links) never reach here
+    // because those handlers `return` when matched. Defensive guard
+    // for anything else interactive (e.g. the score-chip already
+    // handled above, but belt-and-braces) skips card-level toggle.
+    var cardEl = e.target.closest && e.target.closest('.event');
+    if (cardEl && !e.target.closest('a, button, .score-chip')) {
+      var cardEvId = cardEl.id && cardEl.id.replace(/^event-/, '');
+      if (cardEvId) toggleSelected(cardEvId);
+    }
   });
 
   // Shape sliders emit 'input' while dragging and 'change' on release.
@@ -3550,25 +3592,29 @@ body {
     if (em) focusEventCard(decodeURIComponent(em[1]));
   }
 
-  // Scroll-into-view + briefly pulse-highlight an event card from a
-  // deep-link hash like #event-<id>. Activates the day tab the event
-  // sits on first so the card is actually in the DOM before scroll.
+  // Deep-link to an event card from a hash like #event-<id>. Marks the
+  // card as selected (so it's pulled into the main curated list, not
+  // tucked under "Show more"), activates the right day tab, then
+  // scrolls the card into view. The selected class is the visual
+  // indicator — no separate pulse needed.
   function focusEventCard(eventId) {
     var ev = eventsById[eventId];
     if (!ev) return;
+    var idStr = String(eventId);
+    if (!SELECTED_SET.has(idStr)) {
+      SELECTED_SET.add(idStr);
+    }
     if (ev.day) activate(ev.day, {});
-    // Defer so the day-panel rendering settles before we measure.
+    // Re-render so the card lands in the curated list before we
+    // measure its position. activate(...) calls renderAll for the day
+    // panel, but we ensure freshness here in case of edge cases (e.g.
+    // hash arriving on a tab that's already active).
+    renderAll();
+    // Defer scroll so the day-panel rendering settles before measure.
     setTimeout(function () {
-      var card = document.getElementById('event-' + eventId);
+      var card = document.getElementById('event-' + idStr);
       if (!card) return;
       card.scrollIntoView({ behavior: 'smooth', block: 'center' });
-      card.classList.remove('deep-link-target');
-      // Force reflow so the animation restarts on repeat-clicks.
-      void card.offsetWidth;
-      card.classList.add('deep-link-target');
-      setTimeout(function () {
-        card.classList.remove('deep-link-target');
-      }, 2600);
     }, 80);
   }
 
