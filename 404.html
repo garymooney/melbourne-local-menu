@@ -3,12 +3,13 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Event not found · Melbourne Local Menu</title>
+<title>Loading · Melbourne Local Menu</title>
 <meta property="og:title" content="Event no longer in menu">
 <meta property="og:description" content="This event has rolled off Melbourne Local Menu. Browse what is on now.">
 <meta property="og:url" content="https://garymooney.github.io/melbourne-local-menu/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Melbourne Local Menu">
+<meta http-equiv="refresh" content="2; url=/">
 <style>:root { color-scheme: light dark; --bg:#fafaf7; --text:#1a1a1a; --muted:#555; --accent:#c4452b; }
 @media (prefers-color-scheme: dark) { :root { --bg:#15110d; --text:#f0f0f0; --muted:#bbb; --accent:#ff6b4a; } }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 3em 1em; line-height: 1.5; text-align: center; }
@@ -23,12 +24,14 @@ p { color: var(--muted); margin: 0 0 1.6em; }
 <body>
 <div class="wrap">
   <p class="brand"><a href="/">Melbourne Local Menu</a></p>
-  <h1>This event isn't in the current menu</h1>
-  <p>It might have rolled off, or the link could be stale.</p>
-  <a class="cta" href="/">Browse what is on now →</a>
+  <p>Loading menu…</p>
 </div>
 <script>
-  setTimeout(function () { window.location.replace('/'); }, 4000);
+  (function () {
+    var m = location.pathname.match(/\/e\/([^\/]+)\.html$/);
+    var target = m ? '/#event-' + m[1] : '/';
+    window.location.replace(target);
+  })();
 </script>
 </body>
 </html>
