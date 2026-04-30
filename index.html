@@ -427,6 +427,11 @@ body.has-banner > *:not(.deep-link-banner) {
 .score-chip {
   position: relative;
   display: inline-block;
+  /* Parent .event is a flex column; without align-self the chip
+     stretches across the cross-axis so its hover area extends to
+     the card's right edge. flex-start collapses it to its content
+     width so only the text triggers the tooltip. */
+  align-self: flex-start;
   margin-top: 4px;
   cursor: help;
 }
