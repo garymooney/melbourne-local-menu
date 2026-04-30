@@ -9,7 +9,7 @@
 <meta property="og:url" content="https://garymooney.github.io/melbourne-local-menu/">
 <meta property="og:type" content="website">
 <meta property="og:site_name" content="Melbourne Local Menu">
-<meta http-equiv="refresh" content="2; url=/">
+<meta http-equiv="refresh" content="2; url=/melbourne-local-menu/">
 <style>:root { color-scheme: light dark; --bg:#fafaf7; --text:#1a1a1a; --muted:#555; --accent:#c4452b; }
 @media (prefers-color-scheme: dark) { :root { --bg:#15110d; --text:#f0f0f0; --muted:#bbb; --accent:#ff6b4a; } }
 body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif; background: var(--bg); color: var(--text); margin: 0; padding: 3em 1em; line-height: 1.5; text-align: center; }
@@ -23,13 +23,14 @@ p { color: var(--muted); margin: 0 0 1.6em; }
 </head>
 <body>
 <div class="wrap">
-  <p class="brand"><a href="/">Melbourne Local Menu</a></p>
+  <p class="brand"><a href="/melbourne-local-menu/">Melbourne Local Menu</a></p>
   <p>Loading menu…</p>
 </div>
 <script>
+  var SITE_PATH = '/melbourne-local-menu/';
   (function () {
     var m = location.pathname.match(/\/e\/([^\/]+)\.html$/);
-    var target = m ? '/#event-' + m[1] : '/';
+    var target = m ? SITE_PATH + '#event-' + m[1] : SITE_PATH;
     window.location.replace(target);
   })();
 </script>
