@@ -430,6 +430,22 @@ body {
   opacity: 1;
 }
 
+/* All three card actions (copy-link, share, add-cal) sit in a single
+   row so the parent .event flex-column treats them as one item, not
+   three stacked rows. align-self: flex-start prevents the row from
+   stretching to the card's full width. */
+.event-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 4px;
+  margin-top: 6px;
+  align-self: flex-start;
+}
+/* The cal-wrap inherits margin-top from its old standalone styling;
+   now redundant inside .event-actions. */
+.event-actions > .add-cal-wrap { margin-top: 0; }
+
 /* Copy-link / Share buttons. Mirror .add-cal-btn sizing so they sit
    in the same action row visually grouped with the calendar picker.
    Single icon each; flash briefly green on success. */
@@ -446,7 +462,7 @@ body {
   display: inline-flex;
   align-items: center;
   line-height: 1;
-  margin-right: 4px;
+  flex: 0 0 auto;
 }
 .copy-link-btn svg,
 .share-btn svg {
@@ -1758,6 +1774,9 @@ body {
     }
     if (badges.length) parts.push('<div class="badges">' + badges.join('') + '</div>');
     var evIdAttr = 'data-event-id="' + escapeHtml(String(ev.id)) + '"';
+    // All three action buttons sit in a single flex-row so the parent
+    // .event flex-column treats them as one row, not three.
+    parts.push('<div class="event-actions">');
     // Copy-link button — Clipboard API; bootstrap-icons link-45deg + check.
     parts.push(
       '<button class="copy-link-btn" type="button" ' + evIdAttr + ' ' +
@@ -1813,6 +1832,7 @@ body {
       '</button>' +
       '</span>'
     );
+    parts.push('</div>');  // close .event-actions
     parts.push('</article>');
     return parts.join('\n');
   }
