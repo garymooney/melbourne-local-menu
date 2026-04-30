@@ -257,15 +257,17 @@ body.has-banner > *:not(.deep-link-banner) {
   position: absolute;
   top: 6px;
   right: 6px;
-  width: 26px;
   height: 26px;
+  /* Width auto-grows when the .pin-label is present (pinned state). */
+  min-width: 26px;
   padding: 0;
   display: inline-flex;
   align-items: center;
   justify-content: center;
+  gap: 4px;
   background: transparent;
   border: 0;
-  border-radius: 50%;
+  border-radius: 13px;
   color: var(--faint);
   cursor: pointer;
   opacity: 0.55;
@@ -277,6 +279,12 @@ body.has-banner > *:not(.deep-link-banner) {
   display: block;
   transform: rotate(35deg);
 }
+.pin-label {
+  font-size: 0.7em;
+  font-weight: 700;
+  letter-spacing: 1.2px;
+  text-transform: uppercase;
+}
 .pin-btn:hover {
   opacity: 1;
   background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
@@ -284,8 +292,13 @@ body.has-banner > *:not(.deep-link-banner) {
 .pin-btn[aria-pressed="true"] {
   opacity: 1;
   color: var(--accent-cool);
+  /* Make room for the text label so it doesn't crowd the icon. */
+  padding: 0 8px;
 }
 .event.pinned .pin-btn { opacity: 1; }
+/* Pinned cards need extra right-padding so the wider pin-button
+   ("PINNED" + icon ≈ 70px) doesn't overlap card content. */
+.event.pinned { padding-right: 84px; }
 .event.extra {
   border-left-color: var(--rule);
   border-left-style: dashed;
@@ -1819,6 +1832,11 @@ body.has-banner > *:not(.deep-link-banner) {
       'aria-pressed="' + (pinned ? 'true' : 'false') + '" ' +
       'aria-label="' + (pinned ? 'Unpin event' : 'Pin event to top') + '" ' +
       'title="' + (pinned ? 'Unpin' : 'Pin to top') + '">' +
+      // "Pinned" label sits to the LEFT of the icon when active so
+      // the user sees the state without having to interpret the
+      // filled-vs-outlined pushpin alone. Hidden when unpinned via
+      // the conditional render — keeps the unpinned button compact.
+      (pinned ? '<span class="pin-label">pinned</span>' : '') +
       // Filled when pinned, outlined when not. Bootstrap-icons pushpin
       // (viewBox 0 0 16 16) — sized via .pin-btn svg in CSS.
       (pinned
