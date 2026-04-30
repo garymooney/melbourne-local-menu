@@ -178,10 +178,11 @@ body {
      existing buttons / links inside still grab their own clicks first;
      only "empty" card surface lands on the toggle. */
   cursor: pointer;
-  /* Pull deep-link / scrollIntoView targets clear of the sticky
-     header. --header-offset is set live by syncHeaderOffset(); +12px
-     of breathing room so the card top isn't flush with the bar. */
-  scroll-margin-top: calc(var(--header-offset, 120px) + 12px);
+  /* Pull deep-link / scrollIntoView targets clear of TWO stacked
+     sticky bars: the site header (--header-offset, set live by
+     syncHeaderOffset) and the category header (.category-header,
+     ~44px). +12px of breathing room so the card top isn't flush. */
+  scroll-margin-top: calc(var(--header-offset, 120px) + 56px);
 }
 .event.pinned {
   border-left-color: var(--accent-cool);
