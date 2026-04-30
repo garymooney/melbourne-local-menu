@@ -19,8 +19,10 @@
   --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono-font: 'SF Mono', Consolas, monospace;
 }
+/* Auto dark mode — fires when the OS prefers dark AND the user hasn't
+   explicitly chosen "light" via the Settings appearance picker. */
 @media (prefers-color-scheme: dark) {
-  :root {
+  :root:not([data-theme="light"]) {
     --dark: #f0f0f0;
     --muted: #bbb;
     --faint: #999;
@@ -31,6 +33,18 @@
     --accent-cool: #5a9dff;
     --free-green: #5fbe5f;
   }
+}
+/* Manual dark override — takes effect even when the OS prefers light. */
+:root[data-theme="dark"] {
+  --dark: #f0f0f0;
+  --muted: #bbb;
+  --faint: #999;
+  --rule: #333;
+  --card-bg: #1e1e1e;
+  --bg: #121212;
+  --accent-warm: #ff6b4a;
+  --accent-cool: #5a9dff;
+  --free-green: #5fbe5f;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -767,6 +781,43 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 
 .settings-panel[hidden] { display: none; }
+
+/* Appearance picker — three-state Auto / Light / Dark control at the
+   top of the Settings view. data-theme on <html> drives the actual
+   colour-variable switch (see :root[data-theme="..."] above). */
+.theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 1em;
+  font-size: 0.9em;
+}
+.theme-picker__label {
+  color: var(--muted);
+  font-weight: 600;
+}
+.theme-picker__buttons {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  overflow: hidden;
+}
+.theme-picker__btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  padding: 6px 12px;
+  font: inherit;
+  color: var(--muted);
+  cursor: pointer;
+  border-right: 1px solid var(--rule);
+}
+.theme-picker__btn:last-child { border-right: 0; }
+.theme-picker__btn:hover { color: var(--dark); }
+.theme-picker__btn[aria-pressed="true"] {
+  background: var(--accent-warm);
+  color: #fff;
+}
 
 .subcat-group { margin-bottom: 1.2em; }
 .subcat-group-heading {
@@ -2587,6 +2638,46 @@ body.has-banner > *:not(.deep-link-banner) {
     );
   }
 
+  function renderThemePickerHtml() {
+    var theme = profile.theme || 'auto';
+    function btn(value, label) {
+      return (
+        '<button class="theme-picker__btn" type="button" ' +
+        'data-theme-set="' + value + '" ' +
+        'aria-pressed="' + (theme === value ? 'true' : 'false') + '">' +
+        label + '</button>'
+      );
+    }
+    return (
+      '<div class="theme-picker">' +
+        '<span class="theme-picker__label">Appearance</span>' +
+        '<div class="theme-picker__buttons" role="radiogroup" ' +
+          'aria-label="Theme">' +
+          btn('auto', 'Auto') +
+          btn('light', 'Light') +
+          btn('dark', 'Dark') +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function applyTheme() {
+    var theme = profile.theme || 'auto';
+    if (theme === 'light' || theme === 'dark') {
+      document.documentElement.setAttribute('data-theme', theme);
+    } else {
+      document.documentElement.removeAttribute('data-theme');
+    }
+  }
+
+  function setTheme(value) {
+    if (value !== 'auto' && value !== 'light' && value !== 'dark') return;
+    profile.theme = value;
+    saveProfile();
+    applyTheme();
+    rerenderSettingsPreservingSubtab();
+  }
+
   function renderSettingsView() {
     var view = document.getElementById('settings-view');
     if (!view) return;
@@ -2595,6 +2686,7 @@ body.has-banner > *:not(.deep-link-banner) {
         'Your tweaks persist — pop back any time and the menu picks up ' +
         'how you set it. (Safari resets after a week away.)' +
       '</p>' +
+      renderThemePickerHtml() +
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
         '<button class="settings-subtab" role="tab" data-subtab="subcategories" ' +
           'aria-selected="true">Tags</button>' +
@@ -3657,6 +3749,12 @@ body.has-banner > *:not(.deep-link-banner) {
       return;
     }
 
+    var themeBtn = e.target.closest && e.target.closest('[data-theme-set]');
+    if (themeBtn) {
+      setTheme(themeBtn.dataset.themeSet);
+      return;
+    }
+
     var ruleBtn = e.target.closest && e.target.closest('.rule-toggle');
     if (ruleBtn) {
       var rRow = ruleBtn.closest('.rule-row');
@@ -3863,6 +3961,7 @@ body.has-banner > *:not(.deep-link-banner) {
   // ============================================================
   //  Boot
   // ============================================================
+  applyTheme();
   renderSettingsView();
   renderAll();
   // Hash takes priority over default "first day" on initial load.
