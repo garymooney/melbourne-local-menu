@@ -202,6 +202,43 @@ body {
     0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent),
     0 0 0 3px color-mix(in srgb, var(--accent-warm) 40%, transparent);
 }
+
+/* Deep-link status banner — shown when a shared link points at an
+   event that's no longer in the menu (rolled-off / stale week) or
+   that for any other reason can't be rendered into a card. Sits at
+   the bottom-centre of the viewport, dismissable by tap. */
+.deep-link-banner {
+  position: fixed;
+  left: 50%;
+  bottom: 1.2em;
+  transform: translateX(-50%);
+  max-width: 92vw;
+  width: 380px;
+  padding: 12px 36px 12px 14px;
+  border-radius: 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  box-shadow: 0 4px 14px rgba(0, 0, 0, 0.18);
+  border-left: 4px solid var(--accent-warm);
+  cursor: pointer;
+  z-index: 50;
+  font-size: 0.92em;
+}
+.deep-link-banner__title { font-weight: 700; margin: 0 0 2px; }
+.deep-link-banner__body { color: var(--muted); font-size: 0.92em; line-height: 1.4; }
+.deep-link-banner__close {
+  position: absolute;
+  top: 6px; right: 8px;
+  width: 24px; height: 24px;
+  padding: 0;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 1.2em;
+  line-height: 1;
+  cursor: pointer;
+}
+.deep-link-banner__close:hover { color: var(--text); }
 .pin-btn {
   position: absolute;
   top: 6px;
@@ -3617,13 +3654,23 @@ body {
 
   // Deep-link to an event card from a hash like #event-<id>. Marks the
   // card as selected (so it's pulled into the main curated list, not
-  // tucked under "Show more"), activates the right day tab, then
-  // scrolls the card into view. The selected class is the visual
-  // indicator — no separate pulse needed.
+  // tucked under "Show more"), activates the right day tab, scrolls
+  // the card into view, and surfaces a visible status banner so a
+  // missing event (rolled-off / stale link) is obvious rather than
+  // silent.
   function focusEventCard(eventId) {
-    var ev = eventsById[eventId];
-    if (!ev) return;
     var idStr = String(eventId);
+    var ev = eventsById[idStr];
+    if (!ev) {
+      // Stale or wrong id — show a clear "not found" banner. Better
+      // than silently doing nothing on an invalid deep link.
+      showDeepLinkBanner({
+        kind: 'missing',
+        title: "This event isn't in the current menu",
+        body: 'It may have rolled off, or the link could be from a previous week.',
+      });
+      return;
+    }
     if (!SELECTED_SET.has(idStr)) {
       SELECTED_SET.add(idStr);
     }
@@ -3638,9 +3685,38 @@ body {
     // sticky day-tab header so the title isn't hidden underneath.
     setTimeout(function () {
       var card = document.getElementById('event-' + idStr);
-      if (!card) return;
+      if (!card) {
+        // Shouldn't happen — selection-bypass guarantees the event
+        // renders even below the floor. If we land here it's a bug
+        // (e.g. event's day is past the display window's crop).
+        showDeepLinkBanner({
+          kind: 'unrendered',
+          title: 'Found "' + (ev.title || 'event') + '"',
+          body: "but its day (" + (ev.day || '?') +
+            ") isn't in the displayed window. The pipeline only shows " +
+            "events from today onwards.",
+        });
+        return;
+      }
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
+  }
+
+  // Floating banner shown when a deep-link can't surface its target
+  // card. Click anywhere on the banner (or the × button) to dismiss.
+  function showDeepLinkBanner(opts) {
+    var existing = document.getElementById('deep-link-banner');
+    if (existing) existing.remove();
+    var banner = document.createElement('div');
+    banner.id = 'deep-link-banner';
+    banner.className = 'deep-link-banner deep-link-banner--' + (opts.kind || 'info');
+    banner.innerHTML =
+      '<button class="deep-link-banner__close" type="button" ' +
+        'aria-label="Dismiss">×</button>' +
+      '<div class="deep-link-banner__title">' + escapeHtml(opts.title) + '</div>' +
+      '<div class="deep-link-banner__body">' + escapeHtml(opts.body) + '</div>';
+    banner.addEventListener('click', function () { banner.remove(); });
+    document.body.appendChild(banner);
   }
 
   window.addEventListener('hashchange', fromHash);
