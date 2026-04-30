@@ -1545,13 +1545,19 @@ body {
   }
 
   function selectWithDiversity(block, profile) {
-    // block: array of {event, score, pinned} — pinned first, then greedy
-    // diversity pick until best-adjusted score drops below the floor
-    // or the safety cap kicks in.
-    var pinned = [];
+    // block: array of {event, score, pinned, selected}.
+    // Pinned + user-selected items are pre-pushed (force-included
+    // regardless of score floor); the remainder are picked greedily by
+    // score-minus-diversity-penalty until the floor is reached or the
+    // safety cap kicks in. Selection is the lightweight cousin of
+    // pinning — both bypass the floor, but selection doesn't reorder
+    // the card to the top of the block (it inherits its natural score
+    // position via the final sort).
+    var forced = [];
     var rest = [];
     for (var i = 0; i < block.length; i++) {
-      if (block[i].pinned) pinned.push(block[i]); else rest.push(block[i]);
+      if (block[i].pinned || block[i].selected) forced.push(block[i]);
+      else rest.push(block[i]);
     }
     var selected = [];
     var priorCats = [];
@@ -1563,10 +1569,10 @@ body {
       priorSubs.push(penaltySubcategorySet(item.event));
     }
 
-    pinned.sort(function (a, b) { return b.score - a.score; });
-    for (var p = 0; p < pinned.length; p++) {
-      selected.push(pinned[p]);
-      bump(pinned[p]);
+    forced.sort(function (a, b) { return b.score - a.score; });
+    for (var p = 0; p < forced.length; p++) {
+      selected.push(forced[p]);
+      bump(forced[p]);
     }
 
     var cap = profile.block_safety_cap || 15;
@@ -1624,19 +1630,25 @@ body {
       var day = ev.day;
       var cat = ev.category;
       if (!day || !cat) continue;
+      // User-selected events bypass every display filter (free-only,
+      // suburb-outside, score floor) so a deep-linked or hand-tapped
+      // card always renders — even a low-score, paid, outside-suburb
+      // event the user explicitly opted into seeing.
+      var sel = isUserSelected(ev);
       // "Free events only" toggle: On → drop paid events; Off → no filter.
-      if (freeOnly && !ev.is_free) continue;
+      if (freeOnly && !ev.is_free && !sel) continue;
       // Outside-tier suburbs are filtered by default; user can re-tier
       // in the Suburbs sub-tab to surface them.
       var sn = ev.suburb_normalized;
       var stier = sn ? (sTiers[sn] || 'outside') : 'outside';
-      if (stier === 'outside') continue;
+      if (stier === 'outside' && !sel) continue;
       if (!byDayCat[day]) byDayCat[day] = {};
       if (!byDayCat[day][cat]) byDayCat[day][cat] = [];
       byDayCat[day][cat].push({
         event: ev,
         score: scoreEvent(ev, profile),
         pinned: isPinned(ev, profile),
+        selected: sel,
         is_expanded: false,
       });
     }
@@ -1662,11 +1674,17 @@ body {
         }
         var extras = [];
         for (var n = 0; n < block.length; n++) {
-          if (!curatedIds[block[n].event.id] && block[n].score > floor) {
+          if (curatedIds[block[n].event.id]) continue;
+          // Selected events bypass the score floor (matches the
+          // selectWithDiversity force-include) — but they should
+          // already be in `curated` from that step, so this branch
+          // is defensive belt-and-braces.
+          if (block[n].score > floor || block[n].selected) {
             extras.push({
               event: block[n].event,
               score: block[n].score,
               pinned: block[n].pinned,
+              selected: block[n].selected,
               is_expanded: true,
             });
           }
