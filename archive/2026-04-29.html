@@ -178,6 +178,10 @@ body {
      existing buttons / links inside still grab their own clicks first;
      only "empty" card surface lands on the toggle. */
   cursor: pointer;
+  /* Pull deep-link / scrollIntoView targets clear of the sticky
+     header. --header-offset is set live by syncHeaderOffset(); +12px
+     of breathing room so the card top isn't flush with the bar. */
+  scroll-margin-top: calc(var(--header-offset, 120px) + 12px);
 }
 .event.pinned {
   border-left-color: var(--accent-cool);
@@ -3611,10 +3615,13 @@ body {
     // hash arriving on a tab that's already active).
     renderAll();
     // Defer scroll so the day-panel rendering settles before measure.
+    // block: 'start' aligns the card's top edge with the viewport top;
+    // the .event { scroll-margin-top } CSS rule pulls it clear of the
+    // sticky day-tab header so the title isn't hidden underneath.
     setTimeout(function () {
       var card = document.getElementById('event-' + idStr);
       if (!card) return;
-      card.scrollIntoView({ behavior: 'smooth', block: 'center' });
+      card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
   }
 
