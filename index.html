@@ -429,6 +429,49 @@ body {
 .event.extra:has(.add-cal-wrap > .add-cal-btn[aria-expanded="true"]) {
   opacity: 1;
 }
+
+/* Copy-link / Share buttons. Mirror .add-cal-btn sizing so they sit
+   in the same action row visually grouped with the calendar picker.
+   Single icon each; flash briefly green on success. */
+.copy-link-btn,
+.share-btn {
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 0.72em;
+  color: var(--faint);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+  margin-right: 4px;
+}
+.copy-link-btn svg,
+.share-btn svg {
+  width: 13px;
+  height: 13px;
+  display: block;
+}
+.copy-link-btn:hover,
+.share-btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--faint) 65%, transparent);
+  background: color-mix(in srgb, var(--faint) 6%, transparent);
+}
+.copy-link-btn.flash,
+.share-btn.flash {
+  color: #2a8a3e;
+  border-color: #2a8a3e;
+}
+.copy-link-btn .icon-success,
+.share-btn .icon-success { display: none; }
+.copy-link-btn.flash .icon-default,
+.share-btn.flash .icon-default { display: none; }
+.copy-link-btn.flash .icon-success,
+.share-btn.flash .icon-success { display: block; }
+
 .add-cal-popover {
   position: absolute;
   z-index: 40;
@@ -1714,6 +1757,33 @@ body {
       badges.push('<span class="pill date-idea">date idea</span>');
     }
     if (badges.length) parts.push('<div class="badges">' + badges.join('') + '</div>');
+    var evIdAttr = 'data-event-id="' + escapeHtml(String(ev.id)) + '"';
+    // Copy-link button — Clipboard API; bootstrap-icons link-45deg + check.
+    parts.push(
+      '<button class="copy-link-btn" type="button" ' + evIdAttr + ' ' +
+      'aria-label="Copy link" title="Copy link">' +
+        '<svg class="icon-default" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+        '<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>' +
+        '<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>' +
+        '</svg>' +
+        '<svg class="icon-success" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+        '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>' +
+        '</svg>' +
+      '</button>'
+    );
+    // Share button — Web Share API on mobile; falls back to copy on desktop.
+    parts.push(
+      '<button class="share-btn" type="button" ' + evIdAttr + ' ' +
+      'aria-label="Share" title="Share">' +
+        '<svg class="icon-default" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+        '<path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>' +
+        '<path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>' +
+        '</svg>' +
+        '<svg class="icon-success" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
+        '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>' +
+        '</svg>' +
+      '</button>'
+    );
     parts.push(
       '<span class="add-cal-wrap">' +
       '<button class="add-cal-btn" type="button" ' +
@@ -3148,12 +3218,67 @@ body {
     renderAll();
   }
 
+  function flashSuccess(btn) {
+    btn.classList.add('flash');
+    setTimeout(function () { btn.classList.remove('flash'); }, 1200);
+  }
+
+  function fallbackCopyText(text) {
+    var ta = document.createElement('textarea');
+    ta.value = text;
+    ta.style.position = 'fixed';
+    ta.style.opacity = '0';
+    document.body.appendChild(ta);
+    ta.focus();
+    ta.select();
+    try { document.execCommand('copy'); } catch (err) { /* ignore */ }
+    document.body.removeChild(ta);
+  }
+
+  function copyText(text) {
+    if (navigator.clipboard && navigator.clipboard.writeText) {
+      return navigator.clipboard.writeText(text).catch(function () {
+        fallbackCopyText(text);
+      });
+    }
+    fallbackCopyText(text);
+    return Promise.resolve();
+  }
+
   document.addEventListener('click', function (e) {
     // Pin button — toggle pinned state, persist, re-render. Handled before
     // the calendar picker so a pin click doesn't open / close the picker.
     var pinBtn = e.target.closest && e.target.closest('.pin-btn');
     if (pinBtn) {
       togglePin(pinBtn.dataset.eventId);
+      return;
+    }
+
+    // Copy-link button — copy URL to clipboard, flash success.
+    var copyBtn = e.target.closest && e.target.closest('.copy-link-btn');
+    if (copyBtn) {
+      var copyEv = eventsById[copyBtn.dataset.eventId];
+      if (copyEv && copyEv.url) {
+        copyText(copyEv.url).then(function () { flashSuccess(copyBtn); });
+      }
+      return;
+    }
+
+    // Share button — native Web Share API on mobile; fallback to
+    // copy-link on browsers without it (most desktops).
+    var shareBtn = e.target.closest && e.target.closest('.share-btn');
+    if (shareBtn) {
+      var shareEv = eventsById[shareBtn.dataset.eventId];
+      if (shareEv && shareEv.url) {
+        if (navigator.share) {
+          navigator.share({
+            title: shareEv.title || 'Event',
+            url: shareEv.url,
+          }).catch(function () { /* user cancelled or unsupported */ });
+        } else {
+          copyText(shareEv.url).then(function () { flashSuccess(shareBtn); });
+        }
+      }
       return;
     }
 
