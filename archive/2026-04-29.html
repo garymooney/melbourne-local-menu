@@ -267,6 +267,13 @@ body {
   font-size: 0.98em;
   margin-top: 5px;
   line-height: 1.3;
+  /* Mobile: long-press should select text (so the user can copy the
+     title) instead of showing the link callout menu. -webkit-touch-
+     callout: none suppresses the link menu; user-select: text re-
+     enables text selection inside the link. Tap still navigates. */
+  -webkit-touch-callout: none;
+  -webkit-user-select: text;
+  user-select: text;
 }
 .title:hover { text-decoration: underline; }
 .time {
