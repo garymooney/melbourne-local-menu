@@ -3627,12 +3627,11 @@ body {
     if (!SELECTED_SET.has(idStr)) {
       SELECTED_SET.add(idStr);
     }
-    if (ev.day) activate(ev.day, {});
-    // Re-render so the card lands in the curated list before we
-    // measure its position. activate(...) calls renderAll for the day
-    // panel, but we ensure freshness here in case of edge cases (e.g.
-    // hash arriving on a tab that's already active).
+    // Re-render FIRST so the card lands in the curated list (selection
+    // bypass kicks in once SELECTED_SET contains the id). activate()
+    // expects a slug like "fri-1-may", not the raw ISO date — convert.
     renderAll();
+    if (ev.day) activate(slugify(formatDayHeading(ev.day)), {});
     // Defer scroll so the day-panel rendering settles before measure.
     // block: 'start' aligns the card's top edge with the viewport top;
     // the .event { scroll-margin-top } CSS rule pulls it clear of the
