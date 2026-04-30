@@ -1285,14 +1285,28 @@ body.has-banner > *:not(.deep-link-banner) {
 
   var profile = mergeProfile(defaultProfile, loadStoredProfile());
 
-  // O(1) membership tests for renderEventHtml / renderCategoryHtml. Rebuilt
-  // by refreshPinnedSet() whenever the user toggles a pin.
+  // O(1) membership + pin-order tests for renderEventHtml /
+  // renderCategoryHtml / displaySortKey. Rebuilt by refreshPinnedSet
+  // whenever the user toggles a pin. PINNED_INDEX preserves pin-time
+  // order so the display shows pins in the order they were added
+  // rather than re-sorting them by venue / score.
   var PINNED_SET = new Set(profile.pinned_event_ids || []);
+  var PINNED_INDEX = {};
+  refreshPinnedSet();  // initial fill of PINNED_INDEX
   function refreshPinnedSet() {
-    PINNED_SET = new Set(profile.pinned_event_ids || []);
+    var list = profile.pinned_event_ids || [];
+    PINNED_SET = new Set(list);
+    PINNED_INDEX = {};
+    for (var i = 0; i < list.length; i++) {
+      PINNED_INDEX[String(list[i])] = i;
+    }
   }
   function isUserPinned(ev) {
     return PINNED_SET.has(String(ev.id));
+  }
+  function userPinIndex(ev) {
+    var i = PINNED_INDEX[String(ev.id)];
+    return i === undefined ? -1 : i;
   }
 
   // Selected events — set ONLY by deep-link arrival (focusEventCard);
@@ -1781,18 +1795,22 @@ body.has-banner > *:not(.deep-link-banner) {
   function displaySortKey(item) {
     // Same fields as recommend._display_sort_key. `is_expanded` is
     // handled by splitting into curated/expanded before sorting, so
-    // it's omitted here — within a group, sort by TBD-flag, venue,
-    // primary subcategory, name.
+    // it's omitted here.
     var ev = item.event;
+    var pinIdx = userPinIndex(ev);
+    if (pinIdx >= 0) {
+      // User-pinned events sort to the top of the section in pin-time
+      // order (first-pinned at top, most-recently-pinned at the bottom
+      // of the pin block). Pin index is the secondary key; nothing
+      // else matters for ordering pinned items.
+      return [0, pinIdx];
+    }
+    // Non-pinned events fall through to tbd / venue / sub / name.
     var venue = (ev.venue || '').toLowerCase();
     var subs = ev.subcategories || [];
     var sub = (subs[0] || '').toLowerCase();
     var name = (ev.title || '').toLowerCase();
-    // Pinned events sort to the very top of the section (key 0); everything
-    // else gets key 1 and falls through to the existing tbd / venue / sub /
-    // name ordering.
-    var pinKey = isUserPinned(ev) ? 0 : 1;
-    return [pinKey, venue === 'tbd' ? 1 : 0, venue, sub, name];
+    return [1, venue === 'tbd' ? 1 : 0, venue, sub, name];
   }
 
   function compareKeys(a, b) {
