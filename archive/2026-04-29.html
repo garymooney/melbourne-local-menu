@@ -1793,24 +1793,19 @@ body.has-banner > *:not(.deep-link-banner) {
   //  DOM build — tabs, day panels, category sections, event cards
   // ============================================================
   function displaySortKey(item) {
-    // Same fields as recommend._display_sort_key. `is_expanded` is
-    // handled by splitting into curated/expanded before sorting, so
-    // it's omitted here.
+    // `is_expanded` is handled by splitting into curated/expanded
+    // before sorting, so it's omitted here.
     var ev = item.event;
     var pinIdx = userPinIndex(ev);
     if (pinIdx >= 0) {
       // User-pinned events sort to the top of the section in pin-time
       // order (first-pinned at top, most-recently-pinned at the bottom
-      // of the pin block). Pin index is the secondary key; nothing
-      // else matters for ordering pinned items.
+      // of the pin block).
       return [0, pinIdx];
     }
-    // Non-pinned events fall through to tbd / venue / sub / name.
-    var venue = (ev.venue || '').toLowerCase();
-    var subs = ev.subcategories || [];
-    var sub = (subs[0] || '').toLowerCase();
-    var name = (ev.title || '').toLowerCase();
-    return [1, venue === 'tbd' ? 1 : 0, venue, sub, name];
+    // Non-pinned events: highest score first. Negative score so the
+    // ascending compareKeys puts the largest values at the start.
+    return [1, -(item.score || 0)];
   }
 
   function compareKeys(a, b) {
