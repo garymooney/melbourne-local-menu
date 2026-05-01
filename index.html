@@ -1173,7 +1173,7 @@ body.has-banner > *:not(.deep-link-banner) {
   display: flex;
   align-items: flex-start;
   justify-content: center;
-  padding: 8vh 16px 16px;
+  padding: 16px;
   overflow-y: auto;
 }
 .feedback-modal {
@@ -4077,6 +4077,14 @@ body.has-banner > *:not(.deep-link-banner) {
     document.body.appendChild(overlay);
     document.body.style.overflow = 'hidden';
     openFeedbackEl = overlay;
+    // Anchor the modal where a vertical-centered modal would START,
+    // but lock that top position so later content changes (debug
+    // toggle, preview reveal) extend downward instead of recentering
+    // and yanking the checkbox out from under the user's cursor.
+    var vh = window.innerHeight || document.documentElement.clientHeight;
+    var modalH = modal.offsetHeight;
+    var centerOffset = Math.max(16, Math.floor((vh - modalH) / 2));
+    modal.style.marginTop = centerOffset + 'px';
     setTimeout(function () { ta.focus(); }, 0);
   }
 
