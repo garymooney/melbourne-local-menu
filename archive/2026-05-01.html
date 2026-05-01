@@ -2043,7 +2043,7 @@ body.has-banner > *:not(.deep-link-banner) {
       if (!byDayCat[day][cat]) byDayCat[day][cat] = [];
       byDayCat[day][cat].push({
         event: ev,
-        score: scoreEvent(ev, profile),
+        score: getCachedScore(ev, profile),
         // Combine rule-pinned (priority_venue) with user-pinned. Both
         // force-bypass the score floor in selectWithDiversity and
         // skip the "Show more" expansion bucket in renderCategoryHtml.
@@ -3172,7 +3172,24 @@ body.has-banner > *:not(.deep-link-banner) {
   // only the curated/expanded split within a single category section.
   var lastRanking = null;
 
-  function renderAll() {
+  // Per-event score cache. scoreEvent is a pure function of (event,
+  // score-affecting profile fields), so we memoise on the event
+  // object itself with a version stamp. Any handler that mutates a
+  // score-affecting profile field (tier maps, rule weights, suburb
+  // tiers, tier bonuses) calls renderAll without preserveScores,
+  // which bumps the version and forces re-evaluation. Pin/select
+  // paths set preserveScores so cached scores survive — pinning
+  // doesn't change any input scoreEvent reads.
+  var scoreVersion = 0;
+  function getCachedScore(event, profile) {
+    if (event._scoreVer === scoreVersion) return event._score;
+    event._score = scoreEvent(event, profile);
+    event._scoreVer = scoreVersion;
+    return event._score;
+  }
+
+  function renderAll(opts) {
+    if (!opts || !opts.preserveScores) scoreVersion++;
     var ranking = buildRanking(profile);
     lastRanking = ranking;
     var days = [];
@@ -3962,7 +3979,12 @@ body.has-banner > *:not(.deep-link-banner) {
     var stillBypassed = nowPinned || (loc && loc.item.selected);
     var needsFullRebuild = !loc || (filtered && !stillBypassed);
     if (needsFullRebuild) {
-      renderAllAnimated(id);
+      // Even on the boundary-crossing path we don't need to rescore:
+      // pin state isn't an input to scoreEvent. Reuse cached scores
+      // and let buildRanking re-run only the filter / diversity /
+      // URL-dedup logic. Saves the per-event scoring work (~520
+      // events) when the rebuild is needed for visibility reasons.
+      renderAllAnimated(id, { preserveScores: true });
       return;
     }
 
@@ -4449,10 +4471,10 @@ body.has-banner > *:not(.deep-link-banner) {
   // it renders ABOVE the cards it passes through during travel — a
   // jumping card under the others would lose visual priority. Once
   // its animation finishes, the z-index is restored.
-  function renderAllAnimated(highlightId) {
+  function renderAllAnimated(highlightId, opts) {
     if (!('animate' in document.createElement('div'))) {
       // Web Animations API unavailable — fall back to plain rebuild.
-      renderAll();
+      renderAll(opts);
       return;
     }
     var prev = document.querySelectorAll('.event[id^="event-"]');
@@ -4460,7 +4482,7 @@ body.has-banner > *:not(.deep-link-banner) {
     for (var i = 0; i < prev.length; i++) {
       oldRects[prev[i].id] = prev[i].getBoundingClientRect();
     }
-    renderAll();
+    renderAll(opts);
     var next = document.querySelectorAll('.event[id^="event-"]');
     var highlightEl = highlightId
       ? document.getElementById('event-' + highlightId)
