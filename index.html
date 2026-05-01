@@ -3960,40 +3960,93 @@ body.has-banner > *:not(.deep-link-banner) {
     refreshPinnedSet();
     saveProfile();
 
-    // Cheap path: event is already in the cached ranking AND its
-    // visibility under the current filters doesn't change with the
-    // pin toggle. Re-run selectWithDiversity for just that one
-    // (day, cat) block and swap the section in the DOM. Skips the
-    // ~520-event rescore + full-page rebuild that drives the visible
-    // delay before the FLIP animation starts.
-    //
-    // Full rebuild is needed when the toggle would add/remove the
-    // event from the visible set:
-    //   - Event not in cache → pinning needs to add it (it was
-    //     filtered out before; the new pin is its bypass).
-    //   - Event in cache but only visible due to bypass → unpinning
-    //     it removes that bypass (rebuild iff no other bypass remains).
+    // Pin doesn't change scores or other events' visibility — only
+    // the toggled event's filter-bypass and its sort within its own
+    // (day, cat) block. So at most one section in the DOM needs
+    // updating. We fall back to full rebuild only when the section's
+    // day or category doesn't exist yet (pinning the first event
+    // for a day / category that was empty under the current filters)
+    // or when removing this event would empty the day entirely (the
+    // day tab and panel both need to disappear).
     var loc = findItemInRanking(id, lastRanking);
-    var ev = loc ? loc.item.event : null;
-    var filtered = ev ? wouldEventBeFiltered(ev, profile) : false;
-    var stillBypassed = nowPinned || (loc && loc.item.selected);
-    var needsFullRebuild = !loc || (filtered && !stillBypassed);
-    if (needsFullRebuild) {
-      // Even on the boundary-crossing path we don't need to rescore:
-      // pin state isn't an input to scoreEvent. Reuse cached scores
-      // and let buildRanking re-run only the filter / diversity /
-      // URL-dedup logic. Saves the per-event scoring work (~520
-      // events) when the rebuild is needed for visibility reasons.
+    var ev = loc ? loc.item.event : eventsById[id];
+    if (!ev) {
       renderAllAnimated(id, { preserveScores: true });
       return;
     }
+    var filtered = wouldEventBeFiltered(ev, profile);
+    var stillBypassed = nowPinned || (loc && loc.item.selected);
 
-    // Update cached item: pin flag mixes rule-pinning with user pin.
-    loc.item.pinned = isPinned(ev, profile) || nowPinned;
-    recomputeBlockExpansion(loc.block, profile);
-    var swapped = rerenderCategorySectionAnimated(loc.day, loc.cat, id);
-    if (!swapped) {
-      renderAllAnimated(id);
+    if (loc) {
+      if (!filtered || stillBypassed) {
+        // Stays visible: retarget the pin flag and re-rank the
+        // block. selectWithDiversity may shuffle the curated /
+        // expanded split since pinned items skip the floor and
+        // auto-promote into curated.
+        loc.item.pinned = isPinned(ev, profile) || nowPinned;
+        recomputeBlockExpansion(loc.block, profile);
+      } else {
+        // Sole-bypass unpin: splice the event out of its block. If
+        // that empties the day, fall back to full rebuild — the day
+        // tab and panel both need to disappear, which the targeted
+        // path doesn't handle.
+        loc.block.splice(loc.idx, 1);
+        if (loc.block.length > 0) {
+          recomputeBlockExpansion(loc.block, profile);
+        } else {
+          var dayMap = lastRanking[loc.day];
+          var dayHasAny = false;
+          for (var k in dayMap) {
+            if (dayMap[k] && dayMap[k].length > 0) {
+              dayHasAny = true; break;
+            }
+          }
+          if (!dayHasAny) {
+            renderAllAnimated(id, { preserveScores: true });
+            return;
+          }
+        }
+      }
+      var swapped = rerenderCategorySectionAnimated(loc.day, loc.cat, id);
+      if (!swapped) {
+        renderAllAnimated(id, { preserveScores: true });
+        return;
+      }
+      updateSettingsBadge();
+      return;
+    }
+
+    // Event not in the cached ranking. Two sub-cases:
+    //   - Pinning a previously-filtered event: insert it into its
+    //     (day, cat) block when the block already exists. If the
+    //     day or block is missing, fall back to full rebuild —
+    //     spawning a new tab / panel / section in the right place
+    //     is what the full path is for.
+    //   - Unpinning something already invisible: nothing to do
+    //     (shouldn't happen in normal flow, but handle defensively).
+    if (!nowPinned) {
+      updateSettingsBadge();
+      return;
+    }
+    if (!ev.day || !ev.category ||
+        !lastRanking ||
+        !lastRanking[ev.day] ||
+        !lastRanking[ev.day][ev.category]) {
+      renderAllAnimated(id, { preserveScores: true });
+      return;
+    }
+    var targetBlock = lastRanking[ev.day][ev.category];
+    targetBlock.push({
+      event: ev,
+      score: getCachedScore(ev, profile),
+      pinned: true,
+      selected: isUserSelected(ev),
+      is_expanded: false,
+    });
+    recomputeBlockExpansion(targetBlock, profile);
+    var added = rerenderCategorySectionAnimated(ev.day, ev.category, id);
+    if (!added) {
+      renderAllAnimated(id, { preserveScores: true });
       return;
     }
     updateSettingsBadge();
