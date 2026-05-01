@@ -3852,31 +3852,6 @@ body.has-banner > *:not(.deep-link-banner) {
     return false;
   }
 
-  // Re-runs selectWithDiversity for a single (day, cat) block and
-  // updates each item's `is_expanded` flag in place. Mirrors the
-  // expansion logic from buildRanking, but scoped to one block so
-  // we never touch the other ~500 events.
-  function recomputeBlockExpansion(block, profile) {
-    var curated = selectWithDiversity(block, profile);
-    var curatedIds = {};
-    for (var m = 0; m < curated.length; m++) {
-      curatedIds[String(curated[m].event.id)] = true;
-    }
-    var floor = profile.score_floor != null ? profile.score_floor : 0;
-    for (var i = 0; i < block.length; i++) {
-      var it = block[i];
-      if (curatedIds[String(it.event.id)]) {
-        it.is_expanded = false;
-      } else {
-        // Matches buildRanking's extras gate: kept iff above floor or
-        // selected. Items that fail this aren't dropped here (the
-        // section-rerender path keeps the cached block intact);
-        // renderCategoryHtml's keepInCurated check handles display.
-        it.is_expanded = (it.score > floor || it.selected);
-      }
-    }
-  }
-
   // Replace one .category section in the DOM with a freshly rendered
   // version, animating any cards that moved within it. Far cheaper
   // than the full-page renderAllAnimated when only one bucket changed.
@@ -3986,21 +3961,23 @@ body.has-banner > *:not(.deep-link-banner) {
 
     if (loc) {
       if (!filtered || stillBypassed) {
-        // Stays visible: retarget the pin flag and re-rank the
-        // block. selectWithDiversity may shuffle the curated /
-        // expanded split since pinned items skip the floor and
-        // auto-promote into curated.
+        // Stays visible: just retarget the pin flag. We deliberately
+        // don't re-run selectWithDiversity here — that would re-rank
+        // the whole block, and pinning a card would push other
+        // events between curated and Show-more via diversity penalty
+        // shifts. The render-time keepInCurated check already moves
+        // the toggled event into the curated bucket; everything
+        // else keeps the is_expanded flag set during buildRanking.
         loc.item.pinned = isPinned(ev, profile) || nowPinned;
-        recomputeBlockExpansion(loc.block, profile);
       } else {
         // Sole-bypass unpin: splice the event out of its block. If
         // that empties the day, fall back to full rebuild — the day
         // tab and panel both need to disappear, which the targeted
-        // path doesn't handle.
+        // path doesn't handle. Other items in the block stay where
+        // they are; pinning never re-ranked them, and unpinning
+        // shouldn't either.
         loc.block.splice(loc.idx, 1);
-        if (loc.block.length > 0) {
-          recomputeBlockExpansion(loc.block, profile);
-        } else {
+        if (loc.block.length === 0) {
           var dayMap = lastRanking[loc.day];
           var dayHasAny = false;
           for (var k in dayMap) {
@@ -4048,9 +4025,12 @@ body.has-banner > *:not(.deep-link-banner) {
       score: getCachedScore(ev, profile),
       pinned: true,
       selected: isUserSelected(ev),
-      is_expanded: false,
+      // is_expanded=true so unpinning later drops it into the Show-
+      // more bucket where extras live (assuming score > floor).
+      // While pinned, render-time keepInCurated promotes it to the
+      // visible curated bucket regardless.
+      is_expanded: true,
     });
-    recomputeBlockExpansion(targetBlock, profile);
     var added = rerenderCategorySectionAnimated(ev.day, ev.category, id);
     if (!added) {
       renderAllAnimated(id, { preserveScores: true });
