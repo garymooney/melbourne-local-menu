@@ -1218,6 +1218,30 @@ body.has-banner > *:not(.deep-link-banner) {
   outline: none;
   border-color: var(--accent-warm);
 }
+.feedback-email-wrap {
+  display: flex;
+  flex-direction: column;
+  gap: 4px;
+}
+.feedback-email-label {
+  font-size: 0.82em;
+  color: var(--faint);
+}
+.feedback-email-input {
+  font: inherit;
+  font-size: 0.92em;
+  width: 100%;
+  padding: 6px 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--faint) 45%, transparent);
+  border-radius: 6px;
+  box-sizing: border-box;
+}
+.feedback-email-input:focus {
+  outline: none;
+  border-color: var(--accent-warm);
+}
 .feedback-debug-toggle {
   display: flex;
   align-items: flex-start;
@@ -3791,6 +3815,15 @@ body.has-banner > *:not(.deep-link-banner) {
   // ============================================================
   var FEEDBACK_TO = 'localmenufeedback@gmail.com';
   var FEEDBACK_MAILTO_MAX = 1800;
+  var FEEDBACK_FORM_URL = 'https://docs.google.com/forms/d/e/'
+    + '1FAIpQLSer7Fl_t_YzqlXDBql1QPxppIsuRnvJJUELyzEk26r2sWiwdg/formResponse';
+  var FEEDBACK_FORM_FIELDS = {
+    message: 'entry.714122926',
+    debug:   'entry.1416434933',
+    source:  'entry.287951384',
+    email:   'entry.658941032',
+  };
+  var FEEDBACK_EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
   var openFeedbackEl = null;
 
   function buildFeedbackProfileDiff() {
@@ -3862,6 +3895,33 @@ body.has-banner > *:not(.deep-link-banner) {
     };
   }
 
+  function renderDebugSection(parts) {
+    var lines = [];
+    lines.push('Time: ' + parts.time);
+    lines.push('UA: ' + parts.ua);
+    lines.push('Week of: ' + (parts.week_of || '(unknown)'));
+    lines.push('');
+    lines.push('Profile diff (vs default):');
+    lines.push(parts.profile_diff_text);
+    lines.push('');
+    lines.push('Top ' + parts.samples.top.length + ' events:');
+    for (var i = 0; i < parts.samples.top.length; i++) {
+      var t = parts.samples.top[i];
+      lines.push(' ' + (i + 1) + '. ' + t.score.toFixed(2)
+        + '  ' + t.day + '/' + t.category + '  ' + t.title);
+    }
+    if (parts.samples.bottom.length) {
+      lines.push('');
+      lines.push('Bottom ' + parts.samples.bottom.length + ' above floor:');
+      for (var j = 0; j < parts.samples.bottom.length; j++) {
+        var b = parts.samples.bottom[j];
+        lines.push(' ' + (j + 1) + '. ' + b.score.toFixed(2)
+          + '  ' + b.day + '/' + b.category + '  ' + b.title);
+      }
+    }
+    return lines.join('\n');
+  }
+
   function renderFeedbackBody(parts) {
     var lines = [];
     lines.push(parts.text ? parts.text : '(no message)');
@@ -3870,28 +3930,7 @@ body.has-banner > *:not(.deep-link-banner) {
       lines.push('---');
       lines.push('Debug info (auto-attached)');
       lines.push('');
-      lines.push('Time: ' + parts.time);
-      lines.push('UA: ' + parts.ua);
-      lines.push('Week of: ' + (parts.week_of || '(unknown)'));
-      lines.push('');
-      lines.push('Profile diff (vs default):');
-      lines.push(parts.profile_diff_text);
-      lines.push('');
-      lines.push('Top ' + parts.samples.top.length + ' events:');
-      for (var i = 0; i < parts.samples.top.length; i++) {
-        var t = parts.samples.top[i];
-        lines.push(' ' + (i + 1) + '. ' + t.score.toFixed(2)
-          + '  ' + t.day + '/' + t.category + '  ' + t.title);
-      }
-      if (parts.samples.bottom.length) {
-        lines.push('');
-        lines.push('Bottom ' + parts.samples.bottom.length + ' above floor:');
-        for (var j = 0; j < parts.samples.bottom.length; j++) {
-          var b = parts.samples.bottom[j];
-          lines.push(' ' + (j + 1) + '. ' + b.score.toFixed(2)
-            + '  ' + b.day + '/' + b.category + '  ' + b.title);
-        }
-      }
+      lines.push(renderDebugSection(parts));
     }
     return lines.join('\n');
   }
@@ -3899,6 +3938,7 @@ body.has-banner > *:not(.deep-link-banner) {
   function assembleFeedbackPayload(opts) {
     var text = (opts && opts.text ? opts.text : '').trim();
     var includeDebug = !!(opts && opts.includeDebug);
+    var email = (opts && opts.email ? opts.email : '').trim();
     var weekOf = payload.week_start || payload.week_of || '';
     var timeStr = new Date().toISOString();
     var ua = navigator.userAgent || '';
@@ -3908,11 +3948,14 @@ body.has-banner > *:not(.deep-link-banner) {
       diffText = buildFeedbackProfileDiff();
       samples = buildFeedbackEventsSample();
     }
-    var rendered = renderFeedbackBody({
-      text: text, includeDebug: includeDebug,
+    var debugParts = {
       time: timeStr, ua: ua, week_of: weekOf,
       profile_diff_text: diffText, samples: samples,
-    });
+    };
+    var rendered = renderFeedbackBody(Object.assign({
+      text: text, includeDebug: includeDebug,
+    }, debugParts));
+    var debugSection = includeDebug ? renderDebugSection(debugParts) : '';
     var subject = 'Menu feedback'
       + (weekOf ? ' — week of ' + weekOf : '');
     return {
@@ -3922,8 +3965,30 @@ body.has-banner > *:not(.deep-link-banner) {
       structured: {
         text: text, time: timeStr, ua: ua, week_of: weekOf,
         profile_diff_text: diffText, samples: samples,
+        debug_section: debugSection, email: email,
       },
     };
+  }
+
+  function submitFeedbackToForms(payload) {
+    // Google Forms public form action accepts URL-encoded POSTs from
+    // any origin. We use mode: 'no-cors' so the browser doesn't block
+    // on missing CORS headers; the trade-off is we can't read the
+    // response. Treat any non-throwing fetch as success — Google logs
+    // the submission, and we'd see it in the Sheet/email-on-submit.
+    var fd = new URLSearchParams();
+    fd.append(FEEDBACK_FORM_FIELDS.message,
+      payload.structured.text || '');
+    fd.append(FEEDBACK_FORM_FIELDS.debug,
+      payload.structured.debug_section || '');
+    fd.append(FEEDBACK_FORM_FIELDS.source, 'web');
+    fd.append(FEEDBACK_FORM_FIELDS.email,
+      payload.structured.email || '');
+    return fetch(FEEDBACK_FORM_URL, {
+      method: 'POST',
+      mode: 'no-cors',
+      body: fd,
+    });
   }
 
   function buildFeedbackMailto(payload) {
@@ -3984,6 +4049,21 @@ body.has-banner > *:not(.deep-link-banner) {
       + 'happy to hear it.';
     modal.appendChild(intro);
 
+    var emailWrap = document.createElement('label');
+    emailWrap.className = 'feedback-email-wrap';
+    var emailLabel = document.createElement('span');
+    emailLabel.className = 'feedback-email-label';
+    emailLabel.textContent = 'Reply email (optional)';
+    emailWrap.appendChild(emailLabel);
+    var emailInput = document.createElement('input');
+    emailInput.type = 'email';
+    emailInput.className = 'feedback-email-input';
+    emailInput.placeholder = 'you@example.com';
+    emailInput.autocomplete = 'email';
+    emailInput.inputMode = 'email';
+    emailWrap.appendChild(emailInput);
+    modal.appendChild(emailWrap);
+
     var ta = document.createElement('textarea');
     ta.className = 'feedback-textarea';
     ta.placeholder = "What's on your mind?";
@@ -4021,6 +4101,7 @@ body.has-banner > *:not(.deep-link-banner) {
     function refreshPreview() {
       var p = assembleFeedbackPayload({
         text: ta.value, includeDebug: checkbox.checked,
+        email: emailInput.value,
       });
       pre.textContent = p.body;
       modal._lastPayload = p;
@@ -4029,24 +4110,32 @@ body.has-banner > *:not(.deep-link-banner) {
     refreshPreview();
     checkbox.addEventListener('change', refreshPreview);
     ta.addEventListener('input', refreshPreview);
+    emailInput.addEventListener('input', refreshPreview);
 
     var note = document.createElement('p');
     note.className = 'feedback-note';
-    note.textContent = 'Opens your email client with the draft. '
-      + 'Nothing is sent until you press send there.';
+    note.textContent = 'Send submits directly. '
+      + 'Open in mail composes a draft in your email client; '
+      + 'nothing is sent until you press send there.';
     modal.appendChild(note);
 
     var attachNote = document.createElement('p');
     attachNote.className = 'feedback-note';
     attachNote.textContent = 'To attach files (e.g. screenshots), '
-      + 'add them in your email client after the draft opens.';
+      + 'use Open in mail and attach them in your email client.';
     modal.appendChild(attachNote);
 
     var actions = document.createElement('div');
     actions.className = 'feedback-actions';
+    var btnSend = document.createElement('button');
+    btnSend.type = 'button';
+    btnSend.className = 'feedback-action-btn primary';
+    btnSend.dataset.feedbackAction = 'send';
+    btnSend.textContent = 'Send';
+    actions.appendChild(btnSend);
     var btnMail = document.createElement('button');
     btnMail.type = 'button';
-    btnMail.className = 'feedback-action-btn primary';
+    btnMail.className = 'feedback-action-btn';
     btnMail.dataset.feedbackAction = 'mail';
     btnMail.textContent = 'Open in mail';
     actions.appendChild(btnMail);
@@ -4071,6 +4160,7 @@ body.has-banner > *:not(.deep-link-banner) {
 
     overlay._textarea = ta;
     overlay._checkbox = checkbox;
+    overlay._email = emailInput;
     overlay._toast = toast;
     overlay._refreshPreview = refreshPreview;
 
@@ -4093,10 +4183,60 @@ body.has-banner > *:not(.deep-link-banner) {
     if (kind === 'cancel') { closeFeedbackModal(); return; }
     var ta = openFeedbackEl._textarea;
     var checkbox = openFeedbackEl._checkbox;
+    var emailInput = openFeedbackEl._email;
     var p = assembleFeedbackPayload({
       text: ta.value, includeDebug: checkbox.checked,
+      email: emailInput.value,
     });
-    if (kind === 'mail') {
+    var toast = openFeedbackEl._toast;
+    if (kind === 'send') {
+      // Refuse to submit a completely empty form so a stray Enter
+      // doesn't create a no-op response.
+      if (!p.structured.text && !p.structured.debug_section) {
+        if (toast) {
+          toast.textContent = 'Add a message or include debug info '
+            + 'before sending.';
+          toast.style.color = '#b14a2c';
+          toast.hidden = false;
+        }
+        return;
+      }
+      // If they filled the email field, it has to look like an email.
+      // Empty is fine — field is optional.
+      if (p.structured.email && !FEEDBACK_EMAIL_RE.test(p.structured.email)) {
+        if (toast) {
+          toast.textContent = "That doesn't look like an email "
+            + 'address. Leave it empty if you don\'t want a reply.';
+          toast.style.color = '#b14a2c';
+          toast.hidden = false;
+        }
+        return;
+      }
+      if (toast) {
+        toast.textContent = 'Sending...';
+        toast.style.color = '';
+        toast.hidden = false;
+      }
+      submitFeedbackToForms(p).then(function () {
+        if (!openFeedbackEl) return;
+        var t = openFeedbackEl._toast;
+        if (t) {
+          t.textContent = 'Sent ✓ — thanks for the feedback.';
+          t.style.color = '#2a8a3e';
+          t.hidden = false;
+        }
+        setTimeout(function () { closeFeedbackModal(); }, 1200);
+      }).catch(function () {
+        if (!openFeedbackEl) return;
+        var t = openFeedbackEl._toast;
+        if (t) {
+          t.textContent = 'Send failed — try Open in mail or Copy '
+            + 'instead.';
+          t.style.color = '#b14a2c';
+          t.hidden = false;
+        }
+      });
+    } else if (kind === 'mail') {
       var url = buildFeedbackMailto(p);
       window.location.href = url;
       // Keep modal open briefly so the user can also Copy if mail
@@ -4106,7 +4246,7 @@ body.has-banner > *:not(.deep-link-banner) {
           var t = openFeedbackEl._toast;
           if (t) {
             t.textContent = 'Mail draft opened. If nothing happened, '
-              + 'use Copy instead.';
+              + 'use Copy or Send instead.';
             t.style.color = '';
             t.hidden = false;
           }
@@ -4116,7 +4256,6 @@ body.has-banner > *:not(.deep-link-banner) {
       var clipText = 'To: ' + p.to + '\nSubject: ' + p.subject
         + '\n\n' + p.body;
       copyText(clipText);
-      var toast = openFeedbackEl._toast;
       if (toast) {
         toast.textContent = 'Copied ✓ — paste into an email '
           + 'to ' + p.to;
