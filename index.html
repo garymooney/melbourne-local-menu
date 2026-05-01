@@ -1234,7 +1234,10 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .feedback-debug-preview {
   font-size: 0.8em;
+  margin-left: 22px;
+  margin-top: -4px;
 }
+.feedback-debug-preview[hidden] { display: none; }
 .feedback-debug-preview > summary {
   cursor: pointer;
   color: var(--faint);
@@ -4020,6 +4023,7 @@ body.has-banner > *:not(.deep-link-banner) {
       });
       pre.textContent = p.body;
       modal._lastPayload = p;
+      details.hidden = !checkbox.checked;
     }
     refreshPreview();
     checkbox.addEventListener('change', refreshPreview);
