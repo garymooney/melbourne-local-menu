@@ -3579,11 +3579,11 @@ body.has-banner > *:not(.deep-link-banner) {
     // their separate "Outlook desktop" option — that downloads the same
     // .ics file as iCal, so we collapse them into one entry.
     var options = [
-      { label: 'iCal',          hint: 'Apple Calendar, Outlook desktop, etc.', kind: 'ics' },
-      { label: 'Google',        hint: 'opens in browser', kind: 'google' },
-      { label: 'Office 365',    hint: 'opens in browser', kind: 'outlook-office' },
-      { label: 'Outlook web',   hint: 'opens in browser', kind: 'outlook-live' },
-      { label: 'Yahoo',         hint: 'opens in browser', kind: 'yahoo' },
+      { label: 'Download .ics', hint: 'Apple Calendar, Outlook desktop, etc.', kind: 'ics' },
+      { label: 'Google',        hint: '', kind: 'google' },
+      { label: 'Office 365',    hint: '', kind: 'outlook-office' },
+      { label: 'Outlook web',   hint: '', kind: 'outlook-live' },
+      { label: 'Yahoo',         hint: '', kind: 'yahoo' },
     ];
     for (var i = 0; i < options.length; i++) {
       var opt = options[i];
@@ -3595,11 +3595,13 @@ body.has-banner > *:not(.deep-link-banner) {
       var labelSpan = document.createElement('span');
       labelSpan.className = 'add-cal-option-label';
       labelSpan.textContent = opt.label;
-      var hintSpan = document.createElement('span');
-      hintSpan.className = 'add-cal-option-hint';
-      hintSpan.textContent = opt.hint;
       b.appendChild(labelSpan);
-      b.appendChild(hintSpan);
+      if (opt.hint) {
+        var hintSpan = document.createElement('span');
+        hintSpan.className = 'add-cal-option-hint';
+        hintSpan.textContent = opt.hint;
+        b.appendChild(hintSpan);
+      }
       pop.appendChild(b);
     }
     pop._anchorBtn = btn;
