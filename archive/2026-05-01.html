@@ -3929,6 +3929,13 @@ body.has-banner > *:not(.deep-link-banner) {
       var oldRect = oldRects[el.id];
       if (!oldRect) continue;
       var newRect = el.getBoundingClientRect();
+      // Skip cards transitioning to/from a hidden "Show more"
+      // container. Their rect is (0,0,0,0) when hidden, so the FLIP
+      // transform would fly them in or out from the viewport's
+      // top-left corner. Better to let them appear/disappear in
+      // place — the show-more reveal is a separate interaction.
+      if ((oldRect.width === 0 && oldRect.height === 0) ||
+          (newRect.width === 0 && newRect.height === 0)) continue;
       var dx = oldRect.left - newRect.left;
       var dy = oldRect.top - newRect.top;
       if (dx === 0 && dy === 0) continue;
@@ -4552,6 +4559,11 @@ body.has-banner > *:not(.deep-link-banner) {
       var oldRect = oldRects[el.id];
       if (!oldRect) continue;  // new card; just appears in place
       var newRect = el.getBoundingClientRect();
+      // Skip cards transitioning to/from a hidden "Show more"
+      // container; their rect is (0,0,0,0) when hidden so the FLIP
+      // would fly them in/out from the viewport's top-left corner.
+      if ((oldRect.width === 0 && oldRect.height === 0) ||
+          (newRect.width === 0 && newRect.height === 0)) continue;
       var dx = oldRect.left - newRect.left;
       var dy = oldRect.top - newRect.top;
       if (dx === 0 && dy === 0) continue;
