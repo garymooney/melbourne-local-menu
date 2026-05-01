@@ -719,6 +719,9 @@ body.has-banner > *:not(.deep-link-banner) {
   color: var(--faint);
   letter-spacing: 0.5px;
 }
+.site-byline.feedback-byline {
+  margin-top: 1.2em;
+}
 
 /* --- Event count badge on each day tab; live-updated from the ranking. */
 .tab-count {
@@ -1153,6 +1156,147 @@ body.has-banner > *:not(.deep-link-banner) {
   min-width: 0;
 }
 
+/* ---------- Feedback modal ---------- */
+.feedback-link {
+  color: var(--faint);
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--faint) 40%, transparent);
+  cursor: pointer;
+}
+.feedback-link:hover { color: var(--text); }
+
+.feedback-modal-overlay {
+  position: fixed;
+  inset: 0;
+  z-index: 100;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+}
+.feedback-modal {
+  width: 100%;
+  max-width: 460px;
+  max-height: calc(100vh - 32px);
+  overflow-y: auto;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 8px;
+  box-shadow: 0 8px 28px rgba(0, 0, 0, 0.3);
+  padding: 16px 18px 14px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.feedback-title {
+  margin: 0;
+  font-size: 1.05em;
+  font-weight: 600;
+}
+.feedback-intro {
+  margin: 0;
+  font-size: 0.85em;
+  color: var(--faint);
+}
+.feedback-textarea {
+  font: inherit;
+  font-size: 0.92em;
+  width: 100%;
+  min-height: 110px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--faint) 45%, transparent);
+  border-radius: 6px;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.feedback-textarea:focus {
+  outline: none;
+  border-color: var(--accent-warm);
+}
+.feedback-debug-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 8px;
+  font-size: 0.85em;
+  cursor: pointer;
+  user-select: none;
+}
+.feedback-debug-toggle input { margin-top: 3px; flex: 0 0 auto; }
+.feedback-debug-hint {
+  display: block;
+  color: var(--faint);
+  font-size: 0.92em;
+  margin-top: 2px;
+}
+.feedback-debug-preview {
+  font-size: 0.8em;
+}
+.feedback-debug-preview > summary {
+  cursor: pointer;
+  color: var(--faint);
+  list-style: revert;
+}
+.feedback-debug-preview > summary:hover { color: var(--text); }
+.feedback-debug-pre {
+  margin: 6px 0 0;
+  padding: 8px 10px;
+  max-height: 180px;
+  overflow: auto;
+  background: color-mix(in srgb, var(--faint) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--faint) 25%, transparent);
+  border-radius: 4px;
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 0.85em;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.feedback-note {
+  margin: 0;
+  font-size: 0.78em;
+  color: var(--faint);
+  font-style: italic;
+}
+.feedback-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 4px;
+}
+.feedback-action-btn {
+  font: inherit;
+  font-size: 0.88em;
+  padding: 6px 12px;
+  background: transparent;
+  color: var(--text);
+  border: 1px solid color-mix(in srgb, var(--faint) 45%, transparent);
+  border-radius: 16px;
+  cursor: pointer;
+  line-height: 1.2;
+}
+.feedback-action-btn:hover {
+  border-color: color-mix(in srgb, var(--faint) 75%, transparent);
+  background: color-mix(in srgb, var(--faint) 6%, transparent);
+}
+.feedback-action-btn.primary {
+  background: var(--accent-warm);
+  border-color: var(--accent-warm);
+  color: #fff;
+  font-weight: 600;
+}
+.feedback-action-btn.primary:hover {
+  background: color-mix(in srgb, var(--accent-warm) 88%, #000);
+  border-color: color-mix(in srgb, var(--accent-warm) 88%, #000);
+}
+.feedback-toast {
+  margin-top: 4px;
+  font-size: 0.82em;
+  color: #2a8a3e;
+}
+
 </style>
 </head>
 <body>
@@ -1176,6 +1320,7 @@ body.has-banner > *:not(.deep-link-banner) {
 <section id="settings-view" role="tabpanel" aria-labelledby="tab-settings" hidden></section>
 </main>
 <p class="site-byline">Built &amp; curated by Gary Mooney</p>
+<p class="site-byline feedback-byline"><a class="feedback-link" href="#" data-feedback-trigger role="button">Send feedback</a></p>
 <footer class="acknowledgement" role="contentinfo">
 <p>This site shares events taking place on the lands of the Wurundjeri Woi-wurrung people of the Kulin Nation. We acknowledge them as the Traditional Owners and pay our respects to their Elders past, present, and emerging, and to all Aboriginal and Torres Strait Islander peoples who continue to care for Country.</p>
 </footer>
@@ -3633,6 +3778,341 @@ body.has-banner > *:not(.deep-link-banner) {
     renderAllAnimated(id);
   }
 
+  // ============================================================
+  //  Feedback modal — site-wide "Send feedback" link in the footer
+  //  opens a small dialog that drafts a mailto: with optional debug
+  //  info attached. Pure data-assembly (assembleFeedbackPayload)
+  //  is split from delivery (buildFeedbackMailto, copy) so a future
+  //  silent-submit path can share the same payload shape.
+  // ============================================================
+  var FEEDBACK_TO = 'localmenufeedback@gmail.com';
+  var FEEDBACK_MAILTO_MAX = 1800;
+  var openFeedbackEl = null;
+
+  function buildFeedbackProfileDiff() {
+    var stored;
+    try {
+      stored = JSON.parse(localStorage.getItem(STORAGE_KEY) || '{}');
+    } catch (_) { stored = {}; }
+    var lines = [];
+    function pairs(obj) {
+      var out = [];
+      for (var k in obj) out.push(k + '=' + obj[k]);
+      return out.join(', ');
+    }
+    if (stored.subcategory_tiers && Object.keys(stored.subcategory_tiers).length) {
+      lines.push('  subcategory tiers: ' + pairs(stored.subcategory_tiers));
+    }
+    if (stored.facet_tiers && Object.keys(stored.facet_tiers).length) {
+      lines.push('  facet tiers: ' + pairs(stored.facet_tiers));
+    }
+    if (stored.suburb_tiers && Object.keys(stored.suburb_tiers).length) {
+      lines.push('  suburb tiers: ' + pairs(stored.suburb_tiers));
+    }
+    if (stored.suburb_tier_weights && Object.keys(stored.suburb_tier_weights).length) {
+      lines.push('  suburb tier weights: ' + pairs(stored.suburb_tier_weights));
+    }
+    if (stored.rule_states && Object.keys(stored.rule_states).length) {
+      lines.push('  rule states: ' + pairs(stored.rule_states));
+    }
+    if (stored.shape) {
+      var shapeBits = [];
+      for (var s in stored.shape) {
+        if (stored.shape[s] != null) shapeBits.push(s + '=' + stored.shape[s]);
+      }
+      if (shapeBits.length) lines.push('  shape: ' + shapeBits.join(', '));
+    }
+    if (Array.isArray(stored.pinned_event_ids) && stored.pinned_event_ids.length) {
+      lines.push('  pinned events: ' + stored.pinned_event_ids.length);
+    }
+    if (stored.theme && stored.theme !== 'auto') {
+      lines.push('  theme: ' + stored.theme);
+    }
+    return lines.length ? lines.join('\n') : '  (no overrides)';
+  }
+
+  function buildFeedbackEventsSample() {
+    var ranking;
+    try { ranking = buildRanking(profile); }
+    catch (_) { return { top: [], bottom: [] }; }
+    var floor = profile.score_floor != null ? profile.score_floor : 0;
+    var all = [];
+    for (var day in ranking) {
+      for (var cat in ranking[day]) {
+        var items = ranking[day][cat];
+        for (var i = 0; i < items.length; i++) {
+          all.push({
+            score: items[i].score,
+            day: day,
+            category: cat,
+            title: items[i].event.title || '(no title)',
+          });
+        }
+      }
+    }
+    all.sort(function (a, b) { return b.score - a.score; });
+    var aboveFloor = all.filter(function (it) { return it.score > floor; });
+    return {
+      top: all.slice(0, 10),
+      bottom: aboveFloor.slice(-3).reverse(),  // worst-above-floor first
+    };
+  }
+
+  function renderFeedbackBody(parts) {
+    var lines = [];
+    lines.push(parts.text ? parts.text : '(no message)');
+    if (parts.includeDebug) {
+      lines.push('');
+      lines.push('---');
+      lines.push('Debug info (auto-attached)');
+      lines.push('');
+      lines.push('Time: ' + parts.time);
+      lines.push('UA: ' + parts.ua);
+      lines.push('Week of: ' + (parts.week_of || '(unknown)'));
+      lines.push('');
+      lines.push('Profile diff (vs default):');
+      lines.push(parts.profile_diff_text);
+      lines.push('');
+      lines.push('Top ' + parts.samples.top.length + ' events:');
+      for (var i = 0; i < parts.samples.top.length; i++) {
+        var t = parts.samples.top[i];
+        lines.push(' ' + (i + 1) + '. ' + t.score.toFixed(2)
+          + '  ' + t.day + '/' + t.category + '  ' + t.title);
+      }
+      if (parts.samples.bottom.length) {
+        lines.push('');
+        lines.push('Bottom ' + parts.samples.bottom.length + ' above floor:');
+        for (var j = 0; j < parts.samples.bottom.length; j++) {
+          var b = parts.samples.bottom[j];
+          lines.push(' ' + (j + 1) + '. ' + b.score.toFixed(2)
+            + '  ' + b.day + '/' + b.category + '  ' + b.title);
+        }
+      }
+    }
+    return lines.join('\n');
+  }
+
+  function assembleFeedbackPayload(opts) {
+    var text = (opts && opts.text ? opts.text : '').trim();
+    var includeDebug = !!(opts && opts.includeDebug);
+    var weekOf = payload.week_start || payload.week_of || '';
+    var timeStr = new Date().toISOString();
+    var ua = navigator.userAgent || '';
+    var diffText = '  (debug not attached)';
+    var samples = { top: [], bottom: [] };
+    if (includeDebug) {
+      diffText = buildFeedbackProfileDiff();
+      samples = buildFeedbackEventsSample();
+    }
+    var rendered = renderFeedbackBody({
+      text: text, includeDebug: includeDebug,
+      time: timeStr, ua: ua, week_of: weekOf,
+      profile_diff_text: diffText, samples: samples,
+    });
+    var subject = 'Menu feedback'
+      + (weekOf ? ' — week of ' + weekOf : '');
+    return {
+      to: FEEDBACK_TO,
+      subject: subject,
+      body: rendered,
+      structured: {
+        text: text, time: timeStr, ua: ua, week_of: weekOf,
+        profile_diff_text: diffText, samples: samples,
+      },
+    };
+  }
+
+  function buildFeedbackMailto(payload) {
+    var body = payload.body;
+    var encoded = encodeURIComponent(body);
+    if (encoded.length > FEEDBACK_MAILTO_MAX) {
+      var idx = body.indexOf('Top ');
+      if (idx > 0 && body.indexOf(' events:', idx) > 0) {
+        body = body.slice(0, idx) + '... (snapshot truncated)';
+        encoded = encodeURIComponent(body);
+      }
+      if (encoded.length > FEEDBACK_MAILTO_MAX) {
+        // Hard fallback: chop the body to fit, preserving the user's text
+        // by truncating from the end.
+        while (encoded.length > FEEDBACK_MAILTO_MAX && body.length > 200) {
+          body = body.slice(0, body.length - 50);
+          encoded = encodeURIComponent(body);
+        }
+        body = body + '\n... (truncated)';
+        encoded = encodeURIComponent(body);
+      }
+    }
+    return 'mailto:' + payload.to
+      + '?subject=' + encodeURIComponent(payload.subject)
+      + '&body=' + encoded;
+  }
+
+  function closeFeedbackModal() {
+    if (!openFeedbackEl) return;
+    if (openFeedbackEl.parentNode) {
+      openFeedbackEl.parentNode.removeChild(openFeedbackEl);
+    }
+    openFeedbackEl = null;
+    document.body.style.overflow = '';
+  }
+
+  function openFeedbackModal() {
+    closeFeedbackModal();
+    var overlay = document.createElement('div');
+    overlay.className = 'feedback-modal-overlay';
+    overlay.setAttribute('role', 'presentation');
+    var modal = document.createElement('div');
+    modal.className = 'feedback-modal';
+    modal.setAttribute('role', 'dialog');
+    modal.setAttribute('aria-modal', 'true');
+    modal.setAttribute('aria-labelledby', 'feedback-title');
+    overlay.appendChild(modal);
+
+    var title = document.createElement('h2');
+    title.className = 'feedback-title';
+    title.id = 'feedback-title';
+    title.textContent = 'Send feedback';
+    modal.appendChild(title);
+
+    var intro = document.createElement('p');
+    intro.className = 'feedback-intro';
+    intro.textContent = 'Bugs, suggestions, rankings that feel off — '
+      + 'happy to hear it.';
+    modal.appendChild(intro);
+
+    var ta = document.createElement('textarea');
+    ta.className = 'feedback-textarea';
+    ta.placeholder = "What's on your mind?";
+    ta.rows = 6;
+    modal.appendChild(ta);
+
+    var toggleLabel = document.createElement('label');
+    toggleLabel.className = 'feedback-debug-toggle';
+    var checkbox = document.createElement('input');
+    checkbox.type = 'checkbox';
+    checkbox.checked = true;
+    toggleLabel.appendChild(checkbox);
+    var toggleText = document.createElement('span');
+    var strong = document.createElement('strong');
+    strong.textContent = 'Include debug info';
+    toggleText.appendChild(strong);
+    var hint = document.createElement('span');
+    hint.className = 'feedback-debug-hint';
+    hint.textContent = 'Your settings + a sample of scored events. '
+      + 'Helps me see what you were looking at.';
+    toggleText.appendChild(hint);
+    toggleLabel.appendChild(toggleText);
+    modal.appendChild(toggleLabel);
+
+    var details = document.createElement('details');
+    details.className = 'feedback-debug-preview';
+    var summary = document.createElement('summary');
+    summary.textContent = 'Preview attached info';
+    details.appendChild(summary);
+    var pre = document.createElement('pre');
+    pre.className = 'feedback-debug-pre';
+    details.appendChild(pre);
+    modal.appendChild(details);
+
+    function refreshPreview() {
+      var p = assembleFeedbackPayload({
+        text: ta.value, includeDebug: checkbox.checked,
+      });
+      pre.textContent = p.body;
+      modal._lastPayload = p;
+    }
+    refreshPreview();
+    checkbox.addEventListener('change', refreshPreview);
+    ta.addEventListener('input', refreshPreview);
+
+    var note = document.createElement('p');
+    note.className = 'feedback-note';
+    note.textContent = 'Opens your email client with the draft. '
+      + 'Nothing is sent until you press send there.';
+    modal.appendChild(note);
+
+    var attachNote = document.createElement('p');
+    attachNote.className = 'feedback-note';
+    attachNote.textContent = 'To attach files (e.g. screenshots), '
+      + 'add them in your email client after the draft opens.';
+    modal.appendChild(attachNote);
+
+    var actions = document.createElement('div');
+    actions.className = 'feedback-actions';
+    var btnMail = document.createElement('button');
+    btnMail.type = 'button';
+    btnMail.className = 'feedback-action-btn primary';
+    btnMail.dataset.feedbackAction = 'mail';
+    btnMail.textContent = 'Open in mail';
+    actions.appendChild(btnMail);
+    var btnCopy = document.createElement('button');
+    btnCopy.type = 'button';
+    btnCopy.className = 'feedback-action-btn';
+    btnCopy.dataset.feedbackAction = 'copy';
+    btnCopy.textContent = 'Copy';
+    actions.appendChild(btnCopy);
+    var btnCancel = document.createElement('button');
+    btnCancel.type = 'button';
+    btnCancel.className = 'feedback-action-btn';
+    btnCancel.dataset.feedbackAction = 'cancel';
+    btnCancel.textContent = 'Cancel';
+    actions.appendChild(btnCancel);
+    modal.appendChild(actions);
+
+    var toast = document.createElement('div');
+    toast.className = 'feedback-toast';
+    toast.hidden = true;
+    modal.appendChild(toast);
+
+    overlay._textarea = ta;
+    overlay._checkbox = checkbox;
+    overlay._toast = toast;
+    overlay._refreshPreview = refreshPreview;
+
+    document.body.appendChild(overlay);
+    document.body.style.overflow = 'hidden';
+    openFeedbackEl = overlay;
+    setTimeout(function () { ta.focus(); }, 0);
+  }
+
+  function handleFeedbackAction(kind) {
+    if (!openFeedbackEl) return;
+    if (kind === 'cancel') { closeFeedbackModal(); return; }
+    var ta = openFeedbackEl._textarea;
+    var checkbox = openFeedbackEl._checkbox;
+    var p = assembleFeedbackPayload({
+      text: ta.value, includeDebug: checkbox.checked,
+    });
+    if (kind === 'mail') {
+      var url = buildFeedbackMailto(p);
+      window.location.href = url;
+      // Keep modal open briefly so the user can also Copy if mail
+      // didn't open. They can still cancel afterwards.
+      setTimeout(function () {
+        if (openFeedbackEl) {
+          var t = openFeedbackEl._toast;
+          if (t) {
+            t.textContent = 'Mail draft opened. If nothing happened, '
+              + 'use Copy instead.';
+            t.style.color = '';
+            t.hidden = false;
+          }
+        }
+      }, 600);
+    } else if (kind === 'copy') {
+      var clipText = 'To: ' + p.to + '\nSubject: ' + p.subject
+        + '\n\n' + p.body;
+      copyText(clipText);
+      var toast = openFeedbackEl._toast;
+      if (toast) {
+        toast.textContent = 'Copied ✓ — paste into an email '
+          + 'to ' + p.to;
+        toast.style.color = '#2a8a3e';
+        toast.hidden = false;
+      }
+    }
+  }
+
   // Wraps renderAll with a FLIP animation: capture each event card's
   // bounding rect BEFORE the rebuild, run renderAll, then for each
   // surviving card translate it from its old position back to the
@@ -3800,6 +4280,29 @@ body.has-banner > *:not(.deep-link-banner) {
           // own via the landing page's OG tags.
           copyText(shareUrl).then(function () { flashSuccess(shareBtn); });
         }
+      }
+      return;
+    }
+
+    // Feedback modal — trigger link, action buttons, outside-click.
+    // Handled before calendar picker so an open feedback modal doesn't
+    // get closed by the calendar picker's outside-click branch.
+    var fbTrigger = e.target.closest && e.target.closest('[data-feedback-trigger]');
+    if (fbTrigger) {
+      e.preventDefault();
+      openFeedbackModal();
+      return;
+    }
+    var fbAction = e.target.closest && e.target.closest('[data-feedback-action]');
+    if (fbAction) {
+      e.preventDefault();
+      handleFeedbackAction(fbAction.dataset.feedbackAction);
+      return;
+    }
+    if (openFeedbackEl) {
+      // Click on overlay backdrop (outside the modal box) closes.
+      if (e.target === openFeedbackEl) {
+        closeFeedbackModal();
       }
       return;
     }
@@ -3973,6 +4476,10 @@ body.has-banner > *:not(.deep-link-banner) {
       var next = (idx + dir + all.length) % all.length;
       activate(all[next].dataset.tab, { focus: true, updateHash: true });
     } else if (e.key === 'Escape') {
+      if (openFeedbackEl) {
+        closeFeedbackModal();
+        return;
+      }
       if (openCalPickerEl) {
         closeCalPicker();
         return;
