@@ -2324,7 +2324,7 @@ body.has-banner > *:not(.deep-link-banner) {
     var display = CATEGORY_DISPLAY[catKey] || catKey;
 
     var parts = [
-      '<section class="category">',
+      '<section class="category" data-cat="' + escapeHtml(catKey) + '">',
       '<h3 class="category-header">' + escapeHtml(display) +
         '<span class="count" aria-label="' + block.length + ' events">' +
           block.length + '</span></h3>',
@@ -3167,8 +3167,14 @@ body.has-banner > *:not(.deep-link-banner) {
     }
   }
 
+  // Cached output of the most recent buildRanking. Pin/unpin reuses
+  // this to skip the full rescore — pinning doesn't change scores,
+  // only the curated/expanded split within a single category section.
+  var lastRanking = null;
+
   function renderAll() {
     var ranking = buildRanking(profile);
+    lastRanking = ranking;
     var days = [];
     var candidates = Object.keys(ranking).sort();
     for (var i = 0; i < candidates.length; i++) {
@@ -3802,16 +3808,173 @@ body.has-banner > *:not(.deep-link-banner) {
     if (url) window.open(url, '_blank', 'noopener');
   }
 
+  function findItemInRanking(eventId, ranking) {
+    if (!ranking) return null;
+    var id = String(eventId);
+    for (var day in ranking) {
+      var byCat = ranking[day];
+      for (var cat in byCat) {
+        var block = byCat[cat];
+        for (var i = 0; i < block.length; i++) {
+          if (String(block[i].event.id) === id) {
+            return { day: day, cat: cat, block: block, idx: i, item: block[i] };
+          }
+        }
+      }
+    }
+    return null;
+  }
+
+  function wouldEventBeFiltered(ev, profile) {
+    var freeOnly = ((profile.rule_states || {}).free || 'off') === 'on';
+    if (freeOnly && !ev.is_free) return true;
+    var sTiers = profile.suburb_tiers || {};
+    var sn = ev.suburb_normalized;
+    var stier = sn ? (sTiers[sn] || 'outside') : 'outside';
+    if (stier === 'outside') return true;
+    return false;
+  }
+
+  // Re-runs selectWithDiversity for a single (day, cat) block and
+  // updates each item's `is_expanded` flag in place. Mirrors the
+  // expansion logic from buildRanking, but scoped to one block so
+  // we never touch the other ~500 events.
+  function recomputeBlockExpansion(block, profile) {
+    var curated = selectWithDiversity(block, profile);
+    var curatedIds = {};
+    for (var m = 0; m < curated.length; m++) {
+      curatedIds[String(curated[m].event.id)] = true;
+    }
+    var floor = profile.score_floor != null ? profile.score_floor : 0;
+    for (var i = 0; i < block.length; i++) {
+      var it = block[i];
+      if (curatedIds[String(it.event.id)]) {
+        it.is_expanded = false;
+      } else {
+        // Matches buildRanking's extras gate: kept iff above floor or
+        // selected. Items that fail this aren't dropped here (the
+        // section-rerender path keeps the cached block intact);
+        // renderCategoryHtml's keepInCurated check handles display.
+        it.is_expanded = (it.score > floor || it.selected);
+      }
+    }
+  }
+
+  // Replace one .category section in the DOM with a freshly rendered
+  // version, animating any cards that moved within it. Far cheaper
+  // than the full-page renderAllAnimated when only one bucket changed.
+  function rerenderCategorySectionAnimated(dayIso, catKey, highlightId) {
+    if (!lastRanking || !lastRanking[dayIso]) return false;
+    var block = lastRanking[dayIso][catKey];
+    if (!block) return false;
+
+    var daySlug = slugify(formatDayHeading(dayIso));
+    var dayEl = document.getElementById('day-' + daySlug);
+    if (!dayEl) return false;
+    var section = dayEl.querySelector(
+      '.category[data-cat="' + catKey + '"]'
+    );
+    if (!section) return false;
+
+    if (!('animate' in document.createElement('div'))) {
+      // Web Animations API unavailable — fall back to plain swap.
+      var html0 = renderCategoryHtml(catKey, block, profile);
+      var tpl0 = document.createElement('div');
+      tpl0.innerHTML = html0;
+      var fresh0 = tpl0.firstElementChild;
+      if (fresh0) section.parentNode.replaceChild(fresh0, section);
+      else section.remove();
+      return true;
+    }
+
+    var prev = section.querySelectorAll('.event[id^="event-"]');
+    var oldRects = {};
+    for (var i = 0; i < prev.length; i++) {
+      oldRects[prev[i].id] = prev[i].getBoundingClientRect();
+    }
+
+    var html = renderCategoryHtml(catKey, block, profile);
+    if (!html) { section.remove(); return true; }
+    var tpl = document.createElement('div');
+    tpl.innerHTML = html;
+    var newSection = tpl.firstElementChild;
+    if (!newSection) { section.remove(); return true; }
+    section.parentNode.replaceChild(newSection, section);
+
+    var next = newSection.querySelectorAll('.event[id^="event-"]');
+    var highlightEl = highlightId
+      ? document.getElementById('event-' + highlightId)
+      : null;
+    if (highlightEl) highlightEl.style.zIndex = 10;
+    var highlightAnim = null;
+    for (var j = 0; j < next.length; j++) {
+      var el = next[j];
+      var oldRect = oldRects[el.id];
+      if (!oldRect) continue;
+      var newRect = el.getBoundingClientRect();
+      var dx = oldRect.left - newRect.left;
+      var dy = oldRect.top - newRect.top;
+      if (dx === 0 && dy === 0) continue;
+      var anim = el.animate(
+        [
+          { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
+          { transform: 'translate(0, 0)' }
+        ],
+        { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+      );
+      if (el === highlightEl) highlightAnim = anim;
+    }
+    if (highlightEl) {
+      var clearZ = function () { highlightEl.style.zIndex = ''; };
+      if (highlightAnim) highlightAnim.onfinish = clearZ;
+      else setTimeout(clearZ, 340);
+    }
+    return true;
+  }
+
   function togglePin(eventId) {
     var id = String(eventId);
     var list = (profile.pinned_event_ids || []).slice();
-    var idx = list.indexOf(id);
-    if (idx === -1) list.push(id);
-    else list.splice(idx, 1);
+    var prevIdx = list.indexOf(id);
+    var nowPinned = prevIdx === -1;
+    if (nowPinned) list.push(id);
+    else list.splice(prevIdx, 1);
     profile.pinned_event_ids = list;
     refreshPinnedSet();
     saveProfile();
-    renderAllAnimated(id);
+
+    // Cheap path: event is already in the cached ranking AND its
+    // visibility under the current filters doesn't change with the
+    // pin toggle. Re-run selectWithDiversity for just that one
+    // (day, cat) block and swap the section in the DOM. Skips the
+    // ~520-event rescore + full-page rebuild that drives the visible
+    // delay before the FLIP animation starts.
+    //
+    // Full rebuild is needed when the toggle would add/remove the
+    // event from the visible set:
+    //   - Event not in cache → pinning needs to add it (it was
+    //     filtered out before; the new pin is its bypass).
+    //   - Event in cache but only visible due to bypass → unpinning
+    //     it removes that bypass (rebuild iff no other bypass remains).
+    var loc = findItemInRanking(id, lastRanking);
+    var ev = loc ? loc.item.event : null;
+    var filtered = ev ? wouldEventBeFiltered(ev, profile) : false;
+    var stillBypassed = nowPinned || (loc && loc.item.selected);
+    var needsFullRebuild = !loc || (filtered && !stillBypassed);
+    if (needsFullRebuild) {
+      renderAllAnimated(id);
+      return;
+    }
+
+    // Update cached item: pin flag mixes rule-pinning with user pin.
+    loc.item.pinned = isPinned(ev, profile) || nowPinned;
+    recomputeBlockExpansion(loc.block, profile);
+    var swapped = rerenderCategorySectionAnimated(loc.day, loc.cat, id);
+    if (!swapped) {
+      renderAllAnimated(id);
+      return;
+    }
+    updateSettingsBadge();
   }
 
   // ============================================================
