@@ -18,6 +18,24 @@
   --free-green: #3a9d3a;
   --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono-font: 'SF Mono', Consolas, monospace;
+  /* Type scale + weight ladder. Every text role across the site (brand,
+     tagline, day-tab label, day-heading, category header, card text,
+     score-chip, action labels, settings labels) maps to one of these. */
+  --fs-1: 0.72em;
+  --fs-2: 0.78em;
+  --fs-3: 0.85em;
+  --fs-4: 0.92em;
+  --fs-5: 1.0em;
+  --fs-6: 1.25em;
+  --fs-7: 1.85em;
+  --fw-regular: 400;
+  --fw-medium: 600;
+  --fw-bold: 700;
+  --fw-black: 800;
+  /* Soft warm wash on a card-bg base. Used by brand mark, first-visit
+     nudge (PR 3), and other quiet warm tints. Theme-aware: dark mode
+     bumps the percentage so the wash stays visible against #1e1e1e. */
+  --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 4%, var(--card-bg));
 }
 /* Auto dark mode — fires when the OS prefers dark AND the user hasn't
    explicitly chosen "light" via the Settings appearance picker. */
@@ -32,6 +50,7 @@
     --accent-warm: #ff6b4a;
     --accent-cool: #5a9dff;
     --free-green: #5fbe5f;
+    --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 14%, var(--card-bg));
   }
 }
 /* Manual dark override — takes effect even when the OS prefers light. */
@@ -45,6 +64,7 @@
   --accent-warm: #ff6b4a;
   --accent-cool: #5a9dff;
   --free-green: #5fbe5f;
+  --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 14%, var(--card-bg));
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -71,73 +91,136 @@ body {
   top: 0;
   z-index: 10;
   background: var(--bg);
-  border-bottom: 1px solid var(--rule);
-  padding-top: 1em;
+  padding-top: 0.8em;
 }
-/* Brand mark — mirrors the OG banner aesthetic: warm-light card with
-   a vertical accent gradient stripe on the left, "Melbourne" in dark
-   + "Local Menu" in the warm accent on one line, and the week subtitle
-   in muted grey below. */
-.site-brand {
+/* 1px gradient hairline replacing the flat border-bottom. Echoes the
+   brand-mark stripe so the header reads as one composed surface even
+   when the day-tabs row scrolls horizontally. */
+.site-header::after {
+  content: "";
+  position: absolute;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  height: 1px;
+  background: linear-gradient(90deg, var(--accent-warm), var(--accent-cool));
+  opacity: 0.55;
+  pointer-events: none;
+}
+/* Brand row: brand mark on the left, header icon-buttons (search,
+   settings) on the right. Single line; the brand mark itself holds the
+   stacked title + tagline. */
+.brand-row {
   display: flex;
   align-items: stretch;
-  margin: 0 0 0.6em;
+  gap: 8px;
+  margin: 0 0 0.5em;
+}
+.brand-mark {
+  flex: 1 1 auto;
+  display: flex;
+  align-items: stretch;
   border-radius: 6px;
   overflow: hidden;
-  background: color-mix(in srgb, var(--accent-warm) 4%, var(--card-bg));
+  background: var(--soft-warm-tint);
+  min-width: 0;
 }
-.site-brand-stripe {
+.brand-stripe {
   width: 8px;
   background: linear-gradient(180deg, var(--accent-warm), var(--accent-cool));
   flex: 0 0 auto;
 }
-.site-brand-text {
+.brand-text {
   flex: 1 1 auto;
   padding: 10px 14px;
+  min-width: 0;
 }
 .site-title {
   font-size: 1.55em;
-  font-weight: 800;
+  font-weight: var(--fw-black);
   margin: 0;
   line-height: 1.1;
   letter-spacing: -0.2px;
 }
 .site-title-melbourne { color: var(--dark); }
 .site-title-localmenu { color: var(--accent-warm); margin-left: 0.3em; }
-/* Tagline directly under the brand title — mirrors the OG banner's
-   subtitle line. */
+/* Tagline directly under the brand title. Single line on phones; the
+   ellipsis kicks in below ~360px so the brand row stays one row tall. */
 .site-tagline {
-  font-size: 0.92em;
+  font-size: var(--fs-4);
   color: var(--muted);
-  margin: 6px 0 0;
-  font-weight: 500;
+  margin: 4px 0 0;
+  font-weight: var(--fw-medium);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
-.site-subtitle {
-  font-size: 0.78em;
+/* Header icon group: 44x44 tap targets, 20px icons. --faint at rest,
+   --dark on hover. The search icon shows its label at >=480px. */
+.header-icons {
+  flex: 0 0 auto;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+}
+.header-icon-btn {
+  position: relative;
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-radius: 8px;
+  min-width: 44px;
+  min-height: 44px;
+  padding: 0 10px;
   color: var(--faint);
-  margin: 2px 0 0;
-  font-weight: 500;
-  letter-spacing: 0.4px;
+  font-family: var(--body-font);
+  font-size: var(--fs-3);
+  font-weight: var(--fw-medium);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 6px;
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
 }
-/* Header row holds the scrolling day-tabs and the static gear button.
-   Gear lives outside .day-tabs so day buttons can never scroll under it. */
+.header-icon-btn:hover {
+  color: var(--dark);
+  background: color-mix(in srgb, var(--rule) 60%, transparent);
+}
+.header-icon-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+.header-icon-btn[aria-expanded="true"] { color: var(--dark); }
+.header-icon-btn[aria-selected="true"] { color: var(--accent-cool); }
+.header-icon-btn svg { width: 20px; height: 20px; display: block; }
+.header-icon-label { display: none; }
+@media (min-width: 480px) {
+  .search-icon-btn .header-icon-label { display: inline; }
+}
+/* Day-tabs row + day-tab pills + Week pill (separate class so existing
+   .day-tab selectors don't pick it up). */
 .tabs-row {
   display: flex;
   align-items: center;
-  gap: 8px;
   margin: 0 -1em;
-  padding: 4px 1em 8px;
+  /* No padding-right: the .week-pill is sticky at right: 0, and any
+     padding-right would create a scrollable zone past the pill where
+     day-tabs become visible during horizontal scroll. Left padding
+     keeps day-tabs aligned with the rest of the page content. */
+  padding: 4px 0 10px 1em;
+  overflow-x: auto;
+  scrollbar-width: thin;
+  -webkit-overflow-scrolling: touch;
+  gap: 4px;
 }
 .day-tabs {
   display: flex;
   gap: 4px;
-  overflow-x: auto;
-  scrollbar-width: thin;
-  -webkit-overflow-scrolling: touch;
-  flex: 1 1 auto;
-  min-width: 0;
+  flex: 0 0 auto;
 }
 .day-tab {
+  position: relative;
   flex: 0 0 auto;
   background: transparent;
   border: 1px solid var(--rule);
@@ -145,7 +228,7 @@ body {
   padding: 8px 14px;
   border-radius: 8px;
   font-family: var(--body-font);
-  font-size: 0.88em;
+  font-size: var(--fs-3);
   cursor: pointer;
   display: flex;
   flex-direction: column;
@@ -154,29 +237,145 @@ body {
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .day-tab:hover { border-color: var(--accent-warm); color: var(--dark); }
+.day-tab:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+/* Active day-tab: outline + 3px gradient under-stripe (no solid fill).
+   The full-saturation pill was competing with the day-heading hero. */
 .day-tab[aria-selected="true"] {
+  background: transparent;
+  border-color: var(--accent-warm);
+  color: var(--accent-warm);
+}
+.day-tab[aria-selected="true"]::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  /* Sits below the day-tab's box (bottom: -3px clears the padding-edge
+     and the 1px border, leaving the stripe mostly outside the tab as
+     a discrete indicator). The Week pill wrapper's ::after extends the
+     wrapper's bg coverage downward to catch the stripe when a tab
+     scrolls behind. */
+  bottom: -3px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-warm), var(--accent-cool));
+  border-radius: 2px;
+  pointer-events: none;
+}
+.tab-weekday { font-weight: var(--fw-bold); letter-spacing: 0.3px; }
+.tab-date { font-size: var(--fs-2); opacity: 0.85; margin-top: 1px; }
+/* Week pill — own class so existing .day-tab selectors (firstAvailableDayTab,
+   arrow-key handler, IntersectionObserver scroll-spy) don't pick it up.
+   Sticky-right with a left-side scrim so it stays visible during horizontal
+   scroll on mobile. */
+/* Sticky wrapper holds the Week pill. The wrapper's solid var(--bg)
+   background acts as a "backing square" behind the pill — the pill's
+   rounded corners are transparent at the corner triangles, but the
+   wrapper's rectangular bg fills those triangles, so day-tab edges
+   can't peek through. Day-tabs are at default z-index in the row;
+   the wrapper at z-index: 1 stacks above them. */
+.week-pill-wrap {
+  position: sticky;
+  right: 0;
+  flex: 0 0 auto;
+  /* Wrapper stretches to the row's tallest item so its bg + scrim
+     cover the full row height; the pill inside is centred within it
+     at its natural single-line size. */
+  align-self: stretch;
+  margin-left: auto;
+  display: inline-flex;
+  align-items: center;
+  /* Padding-left extends the wrapper (and its bg + scrim anchor)
+     past the pill's left edge so day-tabs fully fade behind solid bg
+     a little before reaching the pill itself. */
+  padding-left: 14px;
+  background: var(--bg);
+  z-index: 1;
+  /* Promote to its own compositing layer to stop the ~1px sub-pixel
+     drift on horizontal scroll at certain viewport widths. */
+  transform: translateZ(0);
+  will-change: transform;
+}
+.week-pill-wrap::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  /* Sits entirely to the LEFT of the wrapper — it's purely the fade
+     transition from the day-tabs scroll area into the wrapper's solid
+     bg. No need to overlap into the pill area now that the wrapper's
+     own bg covers the corner triangles. */
+  right: 100%;
+  width: 80px;
+  background: linear-gradient(to right, transparent, var(--bg));
+  pointer-events: none;
+}
+.week-pill-wrap::after {
+  content: "";
+  position: absolute;
+  /* Extend the wrapper's bg coverage 4px below the wrapper itself so
+     the active day-tab's gradient under-stripe (which now sits at
+     bottom: -3px on the day-tab, ~2px outside the day-tab box and
+     into the row's bottom padding) is still covered when the tab
+     scrolls behind. Mirrors the scrim's 80px left-fade so a stripe
+     peeking out in the scrim region is also covered. */
+  top: 100%;
+  left: -80px;
+  right: 0;
+  height: 4px;
+  background: linear-gradient(to right, transparent, var(--bg) 80px);
+  pointer-events: none;
+}
+.week-pill {
+  position: relative;
+  background: var(--bg);
+  border: 1px solid var(--rule);
+  color: var(--muted);
+  padding: 8px 14px;
+  display: inline-flex;
+  align-items: center;
+  border-radius: 8px;
+  font-family: var(--body-font);
+  font-size: var(--fs-3);
+  font-weight: var(--fw-medium);
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+  z-index: 1;
+}
+.week-pill:hover { border-color: var(--accent-warm); color: var(--dark); }
+.week-pill:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+.week-pill[aria-pressed="true"] {
   background: var(--accent-warm);
   border-color: var(--accent-warm);
   color: #fff;
 }
-.tab-weekday { font-weight: 700; letter-spacing: 0.3px; }
-.tab-date { font-size: 0.78em; opacity: 0.85; margin-top: 1px; }
 
 /* ============================================================
-   Search row + filter panel + active-search indicator
+   Search panel + active-search/filters indicators
    ============================================================ */
-.search-row {
+/* Slim panel that drops in below the day-tabs row when the search
+   icon-button is toggled open. Holds the search input, date-idea-only
+   toggle, and category chips. "All days" is NOT here — that's the
+   Week pill in the day-tabs row. */
+.search-panel {
+  margin: 0 -1em 6px;
+  padding: 12px 14px 14px;
+  background: var(--card-bg);
+  border-top: 1px solid var(--rule);
+  border-bottom: 1px solid var(--rule);
   display: flex;
-  align-items: stretch;
-  gap: 6px;
-  margin: 0 -1em;
-  padding: 0 1em 6px;
-  flex-wrap: wrap;
+  flex-direction: column;
+  gap: 12px;
 }
+.search-panel[hidden] { display: none; }
 .search-input-wrap {
   position: relative;
-  flex: 1 1 220px;
-  min-width: 0;
   display: flex;
   align-items: stretch;
 }
@@ -197,9 +396,9 @@ body {
   flex: 1 1 auto;
   width: 100%;
   font-family: var(--body-font);
-  font-size: 0.95em;
+  font-size: var(--fs-4);
   color: var(--dark);
-  background: var(--card-bg);
+  background: var(--bg);
   border: 1px solid var(--rule);
   border-radius: 8px;
   padding: 8px 32px 8px 32px;
@@ -216,7 +415,7 @@ body {
 }
 .search-input:focus {
   border-color: var(--accent-cool);
-  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 22%, transparent);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
 .search-clear {
   position: absolute;
@@ -239,49 +438,13 @@ body {
 .search-clear:hover { background: color-mix(in srgb, var(--rule) 60%, transparent); color: var(--dark); }
 .search-clear[hidden] { display: none; }
 
-.view-toggle-btn,
-.filters-toggle-btn {
-  flex: 0 0 auto;
-  background: transparent;
-  border: 1px solid var(--rule);
-  color: var(--muted);
-  padding: 0 12px;
-  border-radius: 8px;
-  font-family: var(--body-font);
-  font-size: 0.88em;
-  cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  gap: 4px;
-  transition: background 0.15s, color 0.15s, border-color 0.15s;
-}
-.view-toggle-btn:hover,
-.filters-toggle-btn:hover {
-  border-color: var(--accent-warm);
-  color: var(--dark);
-}
-.view-toggle-btn[aria-pressed="true"] {
-  background: var(--accent-warm);
-  border-color: var(--accent-warm);
-  color: #fff;
-}
-.filters-toggle-btn[aria-expanded="true"] {
-  background: color-mix(in srgb, var(--accent-warm) 12%, var(--card-bg));
-  border-color: var(--accent-warm);
-  color: var(--dark);
-}
-.filters-toggle-btn .chevron {
-  display: inline-block;
-  transition: transform 0.18s ease;
-  font-size: 0.8em;
-}
-.filters-toggle-btn[aria-expanded="true"] .chevron {
-  transform: rotate(180deg);
-}
-/* Active-filter count on the disclosure button — drawn even when the
-   panel is collapsed so the user notices at a glance that something
-   is being filtered. Tinted with --accent-warm to match the banner. */
+/* Filters-active count badge on the search icon-button. Mirrors the
+   prior .filters-toggle-btn badge styling but mounted in the corner
+   of a 44x44 icon-button rather than inline next to a text label. */
 .filters-badge {
+  position: absolute;
+  top: 4px;
+  right: 4px;
   display: inline-flex;
   align-items: center;
   justify-content: center;
@@ -291,17 +454,11 @@ body {
   border-radius: 999px;
   background: var(--accent-warm);
   color: #fff;
-  font-size: 0.7em;
-  font-weight: 800;
+  font-size: var(--fs-1);
+  font-weight: var(--fw-black);
   line-height: 1;
 }
 .filters-badge[hidden] { display: none; }
-/* Highlight the button itself when filters are live so the eye lands
-   on it even before reading the badge. */
-.filters-toggle-btn[data-filters-active="true"] {
-  border-color: var(--accent-warm);
-  color: var(--dark);
-}
 
 .active-search-indicator {
   margin: 0 -1em 6px;
@@ -316,7 +473,34 @@ body {
   flex-wrap: wrap;
   gap: 8px;
 }
-.active-search-indicator[hidden] { display: none; }
+/* Smooth collapse instead of display:none — animates max-height +
+   padding + border so the header doesn't jolt when the indicator
+   appears/disappears. (`overflow: hidden` keeps content clipped while
+   the row collapses.) Initial page load uses .indicator-no-anim on
+   <body> to suppress the first-paint transition. */
+.active-search-indicator,
+.active-filters-indicator {
+  overflow: hidden;
+  transition:
+    max-height 0.22s ease,
+    padding 0.22s ease,
+    border-width 0.22s ease,
+    margin-bottom 0.22s ease;
+  max-height: 200px;
+}
+.active-search-indicator.indicator-collapsed,
+.active-filters-indicator.indicator-collapsed {
+  max-height: 0;
+  padding-top: 0;
+  padding-bottom: 0;
+  border-top-width: 0;
+  border-bottom-width: 0;
+  margin-bottom: 0;
+}
+@media (prefers-reduced-motion: reduce) {
+  .active-search-indicator,
+  .active-filters-indicator { transition: none; }
+}
 .active-search-indicator strong {
   color: var(--dark);
   font-weight: 700;
@@ -350,7 +534,7 @@ body {
   flex-wrap: wrap;
   gap: 8px;
 }
-.active-filters-indicator[hidden] { display: none; }
+/* (collapse styles defined alongside .active-search-indicator above) */
 .active-filters-indicator strong {
   color: var(--dark);
   font-weight: 700;
@@ -366,17 +550,6 @@ body {
   margin-left: auto;
 }
 
-.filter-panel {
-  margin: 0 -1em 6px;
-  padding: 10px 14px 12px;
-  background: var(--card-bg);
-  border-top: 1px solid var(--rule);
-  border-bottom: 1px solid var(--rule);
-  display: flex;
-  flex-direction: column;
-  gap: 10px;
-}
-.filter-panel[hidden] { display: none; }
 .filter-section {
   display: flex;
   flex-direction: column;
@@ -458,6 +631,7 @@ body {
   text-decoration: underline;
 }
 
+
 /* Stacked-days mode: each .day panel is visible. Add a soft separator
    between days so the eye picks out the boundary as you scroll. */
 .day.day--stacked + .day.day--stacked {
@@ -475,50 +649,230 @@ body {
 }
 .day[hidden] { display: none; }
 .day-heading {
-  font-size: 1.25em;
-  font-weight: 700;
+  font-size: var(--fs-7);
+  font-weight: var(--fw-bold);
   background: linear-gradient(
     90deg,
     color-mix(in srgb, var(--accent-warm) 13%, transparent),
     color-mix(in srgb, var(--accent-cool) 13%, transparent)
   );
-  padding: 10px 14px;
-  border-radius: 6px;
+  padding: 24px 18px 20px;
+  border-radius: 8px;
   margin: 1em 0 0.6em;
+  letter-spacing: 0.2px;
+  line-height: 1.15;
 }
+.day-heading__lead { font-weight: var(--fw-bold); }
+.day-heading__sep {
+  color: var(--faint);
+  font-weight: var(--fw-regular);
+  margin: 0 0.15em;
+}
+.day-heading__trail {
+  font-weight: var(--fw-medium);
+  color: var(--muted);
+}
+
+/* First-visit nudge — soft sparkle box above the first day's events
+   pointing at the gear icon. Reuses --soft-warm-tint (the cross-PR
+   token replacing a separate --nudge-tint). Dashed warm border so it
+   reads as a friendly suggestion, not a permanent UI element. */
+.first-visit-nudge {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  padding: 12px 14px;
+  margin: 0 0 14px;
+  background: var(--soft-warm-tint);
+  border: 1px dashed color-mix(in srgb, var(--accent-warm) 55%, var(--rule));
+  border-radius: 10px;
+  font-size: var(--fs-3);
+  color: var(--text);
+  /* Stick to the top below the site-header so deep-link arrivals
+     still see the nudge — the auto-scroll lands the target card
+     mid-viewport, leaving the nudge stuck at the top. z-index sits
+     above category-header (5) but below site-header (10). */
+  position: sticky;
+  top: var(--header-offset, 120px);
+  z-index: 6;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
+}
+/* While the nudge is up, push deep-link / scrollIntoView targets down
+   by ~70px so the landing card clears the sticky nudge instead of
+   sliding underneath it. */
+body:has(#first-visit-nudge) .event {
+  scroll-margin-top: calc(var(--header-offset, 120px) + 56px + 50px);
+}
+body:has(#first-visit-nudge) .day {
+  scroll-margin-top: calc(var(--header-offset, 120px) + 8px + 50px);
+}
+.first-visit-nudge__icon {
+  flex: 0 0 auto;
+  width: 20px;
+  height: 20px;
+  color: var(--accent-warm);
+}
+.first-visit-nudge__msg { flex: 1; line-height: 1.45; }
+.first-visit-nudge__msg strong {
+  font-weight: var(--fw-bold);
+  margin-right: 2px;
+}
+.first-visit-nudge__gear { white-space: nowrap; }
+.first-visit-nudge__close {
+  appearance: none;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent-warm) 50%, transparent);
+  color: var(--accent-warm);
+  font: inherit;
+  font-weight: var(--fw-medium);
+  font-size: 0.92em;
+  padding: 6px 12px;
+  border-radius: 8px;
+  cursor: pointer;
+  min-width: 60px;
+}
+.first-visit-nudge__close:hover {
+  color: #fff;
+  background: var(--accent-warm);
+}
+.first-visit-nudge__close:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+@media (prefers-reduced-motion: no-preference) {
+  .first-visit-nudge { transition: opacity 0.18s ease; }
+}
+
+/* One-shot inline notice mounted at the top of the menu when a power
+   user (any subcategory_tier override) loads PR 2 with show_score_chip
+   off — the explanation for where the score chip went. Dismissable;
+   dismissal persists in localStorage. Soft warm wash so it reads as
+   informational, not alarming. */
+.score-chip-moved-notice {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  padding: 10px 14px;
+  margin: 0 0 12px;
+  background: var(--soft-warm-tint);
+  border: 1px solid color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
+  border-radius: 8px;
+  font-size: var(--fs-3);
+  color: var(--text);
+}
+.score-chip-moved-notice__msg { flex: 1; }
+.score-chip-moved-notice__close {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font-size: 1.4em;
+  line-height: 1;
+  padding: 4px 8px;
+  cursor: pointer;
+  border-radius: 6px;
+}
+.score-chip-moved-notice__close:hover {
+  color: var(--text);
+  background: color-mix(in srgb, var(--faint) 12%, transparent);
+}
+
+.empty-day-msg {
+  margin: 1em 0;
+  padding: 14px;
+  color: var(--muted);
+  font-style: italic;
+  text-align: center;
+  border: 1px dashed var(--rule);
+  border-radius: 8px;
+  background: var(--card-bg);
+}
+
+/* "Quiet evening — see what's on tomorrow ↓" inline hint, rendered
+   directly below the day-heading hero when the day's curated count
+   is sparse (≤ 2). Soft warm wash + a subtle border so it reads as
+   a navigational cue rather than a card. */
+.empty-evening-hint {
+  appearance: none;
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 10px 14px;
+  margin: 0 0 0.6em;
+  font: inherit;
+  font-size: var(--fs-3);
+  color: var(--muted);
+  background: var(--soft-warm-tint);
+  border: 1px dashed color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
+  border-radius: 8px;
+  cursor: pointer;
+  transition: background 0.15s, color 0.15s;
+}
+.empty-evening-hint:hover,
+.empty-evening-hint:focus-visible {
+  color: var(--dark);
+  background: color-mix(in srgb, var(--accent-warm) 12%, var(--card-bg));
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+/* The 1px gradient-tinted top rule lives on the section, not the
+   sticky header inside it — otherwise the rule sticks to the top
+   alongside the site-header's gradient hairline (two stacked stuck
+   lines that drift apart on certain viewport widths due to sub-
+   pixel rounding). Here it scrolls naturally as a section divider. */
 .category {
-  margin-bottom: 1em;
+  margin: 1.2em 0 1em;
+  border-top: 1px solid color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
 }
+/* Quiet sticky section anchor — drops the warm fill + dark side border
+   that previously made these read as headlines competing with the
+   day-heading hero. Now: body text weight, uppercase letter-spaced
+   label + small count. The section's top rule lives on .category. */
 .category-header {
   display: flex;
   align-items: baseline;
-  font-size: 0.92em;
-  font-weight: 800;
+  font-size: var(--fs-3);
+  font-weight: var(--fw-bold);
   text-transform: uppercase;
   letter-spacing: 2.5px;
-  color: #fff;
-  background: var(--accent-warm);
-  padding: 8px 14px;
-  border-radius: 4px;
-  border-left: 6px solid var(--dark);
-  margin: 1.2em 0 0.6em;
+  color: var(--muted);
+  background: var(--bg);
+  padding: 8px 0 6px;
+  margin: 0 0 0.6em;
   position: sticky;
   top: var(--header-offset, 120px);
   z-index: 5;
 }
+/* Solid-bg cap that extends 4px above the sticky header. The site-
+   header at z-index 10 paints over it whenever they're flush; when
+   sub-pixel sticky positioning leaves a hairline gap (the symptom
+   was events scrolling past becoming visible between the open
+   search panel and the category header), the cap fills it. */
+.category-header::before {
+  content: "";
+  position: absolute;
+  top: -4px;
+  left: 0;
+  right: 0;
+  height: 4px;
+  background: var(--bg);
+  pointer-events: none;
+}
 .category-header .count {
   display: inline-block;
-  margin-left: 8px;
-  padding: 0 7px;
-  min-width: 1.4em;
-  font-size: 0.78em;
-  font-weight: 700;
-  letter-spacing: 1px;
-  text-align: center;
-  border-radius: 8px;
-  background: color-mix(in srgb, currentColor 20%, transparent);
-  opacity: 0.9;
+  margin-left: 10px;
+  padding: 0;
+  font-size: var(--fs-2);
+  font-weight: var(--fw-medium);
+  letter-spacing: 0.5px;
+  color: var(--faint);
+  text-transform: none;
   line-height: 1.5;
+}
+.category-header .count::before {
+  content: "· ";
+  color: var(--faint);
+  margin-right: 2px;
 }
 .events {
   display: grid;
@@ -533,7 +887,7 @@ body {
 }
 .event {
   border-left: 3px solid var(--accent-warm);
-  padding: 10px 38px 10px 14px;
+  padding: 10px 14px 10px 14px;
   background: var(--card-bg);
   border-radius: 0 6px 6px 0;
   display: flex;
@@ -545,7 +899,11 @@ body {
      ~44px). +12px of breathing room so the card top isn't flush. */
   scroll-margin-top: calc(var(--header-offset, 120px) + 56px);
 }
+/* Pinned cards: thicken the left border 3px → 5px and shift to the cool
+   accent. Compensates for the pin button leaving the corner — the wider
+   coloured stripe is the new glance-test signal that this card is held. */
 .event.pinned {
+  border-left-width: 5px;
   border-left-color: var(--accent-cool);
   box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
@@ -618,55 +976,64 @@ body.has-banner > *:not(.deep-link-banner) {
   transition: opacity 0.2s ease;
   pointer-events: none;
 }
+/* Pin lives in the action row (PR 2 dropped the absolute corner mount).
+   Mirrors the share / cal button sizing so the row reads as one cluster
+   of equally-weighted controls. */
 .pin-btn {
-  position: absolute;
-  top: 6px;
-  right: 6px;
-  height: 26px;
-  /* Width auto-grows when the .pin-label is present (pinned state). */
-  min-width: 26px;
-  padding: 0;
+  appearance: none;
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 0.72em;
+  color: var(--faint);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
   display: inline-flex;
   align-items: center;
-  justify-content: center;
   gap: 4px;
-  background: transparent;
-  border: 0;
-  border-radius: 13px;
-  color: var(--faint);
-  cursor: pointer;
-  opacity: 0.55;
-  transition: opacity 0.12s, color 0.12s, background 0.12s;
+  line-height: 1;
 }
 .pin-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 13px;
+  height: 13px;
   display: block;
-  transform: rotate(35deg);
 }
-.pin-label {
-  font-family: var(--body-font);
-  font-size: 0.85em;
-  font-weight: 500;
+/* Pinned status — own row above .event-actions so the pin button's
+   width stays fixed when the user toggles pin. Cool accent + small
+   pushpin icon makes pinned cards readable at scroll-by glance,
+   pairing with the 5px cool left border. */
+.event-pinned-status {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  margin-top: 6px;
+  align-self: flex-start;
+  padding: 2px 8px;
+  font-size: var(--fs-2);
+  font-weight: var(--fw-medium);
   font-style: italic;
+  letter-spacing: 0.3px;
+  text-transform: lowercase;
+  color: var(--accent-cool);
+  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
+  border-radius: 10px;
+}
+.event-pinned-status svg {
+  width: 12px;
+  height: 12px;
+  display: block;
 }
 .pin-btn:hover {
-  opacity: 1;
-  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--faint) 65%, transparent);
+  background: color-mix(in srgb, var(--faint) 6%, transparent);
 }
 .pin-btn[aria-pressed="true"] {
-  opacity: 1;
   color: var(--accent-cool);
-  /* Make room for the text label so it doesn't crowd the icon. */
-  padding: 0 8px;
+  border-color: color-mix(in srgb, var(--accent-cool) 50%, transparent);
+  background: color-mix(in srgb, var(--accent-cool) 8%, transparent);
 }
-.event.pinned .pin-btn { opacity: 1; }
-/* When pinned, only the venue line shares its row with the wider
-   "pinned" + icon button — give it padding-right to clear the
-   button (~50px on top of .event's existing 38px right padding).
-   Title, description, and the action row sit BELOW the absolute-
-   positioned button so they keep the full content width. */
-.event.pinned .venue { padding-right: 50px; }
 .event.extra {
   border-left-color: var(--rule);
   border-left-style: dashed;
@@ -876,8 +1243,8 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1;
 }
 .add-cal-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 16px;
+  height: 16px;
   display: block;
 }
 .add-cal-btn:hover,
@@ -900,7 +1267,16 @@ body.has-banner > *:not(.deep-link-banner) {
   align-items: center;
   gap: 4px;
   margin-top: 6px;
-  align-self: flex-start;
+  align-self: stretch;
+  /* Anchor for the .card-overflow-popover (top: 100%; right: 0;). */
+  position: relative;
+  /* Push the overflow button to the right edge so the popover's
+     right: 0; aligns with the button's right edge — keeps the menu
+     from flying off the right side of the card. */
+  flex-wrap: wrap;
+}
+.event-actions .card-overflow-btn {
+  margin-left: auto;
 }
 /* The cal-wrap inherits margin-top from its old standalone styling;
    now redundant inside .event-actions. */
@@ -990,6 +1366,69 @@ body.has-banner > *:not(.deep-link-banner) {
   font-size: 0.7em;
   color: var(--faint);
 }
+
+/* Card overflow `⋯` button — sits at the end of .event-actions, mirrors
+   share/cal sizing so the row reads as one cluster. */
+.card-overflow-btn {
+  padding: 2px 6px;
+  font: inherit;
+  font-size: 0.72em;
+  color: var(--faint);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  line-height: 1;
+}
+.card-overflow-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.card-overflow-btn:hover,
+.card-overflow-btn[aria-expanded="true"] {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--faint) 65%, transparent);
+  background: color-mix(in srgb, var(--faint) 6%, transparent);
+}
+/* Popover mirrors the cal-picker — same surface, same min-width. Opens
+   downward (top: 100%; right: 0) by default; openCardOverflow()'s
+   clipping-escape may switch to position: fixed on narrow viewports. */
+.card-overflow-popover {
+  position: absolute;
+  z-index: 40;
+  top: calc(100% + 4px);
+  right: 0;
+  min-width: 160px;
+  padding: 4px;
+  background: var(--card-bg);
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+}
+.card-overflow-option {
+  appearance: none;
+  text-align: left;
+  padding: 6px 10px;
+  font: inherit;
+  font-size: 0.85em;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.card-overflow-option:hover,
+.card-overflow-option:focus-visible {
+  background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
+  outline: none;
+}
 .show-more {
   display: block;
   margin: 10px 0 6px;
@@ -1011,6 +1450,210 @@ body.has-banner > *:not(.deep-link-banner) {
   margin-top: 4px;
   margin-left: 20px;
 }
+
+/* --- PR 4a: per-event hide flow ---------------------------------- */
+
+/* Per-category Hidden disclosure. Mirrors .show-more's restrained
+   pill summary, but uses the muted-colour palette (this isn't an
+   "interesting score-floor reject" — it's the user's veto pile, so
+   it should read calmer). The summary itself is the affordance; the
+   <details> open state inverts the chevron and reveals the body. */
+.hidden-disclosure {
+  margin: 10px 0 6px;
+}
+.hidden-disclosure > summary {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 14px;
+  font: inherit;
+  font-size: 0.82em;
+  font-weight: 600;
+  color: var(--muted);
+  background: color-mix(in srgb, var(--muted) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--muted) 22%, transparent);
+  border-radius: 14px;
+  cursor: pointer;
+  letter-spacing: 0.3px;
+  list-style: none;
+}
+/* Strip the default disclosure marker; we use our own glyph. */
+.hidden-disclosure > summary::-webkit-details-marker { display: none; }
+.hidden-disclosure > summary::before {
+  content: "";
+  display: inline-block;
+  width: 0;
+  height: 0;
+  border-top: 4px solid currentColor;
+  border-left: 4px solid transparent;
+  border-right: 4px solid transparent;
+  transform: rotate(-90deg);
+  transition: transform 160ms ease;
+  opacity: 0.7;
+}
+.hidden-disclosure[open] > summary::before {
+  transform: rotate(0deg);
+}
+.hidden-disclosure > summary:hover {
+  background: color-mix(in srgb, var(--muted) 14%, transparent);
+}
+.events-hidden {
+  margin-top: 6px;
+  margin-left: 20px;
+}
+
+/* Single-action row on hidden cards (just Unhide). Hugs the start
+   without stretching. */
+.event-actions--hidden {
+  flex-wrap: nowrap;
+  justify-content: flex-start;
+}
+/* Unhide button — same visual vocabulary as .add-cal-btn / .share-btn
+   / .card-overflow-btn so it reads as a card action, not a content
+   tag. Faint border + transparent background + text-on-hover; small
+   eye icon + the word "Unhide" so the affordance stays discoverable
+   even though hidden cards are otherwise stripped of icon-only chrome. */
+.unhide-btn {
+  appearance: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 2px 8px;
+  font: inherit;
+  font-size: 0.72em;
+  letter-spacing: 0.2px;
+  color: var(--faint);
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 10px;
+  cursor: pointer;
+  line-height: 1;
+}
+.unhide-btn svg {
+  width: 14px;
+  height: 14px;
+  display: block;
+}
+.unhide-btn:hover {
+  color: var(--text);
+  border-color: color-mix(in srgb, var(--faint) 65%, transparent);
+  background: color-mix(in srgb, var(--faint) 6%, transparent);
+}
+.unhide-btn:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+
+/* Card-overflow option with a label + hint stack (used by Hide event
+   to disambiguate from the category-wide Settings → Tags mechanism). */
+.card-overflow-option--hide {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  white-space: normal;
+  line-height: 1.3;
+}
+.card-overflow-option__label {
+  font-weight: 600;
+}
+.card-overflow-option__hint {
+  font-size: 0.78em;
+  color: var(--muted);
+}
+
+/* Toast — body-mounted, single-instance, bottom-centre. The 5s
+   auto-dismiss is enforced in JS; CSS just gives it the surface +
+   shadow + safe-area-aware bottom offset. Background is the calm
+   --card-bg (NOT the warm brand stripe — toast is a system surface,
+   not a branded one). Undo is cool because it's a reversible
+   system action; warm is reserved for brand and destructive. */
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: calc(16px + env(safe-area-inset-bottom, 0px));
+  transform: translateX(-50%);
+  z-index: 200;
+  display: inline-flex;
+  align-items: center;
+  gap: 14px;
+  min-width: 240px;
+  max-width: 360px;
+  padding: 10px 16px;
+  font-size: var(--fs-3);
+  color: var(--dark);
+  background: var(--card-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+}
+.toast__msg {
+  flex: 1;
+  line-height: 1.35;
+}
+.toast__undo {
+  appearance: none;
+  padding: 4px 8px;
+  font: inherit;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--accent-cool);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.toast__undo:hover,
+.toast__undo:focus-visible {
+  background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
+  outline: none;
+}
+[data-theme="dark"] .toast {
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+  border-color: color-mix(in srgb, var(--faint) 60%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .toast {
+    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.4);
+    border-color: color-mix(in srgb, var(--faint) 60%, transparent);
+  }
+}
+
+/* Settings → Tags footer for the hide list. Hidden when N=0 (the
+   server doesn't render the wrapper at all in that case). */
+.hidden-events-footer {
+  margin-top: 18px;
+  padding: 12px 14px;
+  background: color-mix(in srgb, var(--muted) 6%, transparent);
+  border: 1px dashed color-mix(in srgb, var(--muted) 28%, transparent);
+  border-radius: 8px;
+}
+.hidden-events-footer__msg {
+  margin: 0;
+  font-size: var(--fs-3);
+  color: var(--muted);
+  line-height: 1.4;
+}
+.hidden-events-footer__msg strong {
+  color: var(--dark);
+}
+.hidden-events-footer__restore {
+  appearance: none;
+  padding: 0;
+  font: inherit;
+  color: var(--accent-cool);
+  background: transparent;
+  border: 0;
+  border-bottom: 1px solid color-mix(in srgb, var(--accent-cool) 40%, transparent);
+  cursor: pointer;
+}
+.hidden-events-footer__restore:hover,
+.hidden-events-footer__restore:focus-visible {
+  border-bottom-color: var(--accent-cool);
+  outline: none;
+}
+
+/* --- end PR 4a -------------------------------------------------- */
+
 .pill.date-idea {
   color: #fff;
   background: linear-gradient(90deg, #ff006e, #fb5607, #ffbe0b, #3a9d3a);
@@ -1055,38 +1698,8 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1.4;
 }
 
-/* --- Settings tab is a compact icon-only button, always visible at
-   the right edge of the header (never scrolls). Lives outside
-   .day-tabs as a flex sibling, so day buttons can never slide under it. */
-.day-tab.settings-tab {
-  position: relative;
-  flex: 0 0 auto;
-  flex-direction: row;
-  align-items: center;
-  justify-content: center;
-  /* Square box: equal width/height; the inner gear glyph centres in it. */
-  width: 38px;
-  height: 38px;
-  padding: 0;
-  color: var(--muted);
-  font-size: 1.15em;
-  line-height: 1;
-}
-/* Vertical divider sits between the scrolling day-tabs and the gear,
-   visually separating "pick a day" from "open settings". */
-.tabs-divider {
-  flex: 0 0 auto;
-  width: 1px;
-  align-self: stretch;
-  margin: 4px 2px;
-  background: var(--rule);
-}
-.day-tab.settings-tab[aria-selected="true"] {
-  background: var(--accent-cool);
-  border-color: var(--accent-cool);
-  color: #fff;
-}
-.settings-gear { line-height: 1; }
+/* Settings-modified badge — sits on the settings header icon-button
+   when the user has any non-default profile field. */
 .settings-badge {
   position: absolute;
   top: -6px;
@@ -1176,6 +1789,40 @@ body.has-banner > *:not(.deep-link-banner) {
 .theme-picker__btn[aria-pressed="true"] {
   background: var(--accent-warm);
   color: #fff;
+}
+
+/* Generic boolean Settings toggle (PR 3 introduced for "Show event
+   scores" beside the theme picker). Stack: checkbox left, label + hint
+   right. Reusable for future opt-in toggles in Settings. */
+.setting-toggle {
+  display: flex;
+  align-items: flex-start;
+  gap: 10px;
+  margin: 0 0 1em;
+  cursor: pointer;
+  font-size: 0.9em;
+}
+.setting-toggle input[type="checkbox"] {
+  margin-top: 3px;
+  width: 16px;
+  height: 16px;
+  flex: 0 0 auto;
+  accent-color: var(--accent-cool);
+  cursor: pointer;
+}
+.setting-toggle__body {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+.setting-toggle__label {
+  font-weight: var(--fw-medium);
+  color: var(--text);
+}
+.setting-toggle__hint {
+  font-size: 0.85em;
+  color: var(--muted);
+  line-height: 1.35;
 }
 
 .subcat-group { margin-bottom: 1.2em; }
@@ -1646,42 +2293,41 @@ body.has-banner > *:not(.deep-link-banner) {
 <body>
 <div class="container">
 <header class="site-header">
-<div class="site-brand">
-<div class="site-brand-stripe" aria-hidden="true"></div>
-<div class="site-brand-text">
+<div class="brand-row">
+<div class="brand-mark">
+<div class="brand-stripe" aria-hidden="true"></div>
+<div class="brand-text">
 <h1 class="site-title"><span class="site-title-melbourne">Melbourne</span><span class="site-title-localmenu">Local Menu</span></h1>
-<p class="site-tagline">Inner-north events · curated weekly</p>
-<p class="site-subtitle">Week of 2nd May 2026</p>
+<p class="site-tagline">Inner-north events</p>
 </div>
 </div>
-<div class="search-row">
+<div class="header-icons">
+<button class="header-icon-btn search-icon-btn" type="button" data-toggle-search aria-expanded="false" aria-controls="search-panel" aria-label="Search and filters"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="11" cy="11" r="7"></circle><path d="m20 20-3.5-3.5"></path></svg><span class="header-icon-label">Search &amp; filters</span><span class="filters-badge" hidden>0</span></button>
+<button class="header-icon-btn settings-icon-btn" type="button" role="tab" id="tab-settings" aria-controls="settings-view" aria-selected="false" tabindex="-1" data-tab="settings" aria-label="Settings" title="Settings"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/><circle cx="12" cy="12" r="3"/></svg><span class="settings-badge" hidden>0</span></button>
+</div>
+</div>
+<div class="tabs-row">
+<nav class="day-tabs" role="tablist" aria-label="Days"></nav>
+<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day stacked" title="Show every day stacked vertically">Week</button></span>
+</div>
+<div class="search-panel" id="search-panel" hidden>
 <div class="search-input-wrap">
 <span class="search-icon" aria-hidden="true"><svg viewBox="0 0 16 16" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><circle cx="7" cy="7" r="5"></circle><path d="M11 11l3.5 3.5"></path></svg></span>
 <input type="search" class="search-input" id="search-input" placeholder="Search events, venues, suburbs…" aria-label="Search events" autocomplete="off" autocorrect="off" autocapitalize="off" spellcheck="false">
 <button class="search-clear" type="button" data-search-clear aria-label="Clear search" hidden>×</button>
 </div>
-<button class="view-toggle-btn" type="button" data-toggle-all-days aria-pressed="false" title="Show every day stacked vertically"><span class="view-toggle-label">All days</span></button>
-<button class="filters-toggle-btn" type="button" data-toggle-filters aria-expanded="false" aria-controls="filter-panel">Filters <span class="filters-badge" hidden>0</span><span class="chevron" aria-hidden="true">▾</span></button>
-</div>
-<div class="active-search-indicator" id="active-search-indicator" hidden></div>
-<div class="active-filters-indicator" id="active-filters-indicator" hidden></div>
-<div class="filter-panel" id="filter-panel" hidden>
 <div class="filter-section">
-<div class="filter-section-label">Categories</div>
-<div class="category-chips"><button class="category-chip" type="button" data-category-chip="live_music" aria-pressed="true">Live music</button><button class="category-chip" type="button" data-category-chip="watch" aria-pressed="true">Watch</button><button class="category-chip" type="button" data-category-chip="hands_on" aria-pressed="true">Hands-on</button><button class="category-chip" type="button" data-category-chip="movement" aria-pressed="true">Movement</button><button class="category-chip" type="button" data-category-chip="go_somewhere" aria-pressed="true">Go somewhere</button><button class="category-chip" type="button" data-category-chip="other" aria-pressed="true">Other</button></div>
-</div>
-<div class="filter-section">
-<div class="filter-section-label">Quick toggles</div>
 <div class="quick-toggles">
 <label class="quick-toggle"><input type="checkbox" data-quick-toggle="date_idea_only"><span>Date-idea only</span></label>
 </div>
 </div>
+<div class="filter-section">
+<div class="filter-section-label">Categories</div>
+<div class="category-chips"><button class="category-chip" type="button" data-category-chip="live_music" aria-pressed="true">Live music</button><button class="category-chip" type="button" data-category-chip="watch" aria-pressed="true">Watch</button><button class="category-chip" type="button" data-category-chip="hands_on" aria-pressed="true">Hands-on</button><button class="category-chip" type="button" data-category-chip="movement" aria-pressed="true">Movement</button><button class="category-chip" type="button" data-category-chip="go_somewhere" aria-pressed="true">Go somewhere</button><button class="category-chip" type="button" data-category-chip="other" aria-pressed="true">Other</button></div>
 </div>
-<div class="tabs-row">
-<nav class="day-tabs" role="tablist" aria-label="Days"></nav>
-<span class="tabs-divider" aria-hidden="true"></span>
-<button class="day-tab settings-tab" role="tab" id="tab-settings" aria-controls="settings-view" aria-selected="false" tabindex="-1" data-tab="settings" aria-label="Settings" title="Settings"><span class="settings-gear" aria-hidden="true">⚙</span><span class="settings-badge" hidden>0</span></button>
 </div>
+<div class="active-search-indicator indicator-collapsed" id="active-search-indicator"></div>
+<div class="active-filters-indicator indicator-collapsed" id="active-filters-indicator"></div>
 </header>
 <main id="main">
 <section id="settings-view" role="tabpanel" aria-labelledby="tab-settings" hidden></section>
@@ -1717,20 +2363,34 @@ body.has-banner > *:not(.deep-link-banner) {
   // View state — UI preferences that aren't part of the scoring profile.
   // Kept in a separate localStorage key so they don't leak into the
   // feedback profile-diff snapshot.
+  //
+  // Cross-version migration: searchPanelOpen replaces the prior
+  // filtersOpen key. The loader reads both for at least one release so
+  // a session opened in version A doesn't clobber a session opened in
+  // version B; the saver writes only the new key. Once the legacy
+  // window has closed the `?? parsed.filtersOpen` fallback can be
+  // dropped in a follow-up.
   function loadViewState() {
     try {
       var raw = localStorage.getItem(VIEW_STORAGE_KEY);
       var parsed = raw ? JSON.parse(raw) : {};
+      var searchOpen = (parsed.searchPanelOpen != null)
+        ? !!parsed.searchPanelOpen
+        : !!parsed.filtersOpen;
       return {
         showAllDays: !!parsed.showAllDays,
-        filtersOpen: !!parsed.filtersOpen,
+        searchPanelOpen: searchOpen,
       };
-    } catch (_) { return { showAllDays: false, filtersOpen: false }; }
+    } catch (_) { return { showAllDays: false, searchPanelOpen: false }; }
   }
   var viewState = loadViewState();
   function saveViewState() {
     try {
-      localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(viewState));
+      var out = {
+        showAllDays: !!viewState.showAllDays,
+        searchPanelOpen: !!viewState.searchPanelOpen,
+      };
+      localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(out));
     } catch (_) {}
   }
 
@@ -1744,7 +2404,11 @@ body.has-banner > *:not(.deep-link-banner) {
     if (!searchQueryRaw) return [];
     return searchQueryRaw.toLowerCase().split(/\s+/).filter(Boolean);
   }
-  var searchStats = { events: 0, days: {} };
+  // events / days: visible (curated + extras) matches.
+  // hiddenAlsoMatch: distinct hidden events whose matches_search flag
+  // is set — surfaced as the "N hidden also match" tail on the
+  // active-search indicator and in the inline notice above day panels.
+  var searchStats = { events: 0, days: {}, hiddenAlsoMatch: 0 };
   // IntersectionObserver for stacked-mode active-tab tracking; rebuilt
   // every time we re-render in stacked mode.
   var stackedObserver = null;
@@ -1935,6 +2599,13 @@ body.has-banner > *:not(.deep-link-banner) {
     var pinned = stored.pinned_event_ids;
     merged.pinned_event_ids = Array.isArray(pinned) ? pinned.slice() : [];
 
+    // Hidden event ids — list of event ids the user has hidden via the
+    // per-card overflow menu. Stored as an array; consumed via HIDDEN_SET
+    // for O(1) checks during buildRanking. Hidden events surface only
+    // inside their category's "Hidden" disclosure with an Unhide button.
+    var hiddenEvs = stored.hidden_event_ids;
+    merged.hidden_event_ids = Array.isArray(hiddenEvs) ? hiddenEvs.slice() : [];
+
     // Hidden categories — array of category keys the user has unchecked
     // in the search-row filter panel. Empty by default. When non-empty,
     // events in those categories are dropped from buildRanking (no bypass
@@ -1942,6 +2613,16 @@ body.has-banner > *:not(.deep-link-banner) {
     var hiddenCats = stored.hidden_categories;
     if (!Array.isArray(hiddenCats)) hiddenCats = defaults.hidden_categories || [];
     merged.hidden_categories = (hiddenCats || []).slice();
+
+    // Score-chip visibility — boolean toggle in Settings → Appearance.
+    // Defaults from the shipped profile (false post PR 2). User override
+    // wins if present so an existing localStorage `show_score_chip: true`
+    // sticks across reloads.
+    if (typeof stored.show_score_chip === 'boolean') {
+      merged.show_score_chip = stored.show_score_chip;
+    } else {
+      merged.show_score_chip = !!defaults.show_score_chip;
+    }
 
     // Appearance — 'auto' | 'light' | 'dark'. Default 'auto' so the
     // page follows the OS preference until the user explicitly picks
@@ -1975,7 +2656,9 @@ body.has-banner > *:not(.deep-link-banner) {
           avoid_bonus: (profile.tier_bonuses || {}).avoid,
         },
         pinned_event_ids: profile.pinned_event_ids || [],
+        hidden_event_ids: profile.hidden_event_ids || [],
         hidden_categories: profile.hidden_categories || [],
+        show_score_chip: !!profile.show_score_chip,
         theme: profile.theme || 'auto',
       }));
     } catch (_) {}
@@ -2005,6 +2688,21 @@ body.has-banner > *:not(.deep-link-banner) {
   function userPinIndex(ev) {
     var i = PINNED_INDEX[String(ev.id)];
     return i === undefined ? -1 : i;
+  }
+
+  // O(1) membership for the user's per-event hide list. Mirrors
+  // PINNED_SET; refreshed by refreshHiddenSet() whenever the list
+  // mutates (toggleHide / unhide / restoreAll). Hidden events bypass
+  // every other filter (free-only / suburb / search / hiddenCats /
+  // date_idea_only) and never enter selectWithDiversity or extras —
+  // they live in a separate per-(day,cat) bucket rendered as a
+  // collapsed "Hidden" disclosure at the bottom of the section.
+  var HIDDEN_SET = new Set(profile.hidden_event_ids || []);
+  function refreshHiddenSet() {
+    HIDDEN_SET = new Set(profile.hidden_event_ids || []);
+  }
+  function isUserHidden(ev) {
+    return HIDDEN_SET.has(String(ev.id));
   }
 
   // Selected events — set ONLY by deep-link arrival (focusEventCard);
@@ -2057,11 +2755,78 @@ body.has-banner > *:not(.deep-link-banner) {
   var MONTHS = ['January','February','March','April','May','June','July','August',
                 'September','October','November','December'];
 
+  // Cutover hour for the Today→Tonight relabel. Before this hour Melbourne
+  // local, today's day-heading reads "Today"; from this hour on, "Tonight".
+  // Single value drives both the load-time decision and the one-shot
+  // setTimeout that flips it once mid-session.
+  var TONIGHT_THRESHOLD_HOUR = 16;
+  var MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var WEEKDAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+
+  // True when today's heading should read "Tonight" (post cutover) rather
+  // than "Today". A module-level flag rather than a fresh now-check on
+  // every renderAll so the one-shot setTimeout below can flip the label
+  // exactly once per session.
+  var tonightFlipped = (melbourneNowParts().hour >= TONIGHT_THRESHOLD_HOUR);
+
   function formatDayHeading(isoDate) {
     // '2026-04-24' -> 'Thursday 24 April' (Melbourne-local date;
     // using T12:00:00 avoids the UTC-boundary-rollover edge case).
     var d = new Date(isoDate + 'T12:00:00');
     return WEEKDAYS[d.getDay()] + ' ' + d.getDate() + ' ' + MONTHS[d.getMonth()];
+  }
+
+  // Hero variant of the day heading used in the day panel: when the day
+  // is today, lead with "Today" or "Tonight" (post-cutover) and append
+  // the short date (e.g. "Today · Sat 2 May"). Other days get
+  // "Friday · 8 May". Returns { lead, trail } so the caller can style
+  // the lead bold and the trailing date lighter.
+  function formatDayHeroParts(isoDate) {
+    var d = new Date(isoDate + 'T12:00:00');
+    var today = melbourneNowParts().iso;
+    var shortDate = WEEKDAYS_SHORT[d.getDay()] + ' ' +
+                    d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()];
+    if (isoDate === today) {
+      return { lead: tonightFlipped ? 'Tonight' : 'Today', trail: shortDate };
+    }
+    return { lead: WEEKDAYS[d.getDay()], trail: d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] };
+  }
+
+  // Same lead-word logic but for the day-tab label. Today's pill reads
+  // "Today" / "Tonight" instead of "Mon"/"Sat" so the active tab matches
+  // the hero heading below it.
+  function formatDayTabShort(isoDate) {
+    var today = melbourneNowParts().iso;
+    if (isoDate === today) return tonightFlipped ? 'Tonight' : 'Today';
+    var d = new Date(isoDate + 'T12:00:00');
+    return WEEKDAYS_SHORT[d.getDay()];
+  }
+
+  // One-shot setTimeout that flips tonightFlipped at the threshold and
+  // re-renders so today's heading + day-tab swap from "Today" to
+  // "Tonight" exactly once per session. No-op if we're already past
+  // the threshold or if the gap exceeds 24h (cold tab left open across
+  // a day boundary — the next renderAll picks up the new "today").
+  function scheduleTonightRelabel() {
+    if (tonightFlipped) return;
+    var fmt = new Intl.DateTimeFormat('en-CA', {
+      timeZone: 'Australia/Melbourne',
+      hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
+    });
+    var bag = {};
+    var parts = fmt.formatToParts(new Date());
+    for (var i = 0; i < parts.length; i++) bag[parts[i].type] = parts[i].value;
+    var h = parseInt(bag.hour, 10); if (h === 24) h = 0;
+    var m = parseInt(bag.minute, 10);
+    var s = parseInt(bag.second, 10);
+    var msSinceMidnight = ((h * 60 + m) * 60 + s) * 1000;
+    var msAtThreshold = TONIGHT_THRESHOLD_HOUR * 3600 * 1000;
+    var delay = msAtThreshold - msSinceMidnight;
+    if (delay <= 0 || delay > 24 * 3600 * 1000) return;
+    setTimeout(function () {
+      tonightFlipped = true;
+      renderAll({ preserveScores: true });
+    }, delay);
   }
 
   function melbourneNowParts() {
@@ -2118,31 +2883,10 @@ body.has-banner > *:not(.deep-link-banner) {
     return i < 0 ? heading : heading.substring(0, i);
   }
 
-  // Match recommend.format_menu_title's "<day><suffix> <Mon> <Year>"
-  // shape (e.g. "30th Apr 2026") so the JS-updated subtitle reads
-  // identically to a freshly server-rendered one.
-  var SHORT_MONTHS = ['Jan','Feb','Mar','Apr','May','Jun',
-                      'Jul','Aug','Sep','Oct','Nov','Dec'];
-  function formatPrettyWeek(iso) {
-    if (!iso) return '';
-    var d = new Date(iso + 'T12:00:00');
-    if (isNaN(d.getTime())) return iso;
-    var day = d.getDate();
-    var suffix;
-    if (day >= 11 && day <= 13) suffix = 'th';
-    else if (day % 10 === 1) suffix = 'st';
-    else if (day % 10 === 2) suffix = 'nd';
-    else if (day % 10 === 3) suffix = 'rd';
-    else suffix = 'th';
-    return day + suffix + ' ' + SHORT_MONTHS[d.getMonth()] +
-      ' ' + d.getFullYear();
-  }
-  function updateSiteSubtitle(iso) {
-    var el = document.querySelector('.site-subtitle');
-    if (!el) return;
-    var pretty = formatPrettyWeek(iso);
-    if (pretty) el.textContent = 'Week of ' + pretty;
-  }
+  // Stub kept so renderAll's call site still resolves. The slim header
+  // dropped the "Week of <pretty>" subtitle (day-tab labels carry the
+  // date context now), so there's nothing to update.
+  function updateSiteSubtitle(_iso) {}
 
   // ============================================================
   //  Scoring — JS port of recommend._score_event
@@ -2424,6 +3168,15 @@ body.has-banner > *:not(.deep-link-banner) {
   function buildRanking(profile) {
     // Group scored+pinned items by (day, category)
     var byDayCat = {};
+    // Per-(day, cat) bucket of user-hidden events. Populated by the
+    // first per-event predicate below — hidden trumps every other
+    // filter (free-only / suburb / search / hiddenCats / date_idea_only).
+    // Merged into the result as a `.hidden` property on the (day,cat)
+    // block so the category renderer can emit a separate "Hidden"
+    // disclosure at the bottom of the section. Never enters
+    // selectWithDiversity or `extras` — Show-more's "events the scorer
+    // almost picked" semantic stays clean.
+    var hiddenByDayCat = {};
     var sTiers = profile.suburb_tiers || {};
     var freeOnly = ((profile.rule_states || {}).free || 'off') === 'on';
     var dateIdeaOnly = ((profile.rule_states || {}).date_idea_only || 'off') === 'on';
@@ -2432,12 +3185,56 @@ body.has-banner > *:not(.deep-link-banner) {
     for (var hi = 0; hi < hcList.length; hi++) hiddenCats[hcList[hi]] = true;
     var searchTokens = getSearchTokens();
     // Reset search stats before this pass; renderAll reads them after.
-    searchStats = { events: 0, days: {} };
+    searchStats = { events: 0, days: {}, hiddenAlsoMatch: 0 };
     for (var i = 0; i < events.length; i++) {
       var ev = events[i];
       var day = ev.day;
       var cat = ev.category;
       if (!day || !cat) continue;
+      // Per-event hide check is FIRST — above the bypass logic, above
+      // every ambient and active filter. A hidden event never reaches
+      // selectWithDiversity / extras / searchStats; it surfaces only in
+      // its category's Hidden disclosure. is_user_hidden flag travels
+      // with the item so renderEventHtml can flip to the dashed
+      // "You hid this" treatment without re-querying HIDDEN_SET.
+      if (isUserHidden(ev)) {
+        if (!hiddenByDayCat[day]) hiddenByDayCat[day] = {};
+        if (!hiddenByDayCat[day][cat]) hiddenByDayCat[day][cat] = [];
+        // When a search query is active, tag whether this hidden event
+        // matches the same haystack the visible-side filter uses. The
+        // flag drives auto-expansion of the per-category Hidden
+        // disclosure and the "N hidden also match" tail on the
+        // active-search indicator. Hidden items still bypass every
+        // ambient filter (free-only / suburb / hiddenCats /
+        // dateIdeaOnly) regardless of search match — the user's
+        // explicit hide trumps ambient preferences.
+        var matchesSearch = false;
+        if (searchTokens.length) {
+          var hayH = (
+            (ev.title || '') + ' ' +
+            (ev.venue || '') + ' ' +
+            (ev.suburb || '') + ' ' +
+            (ev.context_line || '')
+          ).toLowerCase();
+          matchesSearch = true;
+          for (var thi = 0; thi < searchTokens.length; thi++) {
+            if (hayH.indexOf(searchTokens[thi]) === -1) {
+              matchesSearch = false;
+              break;
+            }
+          }
+        }
+        hiddenByDayCat[day][cat].push({
+          event: ev,
+          score: getCachedScore(ev, profile),
+          pinned: false,
+          selected: false,
+          is_expanded: false,
+          is_user_hidden: true,
+          matches_search: matchesSearch,
+        });
+        continue;
+      }
       // User-selected OR user-pinned events bypass AMBIENT filters
       // (free-only, suburb-outside, score floor). Active in-session
       // gestures (search query, category-chip uncheck, date-idea-only)
@@ -2458,11 +3255,15 @@ body.has-banner > *:not(.deep-link-banner) {
       if (hiddenCats[cat]) continue;
       if (dateIdeaOnly && !ev.date_idea) continue;
       if (searchTokens.length) {
+        // description_summary is dropped from the haystack — it's the
+        // longest noisiest field and was producing surprising matches
+        // (e.g. "desire" hitting "as desired" deep in a 200-word blurb).
+        // context_line is the curator-authored one-liner — concentrated
+        // signal — so it stays.
         var hay = (
           (ev.title || '') + ' ' +
           (ev.venue || '') + ' ' +
           (ev.suburb || '') + ' ' +
-          (ev.description_summary || '') + ' ' +
           (ev.context_line || '')
         ).toLowerCase();
         var miss = false;
@@ -2494,51 +3295,73 @@ body.has-banner > *:not(.deep-link-banner) {
     // recurring shows surface on every day they actually run — see
     // recommend._event_days for the upstream fanout.
     var result = {};
-    var days = Object.keys(byDayCat).sort();
+    // Union of days that have either a curated/extras candidate or a
+    // hidden item — a category that's hidden-only still needs its
+    // section emitted so the user can see + restore it.
+    var allDaysSet = {};
+    for (var dk in byDayCat) allDaysSet[dk] = true;
+    for (var dk2 in hiddenByDayCat) allDaysSet[dk2] = true;
+    var days = Object.keys(allDaysSet).sort();
     var floor = profile.score_floor != null ? profile.score_floor : 0;
 
     for (var d = 0; d < days.length; d++) {
       var day = days[d];
       var seenUrls = new Set();
       result[day] = {};
+      var dayHiddenMap = hiddenByDayCat[day] || {};
+      var dayCatMap = byDayCat[day] || {};
       for (var c = 0; c < CATEGORY_ORDER.length; c++) {
         var catKey = CATEGORY_ORDER[c];
-        var block = byDayCat[day][catKey];
-        if (!block || block.length === 0) continue;
+        var block = dayCatMap[catKey];
+        var hiddenList = dayHiddenMap[catKey] || [];
+        // Per-day URL dedup runs only over curated + extras. Hidden
+        // items skip dedup — a hidden card on day A shouldn't suppress
+        // a different visible card on day B that happens to share a URL.
+        var kept;
+        if (!block || block.length === 0) {
+          kept = [];
+        } else {
+          var curated = selectWithDiversity(block, profile);
+          var curatedIds = {};
+          for (var m = 0; m < curated.length; m++) {
+            curatedIds[curated[m].event.id] = true;
+          }
+          var extras = [];
+          for (var n = 0; n < block.length; n++) {
+            if (curatedIds[block[n].event.id]) continue;
+            // Selected events bypass the score floor (matches the
+            // selectWithDiversity force-include) — but they should
+            // already be in `curated` from that step, so this branch
+            // is defensive belt-and-braces.
+            if (block[n].score > floor || block[n].selected) {
+              extras.push({
+                event: block[n].event,
+                score: block[n].score,
+                pinned: block[n].pinned,
+                selected: block[n].selected,
+                is_expanded: true,
+              });
+            }
+          }
+          extras.sort(function (a, b) { return b.score - a.score; });
 
-        var curated = selectWithDiversity(block, profile);
-        var curatedIds = {};
-        for (var m = 0; m < curated.length; m++) {
-          curatedIds[curated[m].event.id] = true;
-        }
-        var extras = [];
-        for (var n = 0; n < block.length; n++) {
-          if (curatedIds[block[n].event.id]) continue;
-          // Selected events bypass the score floor (matches the
-          // selectWithDiversity force-include) — but they should
-          // already be in `curated` from that step, so this branch
-          // is defensive belt-and-braces.
-          if (block[n].score > floor || block[n].selected) {
-            extras.push({
-              event: block[n].event,
-              score: block[n].score,
-              pinned: block[n].pinned,
-              selected: block[n].selected,
-              is_expanded: true,
-            });
+          var combined = curated.concat(extras);
+          kept = [];
+          for (var q = 0; q < combined.length; q++) {
+            var url = (combined[q].event.url || '').trim();
+            if (url && seenUrls.has(url)) continue;
+            if (url) seenUrls.add(url);
+            kept.push(combined[q]);
           }
         }
-        extras.sort(function (a, b) { return b.score - a.score; });
-
-        var combined = curated.concat(extras);
-        var kept = [];
-        for (var q = 0; q < combined.length; q++) {
-          var url = (combined[q].event.url || '').trim();
-          if (url && seenUrls.has(url)) continue;
-          if (url) seenUrls.add(url);
-          kept.push(combined[q]);
-        }
-        if (kept.length > 0) {
+        if (kept.length > 0 || hiddenList.length > 0) {
+          // Attach hidden items as a property on the array. Existing
+          // consumers (block.length, block[i], findItemInRanking,
+          // searchStats, computeDayCounts) operate on the array body
+          // and so naturally exclude hidden — exactly the shape
+          // PR4 wants. The category renderer reads block.hidden
+          // and emits a separate <details class="hidden-disclosure">.
+          kept.hidden = hiddenList;
           result[day][catKey] = kept;
         }
       }
@@ -2588,7 +3411,13 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     var pinned = isUserPinned(ev);
     var selected = isUserSelected(ev);
-    var cls = item.is_expanded ? 'event extra' : 'event';
+    var hidden = !!item.is_user_hidden;
+    // Hidden cards reuse the existing dashed .event.extra treatment
+    // (no new card-state CSS) and add a .user-hidden hook for the
+    // inline "You hid this" label + Unhide-only action row.
+    var cls;
+    if (hidden) cls = 'event extra user-hidden';
+    else cls = item.is_expanded ? 'event extra' : 'event';
     if (item.is_fallback) cls += ' fallback';
     if (pinned) cls += ' pinned';
     if (selected) cls += ' selected';
@@ -2596,29 +3425,6 @@ body.has-banner > *:not(.deep-link-banner) {
       '<article class="' + cls + '" ' +
       'id="event-' + escapeHtml(String(ev.id)) + '">'
     ];
-    parts.push(
-      '<button class="pin-btn" type="button" ' +
-      'data-event-id="' + escapeHtml(String(ev.id)) + '" ' +
-      'aria-pressed="' + (pinned ? 'true' : 'false') + '" ' +
-      'aria-label="' + (pinned ? 'Unpin event' : 'Pin event to top') + '" ' +
-      'title="' + (pinned ? 'Unpin' : 'Pin to top') + '">' +
-      // "Pinned" label sits to the LEFT of the icon when active so
-      // the user sees the state without having to interpret the
-      // filled-vs-outlined pushpin alone. Hidden when unpinned via
-      // the conditional render — keeps the unpinned button compact.
-      (pinned ? '<span class="pin-label">pinned</span>' : '') +
-      // Filled when pinned, outlined when not. Bootstrap-icons pushpin
-      // (viewBox 0 0 16 16) — sized via .pin-btn svg in CSS.
-      (pinned
-        ? '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-          '<path d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354"/>' +
-          '</svg>'
-        : '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-          '<path d="M4.146.146A.5.5 0 0 1 4.5 0h7a.5.5 0 0 1 .5.5c0 .68-.342 1.174-.646 1.479-.126.125-.25.224-.354.298v4.431l.078.048c.203.127.476.314.751.555C12.36 7.775 13 8.527 13 9.5a.5.5 0 0 1-.5.5h-4v4.5c0 .276-.224 1.5-.5 1.5s-.5-1.224-.5-1.5V10h-4a.5.5 0 0 1-.5-.5c0-.973.64-1.725 1.17-2.189A6 6 0 0 1 5 6.708V2.277a3 3 0 0 1-.354-.298C4.342 1.674 4 1.179 4 .5a.5.5 0 0 1 .146-.354m1.58 1.408-.002-.001zm-.002-.001.002.001A3 3 0 0 0 6 2.5V7a.5.5 0 0 1-.276.447h-.002l-.012.007-.054.03a5 5 0 0 0-.827.58c-.318.278-.585.596-.725.936h7.792c-.14-.34-.407-.658-.725-.936a5 5 0 0 0-.881-.61l-.012-.006h-.002A.5.5 0 0 1 10 7V2.5c0-.317.062-.622.174-.893L5.726 1.554z"/>' +
-          '</svg>'
-      ) +
-      '</button>'
-    );
     if (ev.venue) parts.push('<div class="venue">' + escapeHtml(ev.venue) + '</div>');
     if (ev.suburb) parts.push('<div class="suburb">' + escapeHtml(ev.suburb) + '</div>');
     parts.push(
@@ -2637,38 +3443,44 @@ body.has-banner > *:not(.deep-link-banner) {
       var pcls = (low === 'free' || low === 'free event') ? 'price free' : 'price';
       parts.push('<div class="' + pcls + '">' + escapeHtml(ev.price) + '</div>');
     }
-    var chipLabel = item.is_fallback
-      ? 'weak match'
-      : 'score ' + item.score.toFixed(2);
-    var chipInner = '<div class="score-debug">' + chipLabel + '</div>';
-    if (item.breakdown && item.breakdown.parts.length) {
-      var bd = item.breakdown;
-      var rows = [];
-      for (var bi = 0; bi < bd.parts.length; bi++) {
-        var p = bd.parts[bi];
-        var cls = p.value >= 0 ? 'pos' : 'neg';
-        var val = (p.value >= 0 ? '+' : '') + p.value.toFixed(2);
+    // Score chip — hidden by default; opt-in via Settings → Appearance.
+    // PR-2 of the redesign moved this off the default card surface.
+    // Also suppressed entirely on user-hidden cards (their action row
+    // collapses to a single Unhide; surface stays calm).
+    if (profile.show_score_chip && !hidden) {
+      var chipLabel = item.is_fallback
+        ? 'weak match'
+        : 'score ' + item.score.toFixed(2);
+      var chipInner = '<div class="score-debug">' + chipLabel + '</div>';
+      if (item.breakdown && item.breakdown.parts.length) {
+        var bd = item.breakdown;
+        var rows = [];
+        for (var bi = 0; bi < bd.parts.length; bi++) {
+          var p = bd.parts[bi];
+          var pcls = p.value >= 0 ? 'pos' : 'neg';
+          var val = (p.value >= 0 ? '+' : '') + p.value.toFixed(2);
+          rows.push(
+            '<div class="score-breakdown-row">' +
+            '<span class="score-breakdown-val ' + pcls + '">' + val + '</span>' +
+            '<span class="score-breakdown-label">' + escapeHtml(p.label) + '</span>' +
+            '</div>'
+          );
+        }
+        var totalCls = bd.total >= 0 ? 'pos' : 'neg';
+        var totalVal = (bd.total >= 0 ? '+' : '') + bd.total.toFixed(2);
         rows.push(
-          '<div class="score-breakdown-row">' +
-          '<span class="score-breakdown-val ' + cls + '">' + val + '</span>' +
-          '<span class="score-breakdown-label">' + escapeHtml(p.label) + '</span>' +
+          '<div class="score-breakdown-row score-breakdown-total">' +
+          '<span class="score-breakdown-val ' + totalCls + '">' + totalVal + '</span>' +
+          '<span class="score-breakdown-label">total</span>' +
           '</div>'
         );
+        chipInner +=
+          '<div class="score-breakdown" role="tooltip">' + rows.join('') + '</div>';
       }
-      var totalCls = bd.total >= 0 ? 'pos' : 'neg';
-      var totalVal = (bd.total >= 0 ? '+' : '') + bd.total.toFixed(2);
-      rows.push(
-        '<div class="score-breakdown-row score-breakdown-total">' +
-        '<span class="score-breakdown-val ' + totalCls + '">' + totalVal + '</span>' +
-        '<span class="score-breakdown-label">total</span>' +
-        '</div>'
+      parts.push(
+        '<div class="score-chip" tabindex="0">' + chipInner + '</div>'
       );
-      chipInner +=
-        '<div class="score-breakdown" role="tooltip">' + rows.join('') + '</div>';
     }
-    parts.push(
-      '<div class="score-chip" tabindex="0">' + chipInner + '</div>'
-    );
     var badges = [];
     var subs = ev.subcategories || [];
     for (var i = 0; i < subs.length; i++) {
@@ -2680,21 +3492,76 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     if (badges.length) parts.push('<div class="badges">' + badges.join('') + '</div>');
     var evIdAttr = 'data-event-id="' + escapeHtml(String(ev.id)) + '"';
-    // All three action buttons sit in a single flex-row so the parent
-    // .event flex-column treats them as one row, not three.
+    if (hidden) {
+      // Action row sits exactly where the standard Pin/Cal/Share row
+      // would, after the badges — but holds only an Unhide button.
+      // The "you hid this" semantic is carried by the parent Hidden
+      // disclosure header + the labeled Unhide button itself; an
+      // explicit label would be redundant.
+      parts.push(
+        '<div class="event-actions event-actions--hidden">' +
+        '<button class="unhide-btn" type="button" ' + evIdAttr + ' ' +
+        'aria-label="Unhide event" title="Unhide">' +
+          '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/>' +
+          '<circle cx="12" cy="12" r="3"/>' +
+          '</svg>' +
+          '<span>Unhide</span>' +
+        '</button>' +
+        '</div>'
+      );
+      parts.push('</article>');
+      return parts.join('\n');
+    }
+    // Action buttons sit in a single flex-row: [Pin] [Calendar] [Share] [⋯].
+    // Pin is now in-row (no longer absolute-positioned in the corner) so it
+    // sits with the rest of the per-card actions; the corner real estate
+    // goes back to title/venue.
     parts.push('<div class="event-actions">');
-    // Copy-link button — Clipboard API; bootstrap-icons link-45deg + check.
+    // Pin button — first so it reads as the primary "keep this" gesture.
+    // Filled pushpin when pinned, outline when not. No inline text label
+    // (lives in .event-pinned-status above so toggling pin doesn't shift
+    // the rest of the action row).
     parts.push(
-      '<button class="copy-link-btn" type="button" ' + evIdAttr + ' ' +
-      'aria-label="Copy link" title="Copy link">' +
-        '<svg class="icon-default" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<path d="M4.715 6.542 3.343 7.914a3 3 0 1 0 4.243 4.243l1.828-1.829A3 3 0 0 0 8.586 5.5L8 6.086a1 1 0 0 0-.154.199 2 2 0 0 1 .861 3.337L6.88 11.45a2 2 0 1 1-2.83-2.83l.793-.792a4 4 0 0 1-.128-1.287z"/>' +
-        '<path d="M6.586 4.672A3 3 0 0 0 7.414 9.5l.775-.776a2 2 0 0 1-.896-3.346L9.12 3.55a2 2 0 1 1 2.83 2.83l-.793.792c.112.42.155.855.128 1.287l1.372-1.372a3 3 0 1 0-4.243-4.243z"/>' +
-        '</svg>' +
-        '<svg class="icon-success" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>' +
-        '</svg>' +
+      '<button class="pin-btn" type="button" ' + evIdAttr + ' ' +
+      'aria-pressed="' + (pinned ? 'true' : 'false') + '" ' +
+      'aria-label="' + (pinned ? 'Unpin event' : 'Pin event to top') + '" ' +
+      'title="' + (pinned ? 'Unpin' : 'Pin to top') + '">' +
+      (pinned
+        ? '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" ' +
+          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M12 17v5"/>' +
+          '<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>' +
+          '</svg>'
+        : '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M12 17v5"/>' +
+          '<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>' +
+          '</svg>'
+      ) +
       '</button>'
+    );
+    parts.push(
+      '<span class="add-cal-wrap">' +
+      '<button class="add-cal-btn" type="button" ' +
+      'data-event-id="' + escapeHtml(String(ev.id)) + '" ' +
+      'aria-label="Add to calendar" title="Add to calendar" ' +
+      'aria-haspopup="menu" aria-expanded="false">' +
+        // Lucide-style outline calendar-plus (viewBox 24x24, 1.5px
+        // stroke). Single icon — the "+" lives on the calendar's
+        // bottom-right corner, replacing the prior two-icon "+ cal" pair.
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M8 2v4"/>' +
+        '<path d="M16 2v4"/>' +
+        '<path d="M21 13V6a2 2 0 0 0-2-2H5a2 2 0 0 0-2 2v14a2 2 0 0 0 2 2h8"/>' +
+        '<path d="M3 10h18"/>' +
+        '<path d="M16 19h6"/>' +
+        '<path d="M19 16v6"/>' +
+        '</svg>' +
+      '</button>' +
+      '</span>'
     );
     // Share button — Web Share API on mobile; falls back to copy on desktop.
     parts.push(
@@ -2709,36 +3576,40 @@ body.has-banner > *:not(.deep-link-banner) {
         '</svg>' +
       '</button>'
     );
+    // Overflow `⋯` — secondary actions (Copy link). Card-overflow popover
+    // opens downward via openPopover() with kind='card-overflow'; the
+    // existing closeAllPopovers() at renderAll start tears it down on
+    // re-render. Copy moved here in PR 2 — Share is the social gesture
+    // and stays visible; Copy is the utility tucked behind the menu.
     parts.push(
-      '<span class="add-cal-wrap">' +
-      '<button class="add-cal-btn" type="button" ' +
-      'data-event-id="' + escapeHtml(String(ev.id)) + '" ' +
-      'aria-label="Add to calendar" title="Add to calendar" ' +
-      'aria-haspopup="menu" aria-expanded="false">' +
-        // SVG "+" rather than the text glyph: the text "+" sits high in
-        // its line-box and never aligns with the calendar SVG below.
-        // Bars sized smaller than the icon's edges so the "+" visually
-        // weighs less than the adjacent calendar.
-        '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<rect x="7.2" y="4" width="1.6" height="8" rx="0.5"/>' +
-        '<rect x="4" y="7.2" width="8" height="1.6" rx="0.5"/>' +
+      '<button class="card-overflow-btn" type="button" ' + evIdAttr + ' ' +
+      'aria-haspopup="menu" aria-expanded="false" ' +
+      'aria-label="More actions" title="More actions">' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<circle cx="5" cy="12" r="1"/>' +
+        '<circle cx="12" cy="12" r="1"/>' +
+        '<circle cx="19" cy="12" r="1"/>' +
         '</svg>' +
-        // Modern calendar-app icon: rounded body, thick filled header
-        // band, no binder posts, 3x2 grid of date cells with one circle
-        // highlight to read as "today selected".
-        '<svg viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<path fill-rule="evenodd" d="M1 3a2 2 0 0 1 2-2h10a2 2 0 0 1 2 2v10a2 2 0 0 1-2 2H3a2 2 0 0 1-2-2zm1.5 2v8h11V5h-11z"/>' +
-        '<rect x="4" y="6.5" width="1.5" height="1.5" rx="0.4"/>' +
-        '<rect x="7.25" y="6.5" width="1.5" height="1.5" rx="0.4"/>' +
-        '<circle cx="11.5" cy="7.25" r="1.1"/>' +
-        '<rect x="4" y="10" width="1.5" height="1.5" rx="0.4"/>' +
-        '<rect x="7.25" y="10" width="1.5" height="1.5" rx="0.4"/>' +
-        '<rect x="10.5" y="10" width="1.5" height="1.5" rx="0.4"/>' +
-        '</svg>' +
-      '</button>' +
-      '</span>'
+      '</button>'
     );
     parts.push('</div>');  // close .event-actions
+    // "Pinned" status row sits BELOW the action row so toggling pin
+    // doesn't shift any element above it — empty space simply appears
+    // at the bottom of the card. Cool-accent chip + 5px cool left
+    // border together are the two glance-test signals.
+    if (pinned) {
+      parts.push(
+        '<div class="event-pinned-status" aria-hidden="true">' +
+          '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" ' +
+          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M12 17v5"/>' +
+          '<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>' +
+          '</svg>' +
+          '<span>pinned</span>' +
+        '</div>'
+      );
+    }
     parts.push('</article>');
     return parts.join('\n');
   }
@@ -2757,20 +3628,40 @@ body.has-banner > *:not(.deep-link-banner) {
       if (it.is_expanded && !keepInCurated) expanded.push(it);
       else curated.push(it);
     }
-    if (curated.length === 0 && expanded.length === 0) return '';
+    var hiddenItems = (block.hidden || []).slice();
+    var searchActive = !!searchQueryRaw;
+    if (searchActive) {
+      // Search active: only matching hidden items surface in the
+      // per-category Hidden disclosure. Non-matching hidden events
+      // stay invisible — same intent as the visible-side filter.
+      hiddenItems = hiddenItems.filter(function (it) {
+        return !!it.matches_search;
+      });
+    }
+    if (curated.length === 0 && expanded.length === 0
+        && hiddenItems.length === 0) return '';
     curated = sortForDisplay(curated);
     expanded = sortForDisplay(expanded);
     var display = CATEGORY_DISPLAY[catKey] || catKey;
+    // Header count reflects the visible (curated + expanded) total.
+    // Hidden items get their own disclosure with its own count below;
+    // mixing them into the headline would inflate the "Music · 7" badge
+    // with the user's veto pile.
+    var headerCount = block.length;
 
     var parts = [
       '<section class="category" data-cat="' + escapeHtml(catKey) + '">',
       '<h3 class="category-header">' + escapeHtml(display) +
-        '<span class="count" aria-label="' + block.length + ' events">' +
-          block.length + '</span></h3>',
-      '<div class="events">\n' + curated.map(function (it) {
-        return renderEventHtml(it, profile);
-      }).join('\n') + '\n</div>',
+        '<span class="count" aria-label="' + headerCount + ' events">' +
+          headerCount + '</span></h3>',
     ];
+    if (curated.length > 0) {
+      parts.push(
+        '<div class="events">\n' + curated.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>'
+      );
+    }
     if (expanded.length > 0) {
       parts.push(
         '<button class="show-more" type="button" aria-expanded="false">' +
@@ -2784,27 +3675,94 @@ body.has-banner > *:not(.deep-link-banner) {
         }).join('\n') + '\n</div>'
       );
     }
+    if (hiddenItems.length > 0) {
+      // Per-category Hidden disclosure — sits below Show-more (or alone
+      // if no extras). <details> gives the open/close state for free
+      // and survives renderAll because the new section element is
+      // always built fresh; the user expanding/closing it is local UI
+      // state and is intentionally not persisted (matches Show-more).
+      // Hidden cards each carry their own Unhide button (rendered in
+      // renderEventHtml when item.is_user_hidden); pin/cal/overflow
+      // are suppressed in that state — the only decision available on
+      // a hidden card is "restore it".
+      // During an active search the bucket is already filtered to just
+      // the matching hidden events (above); the summary calls that out
+      // but the disclosure stays closed by default — user pulls them in
+      // intentionally if they want to see them.
+      var nHidden = hiddenItems.length;
+      var summaryText = searchActive
+        ? nHidden + ' hidden matching your search'
+        : nHidden + ' hidden';
+      parts.push(
+        '<details class="hidden-disclosure">' +
+        '<summary>' + summaryText + '</summary>' +
+        '<div class="events events-hidden">\n' +
+        hiddenItems.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>' +
+        '</details>'
+      );
+    }
     parts.push('</section>');
     return parts.join('\n');
   }
 
   function renderDayHtml(dayIso, byCatMap, profile) {
+    byCatMap = byCatMap || {};
     var heading = formatDayHeading(dayIso);
     var daySlug = slugify(heading);
     var sections = [];
+    var curatedCount = 0;
     for (var i = 0; i < CATEGORY_ORDER.length; i++) {
       var catKey = CATEGORY_ORDER[i];
       var block = byCatMap[catKey];
-      if (!block || block.length === 0) continue;
+      // Skip categories with nothing to render. A category may have
+      // zero curated/extras but still carry hidden items (kept solely
+      // so the user can find + restore them) — render those too.
+      var hiddenList = (block && block.hidden) || [];
+      if (!block || (block.length === 0 && hiddenList.length === 0)) continue;
+      for (var bi = 0; bi < block.length; bi++) {
+        if (!block[bi].is_expanded) curatedCount++;
+      }
       var section = renderCategoryHtml(catKey, block, profile);
       if (section) sections.push(section);
     }
-    if (sections.length === 0) return '';
+    var hero = formatDayHeroParts(dayIso);
+    if (sections.length === 0) {
+      return (
+        '<section class="day day--empty" id="day-' + daySlug + '" ' +
+        'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
+        '<h2 class="day-heading">' +
+          '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
+          ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
+          '<span class="day-heading__trail">' + escapeHtml(hero.trail) + '</span>' +
+        '</h2>\n' +
+        '<p class="empty-day-msg">Nothing curated for this day yet.</p>\n' +
+        '</section>'
+      );
+    }
     // Always render `hidden`; activation flips the selected panel.
+    // Quiet-evening hint is suppressed during an active search — a
+    // small visible-match count is the search narrowing the menu, not
+    // the day genuinely being quiet, and "see what's on tomorrow"
+    // would just send the user to another search-narrowed list.
+    var quietHint = '';
+    if (!searchQueryRaw && curatedCount > 0 && curatedCount <= 2) {
+      quietHint =
+        '<button class="empty-evening-hint" type="button" ' +
+        'data-advance-day="next" aria-label="See what\'s on tomorrow">' +
+        'Quiet evening — see what\'s on tomorrow ' +
+        '<span aria-hidden="true">↓</span></button>\n';
+    }
     return (
       '<section class="day" id="day-' + daySlug + '" role="tabpanel" ' +
       'aria-labelledby="tab-' + daySlug + '" hidden>\n' +
-      '<h2 class="day-heading">' + escapeHtml(heading) + '</h2>\n' +
+      '<h2 class="day-heading">' +
+        '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
+        ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
+        '<span class="day-heading__trail">' + escapeHtml(hero.trail) + '</span>' +
+      '</h2>\n' +
+      quietHint +
       sections.join('\n') + '\n' +
       '</section>'
     );
@@ -2817,6 +3775,7 @@ body.has-banner > *:not(.deep-link-banner) {
       var daySlug = slugify(heading);
       var date = heading.substring(dayShort(heading).length).trim();
       var count = dayCounts[days[i]] || 0;
+      var tabLead = formatDayTabShort(days[i]);
       // Pre-mark the active tab inline so the highlight is present the
       // instant the new HTML lands. Without this, replacing tabsEl.innerHTML
       // briefly leaves every tab unselected before activate() flips one
@@ -2828,15 +3787,16 @@ body.has-banner > *:not(.deep-link-banner) {
         'aria-selected="' + (isActive ? 'true' : 'false') + '" ' +
         'tabindex="' + (isActive ? '0' : '-1') + '" ' +
         'data-tab="' + daySlug + '">' +
-          '<span class="tab-weekday">' + escapeHtml(dayShort(heading)) + '</span>' +
+          '<span class="tab-weekday">' + escapeHtml(tabLead) + '</span>' +
           '<span class="tab-date">' + escapeHtml(date) + '</span>' +
           '<span class="tab-count" aria-label="' + count + ' events">' +
             count + '</span>' +
         '</button>'
       );
     }
-    // Settings tab is a static element in the page template (lives outside
-    // .day-tabs so it can't be scrolled under). We only render day buttons here.
+    // Settings + Week are static elements in the page template — settings
+    // is a brand-row icon-button, Week is the sticky-right .week-pill at
+    // the end of the .tabs-row. We only render day pills here.
     return buttons.join('\n');
   }
 
@@ -3330,7 +4290,7 @@ body.has-banner > *:not(.deep-link-banner) {
       rows.push(renderFacetRow(name, blurbs[name]));
     }
     if (!rows.length) {
-      return '<div class="settings-placeholder">No facets in profile.</div>';
+      return '<div class="settings-placeholder">No vibes in profile.</div>';
     }
     return (
       '<p class="facet-intro">The overall <em>vibe</em> of an event ' +
@@ -3338,6 +4298,29 @@ body.has-banner > *:not(.deep-link-banner) {
       'Tier the vibes you want more or less of.</p>' +
       '<div class="subcat-group">' +
         rows.join('\n') +
+      '</div>'
+    );
+  }
+
+  // Settings → Tags footer surfacing the per-event hide list. Hidden
+  // when N=0 so it's invisible until the user starts hiding things;
+  // appears with a "restore all" button as the recovery path for
+  // "I've forgotten what I hid". Each event also carries its own
+  // Unhide button on its hidden card — this footer is the bulk
+  // shortcut, not the only escape hatch.
+  function renderHiddenEventsFooter() {
+    var n = (profile.hidden_event_ids || []).length;
+    if (n === 0) return '';
+    return (
+      '<div class="hidden-events-footer">' +
+        '<p class="hidden-events-footer__msg">' +
+          'You\'ve hidden <strong>' + n + '</strong> event' +
+          (n === 1 ? '' : 's') + '. ' +
+          'Restore from each event\'s "Unhide" button in its Hidden ' +
+          'disclosure, or ' +
+          '<button type="button" class="hidden-events-footer__restore" ' +
+            'data-restore-all-hidden>restore all</button>.' +
+        '</p>' +
       '</div>'
     );
   }
@@ -3352,6 +4335,7 @@ body.has-banner > *:not(.deep-link-banner) {
         label + '</button>'
       );
     }
+    var scoreOn = !!profile.show_score_chip;
     return (
       '<div class="theme-picker">' +
         '<span class="theme-picker__label">Appearance</span>' +
@@ -3361,7 +4345,18 @@ body.has-banner > *:not(.deep-link-banner) {
           btn('light', 'Light') +
           btn('dark', 'Dark') +
         '</div>' +
-      '</div>'
+      '</div>' +
+      '<label class="setting-toggle" for="show-score-chip-toggle">' +
+        '<input type="checkbox" id="show-score-chip-toggle" ' +
+          'data-toggle-score-chip ' +
+          (scoreOn ? 'checked' : '') + '>' +
+        '<span class="setting-toggle__body">' +
+          '<span class="setting-toggle__label">Show event scores</span>' +
+          '<span class="setting-toggle__hint">Shows a small score chip ' +
+            'on each card with a breakdown of how vibes and rules ' +
+            'contributed to the ranking.</span>' +
+        '</span>' +
+      '</label>'
     );
   }
 
@@ -3390,31 +4385,33 @@ body.has-banner > *:not(.deep-link-banner) {
         'Your tweaks persist — pop back any time and the menu picks up ' +
         'how you set it. (Safari resets after a week away.)' +
       '</p>' +
-      renderThemePickerHtml() +
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
-        '<button class="settings-subtab" role="tab" data-subtab="subcategories" ' +
+        '<button class="settings-subtab" role="tab" data-subtab="tags" ' +
           'aria-selected="true">Tags</button>' +
-        '<button class="settings-subtab" role="tab" data-subtab="facets" ' +
-          'aria-selected="false">Facets</button>' +
+        '<button class="settings-subtab" role="tab" data-subtab="vibes" ' +
+          'aria-selected="false">Vibes</button>' +
         '<button class="settings-subtab" role="tab" data-subtab="rules" ' +
           'aria-selected="false">Rules</button>' +
         '<button class="settings-subtab" role="tab" data-subtab="suburbs" ' +
           'aria-selected="false">Suburbs</button>' +
         '<button class="settings-subtab" role="tab" data-subtab="shape" ' +
           'aria-selected="false">Shape</button>' +
+        '<button class="settings-subtab" role="tab" data-subtab="appearance" ' +
+          'aria-selected="false">Appearance</button>' +
       '</nav>' +
-      '<div class="settings-panel" data-subtab="subcategories">' +
+      '<div class="settings-panel" data-subtab="tags">' +
         renderSubcatGroups() +
+        renderHiddenEventsFooter() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
-            'data-action="reset-subcategories">Reset all tags</button>' +
+            'data-action="reset-tags">Reset all tags</button>' +
         '</div>' +
       '</div>' +
-      '<div class="settings-panel" data-subtab="facets" hidden>' +
+      '<div class="settings-panel" data-subtab="vibes" hidden>' +
         renderFacetGroups() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
-            'data-action="reset-facets">Reset all facets</button>' +
+            'data-action="reset-vibes">Reset all vibes</button>' +
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="rules" hidden>' +
@@ -3437,6 +4434,9 @@ body.has-banner > *:not(.deep-link-banner) {
           '<button class="settings-action" type="button" ' +
             'data-action="reset-shape">Reset shape</button>' +
         '</div>' +
+      '</div>' +
+      '<div class="settings-panel" data-subtab="appearance" hidden>' +
+        renderThemePickerHtml() +
       '</div>'
     );
   }
@@ -3447,7 +4447,7 @@ body.has-banner > *:not(.deep-link-banner) {
     // sub-tab is currently visible and re-activate it afterwards so
     // Reset-* buttons don't yank the user back to Subcategories.
     var current = document.querySelector('.settings-subtab[aria-selected="true"]');
-    var name = (current && current.dataset.subtab) || 'subcategories';
+    var name = (current && current.dataset.subtab) || 'tags';
     renderSettingsView();
     switchSubtab(name);
   }
@@ -3529,6 +4529,31 @@ body.has-banner > *:not(.deep-link-banner) {
   // ============================================================
   //  Activation — one source of truth for which panel is visible
   // ============================================================
+  // Advance from the day owning `btn` to the next day in the strip.
+  // In tabbed mode, activate the next day-tab; in stacked mode, scroll
+  // its panel into view. Used by the "Quiet evening — see what's on
+  // tomorrow ↓" hint below sparse day headings.
+  function advanceToNextDay(btn) {
+    var dayEl = btn.closest && btn.closest('.day');
+    if (!dayEl) return;
+    var tabs = Array.prototype.slice.call(
+      document.querySelectorAll('.day-tabs .day-tab')
+    );
+    var thisSlug = dayEl.id.replace(/^day-/, '');
+    var idx = -1;
+    for (var i = 0; i < tabs.length; i++) {
+      if (tabs[i].dataset.tab === thisSlug) { idx = i; break; }
+    }
+    if (idx < 0 || idx >= tabs.length - 1) return;
+    var nextSlug = tabs[idx + 1].dataset.tab;
+    if (viewState.showAllDays) {
+      var next = document.getElementById('day-' + nextSlug);
+      if (next) next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+    } else {
+      activate(nextSlug, {});
+    }
+  }
+
   function activate(tabName, opts) {
     opts = opts || {};
     if (!tabName) return;
@@ -3541,7 +4566,10 @@ body.has-banner > *:not(.deep-link-banner) {
       try { sessionStorage.setItem(SESSION_LAST_DAY, tabName); } catch (_) {}
     }
 
-    var allTabs = document.querySelectorAll('.day-tab');
+    // Settings icon-button lives in the brand row (not .day-tabs), so
+    // include it via [data-tab] so its aria-selected/tabindex flip in
+    // sync with the day-tab strip.
+    var allTabs = document.querySelectorAll('[data-tab]');
     for (var i = 0; i < allTabs.length; i++) {
       var match = allTabs[i].dataset.tab === tabName;
       allTabs[i].setAttribute('aria-selected', match ? 'true' : 'false');
@@ -3584,13 +4612,151 @@ body.has-banner > *:not(.deep-link-banner) {
   }
 
   function firstAvailableDayTab() {
-    var t = document.querySelector('.day-tab:not(.settings-tab)');
+    // Settings is no longer in .day-tabs (it's a brand-row icon-button).
+    // Week is its own .week-pill class — not a day, doesn't carry a
+    // day slug. The arrow-key handler skips both for the same reason.
+    var t = document.querySelector('.day-tab:not(.week-pill)');
     return t ? t.dataset.tab : null;
   }
 
   // ============================================================
   //  Render orchestration
   // ============================================================
+  // ============================================================
+  //  First-visit nudge — soft "Browse what's on tonight, then tap ⚙
+  //  to tune the menu" nudge above the first day's events. Fires only
+  //  for users with no pin and no tier overrides; persists dismissal
+  //  in localStorage; auto-dismisses on pin or settings-icon click.
+  // ============================================================
+  var FIRST_VISIT_NUDGE_KEY = 'melbourne-menu-nudge-dismissed-v1';
+
+  function profileHasUserMutations() {
+    var defs = (defaultProfile.subcategory_tiers) || {};
+    var cur = profile.subcategory_tiers || {};
+    for (var k in cur) {
+      if (cur[k] !== (defs[k] || 'neutral')) return true;
+    }
+    var fdefs = (defaultProfile.facet_tiers) || {};
+    var fcur = profile.facet_tiers || {};
+    for (var f in fcur) {
+      if (fcur[f] !== (fdefs[f] || 'neutral')) return true;
+    }
+    return false;
+  }
+
+  function shouldShowFirstVisitNudge() {
+    // Allow up to one pin: deep-link arrivals (#event-XYZ) auto-pin
+    // their target via focusEventCard(), so a shared-link visitor would
+    // otherwise be misclassified as engaged on every subsequent visit.
+    // Count only LIVE pins (events still in this week's payload) — pins
+    // accumulate in localStorage across weeks and stale ids would
+    // otherwise trip this check long after the events rolled off.
+    var livePins = 0;
+    var pinList = profile.pinned_event_ids || [];
+    for (var pi = 0; pi < pinList.length; pi++) {
+      if (eventsById[pinList[pi]]) livePins++;
+    }
+    if (livePins > 1) return false;
+    if (profileHasUserMutations()) return false;
+    if (activeTab === 'settings') return false;
+    // Hash-based deep links don't suppress the nudge: a shared-event
+    // arrival (#event-XYZ) is exactly the casual-visitor entry point
+    // where the nudge is most useful. The deep-link target auto-scrolls
+    // into view, so the nudge sits above the day panels waiting for
+    // the user when they look up — no actual competition.
+    try {
+      if (localStorage.getItem(FIRST_VISIT_NUDGE_KEY)) return false;
+      var probe = '__melb_probe__';
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+    } catch (_) {
+      return false;
+    }
+    return true;
+  }
+
+  function renderFirstVisitNudge(mainEl) {
+    // Idempotency: re-renders during chip-toggling / pin churn must not
+    // duplicate the nudge or wipe an in-flight dismissal animation.
+    if (document.getElementById('first-visit-nudge')) return;
+    if (!shouldShowFirstVisitNudge()) return;
+    var box = document.createElement('div');
+    box.id = 'first-visit-nudge';
+    box.className = 'first-visit-nudge';
+    box.setAttribute('role', 'note');
+    box.innerHTML =
+      '<svg class="first-visit-nudge__icon" viewBox="0 0 24 24" ' +
+        'fill="none" stroke="currentColor" stroke-width="1.5" ' +
+        'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<path d="M12 3v3"/>' +
+        '<path d="M12 18v3"/>' +
+        '<path d="M3 12h3"/>' +
+        '<path d="M18 12h3"/>' +
+        '<path d="M5.6 5.6 7.7 7.7"/>' +
+        '<path d="M16.3 16.3l2.1 2.1"/>' +
+        '<path d="M5.6 18.4 7.7 16.3"/>' +
+        '<path d="M16.3 7.7l2.1-2.1"/>' +
+      '</svg>' +
+      '<span class="first-visit-nudge__msg">' +
+        '<strong>First time?</strong> Browse what’s on tonight, then ' +
+        'tap <span class="first-visit-nudge__gear" aria-hidden="true">' +
+        '⚙️</span> to tune the menu to your taste.' +
+      '</span>' +
+      '<button type="button" class="first-visit-nudge__close" ' +
+        'data-nudge-dismiss>Got it</button>';
+    mainEl.insertBefore(box, mainEl.firstChild);
+  }
+
+  function dismissFirstVisitNudge() {
+    try { localStorage.setItem(FIRST_VISIT_NUDGE_KEY, '1'); } catch (_) {}
+    var el = document.getElementById('first-visit-nudge');
+    if (el && el.parentNode) el.parentNode.removeChild(el);
+  }
+
+  // One-shot inline notice for power users (any subcategory_tier
+  // override) on first PR-2 load — score chips moved out of cards into
+  // Settings. Persists dismissal in localStorage. Shown once per
+  // browser; later renderAll() runs short-circuit if the notice is
+  // already mounted or already dismissed.
+  var SCORE_CHIP_NOTICE_KEY = 'melbourne-menu-score-chip-notice-dismissed-v1';
+  function shouldShowScoreChipNotice() {
+    if (profile.show_score_chip) return false;
+    var defs = (defaultProfile.subcategory_tiers) || {};
+    var cur = profile.subcategory_tiers || {};
+    var anyOverride = false;
+    for (var k in cur) {
+      if (cur[k] !== (defs[k] || 'neutral')) { anyOverride = true; break; }
+    }
+    if (!anyOverride) return false;
+    try {
+      if (localStorage.getItem(SCORE_CHIP_NOTICE_KEY)) return false;
+      // Sniff that storage is writeable (private mode otherwise nags
+      // every visit) — try a probe key, swallow on failure.
+      var probe = '__melb_probe__';
+      localStorage.setItem(probe, '1');
+      localStorage.removeItem(probe);
+    } catch (_) {
+      return false;
+    }
+    return true;
+  }
+  function renderScoreChipMovedNotice(mainEl) {
+    if (document.getElementById('score-chip-moved-notice')) return;
+    if (!shouldShowScoreChipNotice()) return;
+    var box = document.createElement('div');
+    box.id = 'score-chip-moved-notice';
+    box.className = 'score-chip-moved-notice';
+    box.setAttribute('role', 'status');
+    box.innerHTML =
+      '<span class="score-chip-moved-notice__msg">' +
+      'Score chips moved to <strong>Settings → Appearance</strong>' +
+      ' — toggle on to see them again.' +
+      '</span>' +
+      '<button type="button" class="score-chip-moved-notice__close" ' +
+      'data-score-notice-dismiss aria-label="Dismiss notice">×</button>';
+    mainEl.insertBefore(box, mainEl.firstChild);
+  }
+
   function rebuildDayPanels(ranking, days, profile) {
     var mainEl = document.getElementById('main');
     if (!mainEl) return;
@@ -3599,6 +4765,8 @@ body.has-banner > *:not(.deep-link-banner) {
     // wiped every time we re-rank).
     var existing = mainEl.querySelectorAll('.day');
     for (var i = 0; i < existing.length; i++) existing[i].remove();
+    renderFirstVisitNudge(mainEl);
+    renderScoreChipMovedNotice(mainEl);
     var settingsView = document.getElementById('settings-view');
     var tpl = document.createElement('div');
     var stacked = !!viewState.showAllDays;
@@ -3644,35 +4812,26 @@ body.has-banner > *:not(.deep-link-banner) {
   }
 
   function renderAll(opts) {
+    // Any open popover is anchored to a card / button that's about to
+    // be replaced — close them up front so we don't leave detached
+    // DOM hanging in OPEN_POPOVERS or stale aria-expanded on a
+    // re-rendered button.
+    closeAllPopovers();
     if (!opts || !opts.preserveScores) scoreVersion++;
     var ranking = buildRanking(profile);
     lastRanking = ranking;
-    var days = [];
-    var candidates = Object.keys(ranking).sort();
-    for (var i = 0; i < candidates.length; i++) {
-      var day = candidates[i];
-      var hasAny = false;
-      for (var catKey in ranking[day]) {
-        if (ranking[day][catKey].length > 0) { hasAny = true; break; }
-      }
-      if (hasAny) days.push(day);
-    }
-
-    // Display window: drop days before the crop anchor (today in
-    // Melbourne, but with an 8am grace period so morning visitors still
-    // see last night's late shows) and cap to display_window_days
-    // (default 7). The exported JSON typically covers a longer curation
-    // window (e.g. 10 days) so the page can advance its starting day if
-    // the pipeline is a few days stale.
+    // Display window: every day from the crop anchor (today in Melbourne,
+    // with an 8am grace period) for display_window_days (default 7).
+    // Days with no events still render a tab + empty-state panel — the
+    // tab strip stays a stable 7 pills regardless of filtering / search /
+    // a quiet weekday, so the user's mental map of the week doesn't
+    // shift under them.
     var displayDays = payload.display_window_days || 7;
     var cropIso = cropAnchorIso();
-    // Hard window bounds: [cropIso, cropEnd). Bounding both ends (rather
-    // than slicing to N from whatever's left after the lower-bound filter)
-    // matters when filters or search knock out early days — without the
-    // upper bound, days from week 2 of the curation buffer creep in to
-    // fill the slice, and the user sees events past the standard week.
-    var cropEnd = shiftIsoDate(cropIso, displayDays);
-    days = days.filter(function (d) { return d >= cropIso && d < cropEnd; });
+    var days = [];
+    for (var di = 0; di < displayDays; di++) {
+      days.push(shiftIsoDate(cropIso, di));
+    }
 
     // Subtitle (Week of <pretty>) tracks the FIRST DISPLAYED day, not
     // the static week_start the page was published with — past days
@@ -3690,23 +4849,27 @@ body.has-banner > *:not(.deep-link-banner) {
 
     // Recompute search stats from the rendered ranking — counts what the
     // user actually sees on screen across the cropped display window.
+    // Counts (day, event) rows, NOT distinct event ids: a 10-day
+    // exhibition matching the query contributes 10 to the headline,
+    // matching the rendered card count.
     if (searchQueryRaw) {
-      searchStats = { events: 0, days: {} };
-      var seenIds = {};
+      searchStats = { events: 0, days: {}, hiddenAlsoMatch: 0 };
       for (var di = 0; di < days.length; di++) {
         var dk = days[di];
         var bd = ranking[dk] || {};
         for (var cKey in bd) {
           var arr = bd[cKey];
           for (var ai = 0; ai < arr.length; ai++) {
-            var eid = arr[ai].event && arr[ai].event.id;
-            // Multi-day events fanout to multiple day rows but represent
-            // one event; count distinct ids for the headline number.
-            if (eid != null && !seenIds[eid]) {
-              seenIds[eid] = true;
-              searchStats.events++;
-            }
+            searchStats.events++;
             searchStats.days[dk] = true;
+          }
+          // Hidden bucket lives as a property on the array (set by
+          // buildRanking). Items carry matches_search=true when the
+          // search haystack hit; same per-row convention as the visible
+          // side so the two numbers in the indicator are comparable.
+          var hiddenArr = arr.hidden || [];
+          for (var hi = 0; hi < hiddenArr.length; hi++) {
+            if (hiddenArr[hi].matches_search) searchStats.hiddenAlsoMatch++;
           }
         }
       }
@@ -3748,12 +4911,12 @@ body.has-banner > *:not(.deep-link-banner) {
   // ============================================================
   //  Search row — UI + view-state wiring
   // ============================================================
-  // Cached refs to the search-row controls. Resolved by mountSearchUI()
+  // Cached refs to the search-panel controls. Resolved by mountSearchUI()
   // once the DOM is parsed so subsequent updates can skip re-querying.
   var searchClearBtn = null;
-  var allDaysBtn = null;
-  var filtersToggleBtn = null;
-  var filterPanelEl = null;
+  var weekPillBtn = null;
+  var searchIconBtn = null;
+  var searchPanelEl = null;
   var activeSearchEl = null;
 
   function debounce(fn, ms) {
@@ -3766,22 +4929,22 @@ body.has-banner > *:not(.deep-link-banner) {
   }
 
   function mountSearchUI() {
-    searchInputEl    = document.getElementById('search-input');
-    searchClearBtn   = document.querySelector('[data-search-clear]');
-    allDaysBtn       = document.querySelector('[data-toggle-all-days]');
-    filtersToggleBtn = document.querySelector('[data-toggle-filters]');
-    filterPanelEl    = document.getElementById('filter-panel');
-    activeSearchEl   = document.getElementById('active-search-indicator');
+    searchInputEl   = document.getElementById('search-input');
+    searchClearBtn  = document.querySelector('[data-search-clear]');
+    weekPillBtn     = document.querySelector('[data-toggle-all-days]');
+    searchIconBtn   = document.querySelector('[data-toggle-search]');
+    searchPanelEl   = document.getElementById('search-panel');
+    activeSearchEl  = document.getElementById('active-search-indicator');
 
-    // Restore persisted view state — All days pressed, Filters open.
-    if (allDaysBtn) {
-      allDaysBtn.setAttribute('aria-pressed', viewState.showAllDays ? 'true' : 'false');
+    // Restore persisted view state — Week pill pressed, search panel open.
+    if (weekPillBtn) {
+      weekPillBtn.setAttribute('aria-pressed', viewState.showAllDays ? 'true' : 'false');
     }
-    if (filtersToggleBtn) {
-      filtersToggleBtn.setAttribute('aria-expanded', viewState.filtersOpen ? 'true' : 'false');
+    if (searchIconBtn) {
+      searchIconBtn.setAttribute('aria-expanded', viewState.searchPanelOpen ? 'true' : 'false');
     }
-    if (filterPanelEl) {
-      filterPanelEl.hidden = !viewState.filtersOpen;
+    if (searchPanelEl) {
+      searchPanelEl.hidden = !viewState.searchPanelOpen;
     }
 
     // Restore hidden-category chip state from the profile.
@@ -3826,20 +4989,32 @@ body.has-banner > *:not(.deep-link-banner) {
   function toggleAllDays() {
     viewState.showAllDays = !viewState.showAllDays;
     saveViewState();
-    if (allDaysBtn) {
-      allDaysBtn.setAttribute('aria-pressed', viewState.showAllDays ? 'true' : 'false');
+    if (weekPillBtn) {
+      weekPillBtn.setAttribute('aria-pressed', viewState.showAllDays ? 'true' : 'false');
     }
     // Force a fresh render so panels get .day--stacked class applied/removed.
     renderAll({ preserveScores: true });
   }
 
-  function toggleFiltersPanel() {
-    viewState.filtersOpen = !viewState.filtersOpen;
+  // Open / close the search panel. `force` overrides the toggle:
+  // toggleSearchPanel(true) opens, toggleSearchPanel(false) closes,
+  // toggleSearchPanel() flips the current state. Focus moves into the
+  // search input on open and back to the icon-button on close so a
+  // keyboard user is never stranded.
+  function toggleSearchPanel(force) {
+    var next = (typeof force === 'boolean') ? force : !viewState.searchPanelOpen;
+    if (next === viewState.searchPanelOpen) return;
+    viewState.searchPanelOpen = next;
     saveViewState();
-    if (filtersToggleBtn) {
-      filtersToggleBtn.setAttribute('aria-expanded', viewState.filtersOpen ? 'true' : 'false');
+    if (searchIconBtn) {
+      searchIconBtn.setAttribute('aria-expanded', next ? 'true' : 'false');
     }
-    if (filterPanelEl) filterPanelEl.hidden = !viewState.filtersOpen;
+    if (searchPanelEl) searchPanelEl.hidden = !next;
+    if (next) {
+      if (searchInputEl) searchInputEl.focus();
+    } else if (searchIconBtn) {
+      searchIconBtn.focus();
+    }
     syncHeaderOffset();
   }
 
@@ -3875,27 +5050,41 @@ body.has-banner > *:not(.deep-link-banner) {
 
   function updateFiltersIndicator() {
     var s = getActiveFilterSummary();
-    // Badge on the Filters disclosure button.
+    // Filters-active count badge on the search icon-button.
     var badge = document.querySelector('.filters-badge');
     if (badge) {
       badge.textContent = String(s.total);
       badge.hidden = s.total === 0;
     }
-    if (filtersToggleBtn) {
+    // Dynamic aria-label so a screen reader hears the active filter
+    // count without having to expand the panel ("Search and filters,
+    // 2 active").
+    if (searchIconBtn) {
+      var label = 'Search and filters' + (s.total ? ', ' + s.total + ' active' : '');
+      searchIconBtn.setAttribute('aria-label', label);
       if (s.total > 0) {
-        filtersToggleBtn.dataset.filtersActive = 'true';
+        searchIconBtn.dataset.filtersActive = 'true';
       } else {
-        delete filtersToggleBtn.dataset.filtersActive;
+        delete searchIconBtn.dataset.filtersActive;
       }
     }
     var el = document.getElementById('active-filters-indicator');
     if (!el) return;
+    // Always rendered; collapse via class so the height transitions
+    // smoothly instead of snapping the header by a row each time the
+    // user toggles a filter.
+    el.hidden = false;
     if (s.total === 0) {
-      el.hidden = true;
-      el.innerHTML = '';
+      el.classList.add('indicator-collapsed');
+      // Defer the inner-HTML clear until the collapse transition has
+      // settled — wiping content immediately would replace text mid-animation.
+      setTimeout(function () {
+        if (el.classList.contains('indicator-collapsed')) el.innerHTML = '';
+      }, 240);
       syncHeaderOffset();
       return;
     }
+    el.classList.remove('indicator-collapsed');
     var bits = [];
     if (s.hiddenCategories.length > 0) {
       var labels = [];
@@ -3933,12 +5122,18 @@ body.has-banner > *:not(.deep-link-banner) {
 
   function updateActiveSearchIndicator(displayedDays) {
     if (!activeSearchEl) return;
+    activeSearchEl.hidden = false;
     if (!searchQueryRaw) {
-      activeSearchEl.hidden = true;
-      activeSearchEl.innerHTML = '';
+      activeSearchEl.classList.add('indicator-collapsed');
+      setTimeout(function () {
+        if (activeSearchEl.classList.contains('indicator-collapsed')) {
+          activeSearchEl.innerHTML = '';
+        }
+      }, 240);
       syncHeaderOffset();
       return;
     }
+    activeSearchEl.classList.remove('indicator-collapsed');
     var dayCount = 0;
     for (var k in searchStats.days) {
       if (Object.prototype.hasOwnProperty.call(searchStats.days, k)) {
@@ -3951,6 +5146,15 @@ body.has-banner > *:not(.deep-link-banner) {
       'Showing <strong>' + n + ' event' + (n === 1 ? '' : 's') + '</strong>' +
       ' matching “<strong>' + escapeHtml(searchQueryRaw) + '</strong>”' +
       ' across <strong>' + dayCount + ' day' + (dayCount === 1 ? '' : 's') + '</strong>';
+    // PR4b tail: hidden events that match the search are surfaced via
+    // the per-category Hidden disclosures (auto-opened); the indicator
+    // gets a quiet sibling clause so the user knows to look there even
+    // before scrolling.
+    var hh = searchStats.hiddenAlsoMatch || 0;
+    if (hh > 0) {
+      msg += ' · <strong>' + hh + ' hidden</strong> also match' +
+             (hh === 1 ? 'es' : '');
+    }
     activeSearchEl.innerHTML = msg +
       ' <button type="button" class="indicator-clear" data-search-clear>Clear search</button>';
     activeSearchEl.hidden = false;
@@ -3978,6 +5182,7 @@ body.has-banner > *:not(.deep-link-banner) {
       mainEl.appendChild(div);
     }
   }
+
 
   function setupStackedObserver() {
     teardownStackedObserver();
@@ -4540,56 +5745,150 @@ body.has-banner > *:not(.deep-link-banner) {
     setTimeout(function () { URL.revokeObjectURL(url); }, 1000);
   }
 
-  var openCalPickerEl = null;
-  function closeCalPicker() {
-    if (openCalPickerEl) {
-      var btn = openCalPickerEl._anchorBtn;
-      if (btn) btn.setAttribute('aria-expanded', 'false');
-      openCalPickerEl.parentNode &&
-        openCalPickerEl.parentNode.removeChild(openCalPickerEl);
-      openCalPickerEl = null;
+  // ============================================================
+  //  Popover primitive — one lifecycle for cal-picker (PR 1) and the
+  //  card overflow menu (PR 2). Each popover knows its anchor button
+  //  (so closing flips aria-expanded back) and an optional `kind` tag
+  //  so handlers can find/close just one type. closeAllPopovers() runs
+  //  at the start of every renderAll so re-renders don't leave stale
+  //  popovers hanging off detached DOM nodes.
+  // ============================================================
+  var OPEN_POPOVERS = [];
+  function openPopover(anchor, builder, opts) {
+    opts = opts || {};
+    if (opts.replace !== false) closeAllPopovers();
+    var pop = builder();
+    if (!pop) return null;
+    pop._anchor = anchor;
+    pop._kind = opts.kind || 'popover';
+    if (opts.eventId != null) pop._eventId = String(opts.eventId);
+    var parent = opts.parent || (anchor && anchor.parentNode) || document.body;
+    parent.appendChild(pop);
+    if (anchor) anchor.setAttribute('aria-expanded', 'true');
+    OPEN_POPOVERS.push(pop);
+    return pop;
+  }
+  function closePopover(pop) {
+    if (!pop) return;
+    var idx = OPEN_POPOVERS.indexOf(pop);
+    if (idx !== -1) OPEN_POPOVERS.splice(idx, 1);
+    if (pop._anchor) pop._anchor.setAttribute('aria-expanded', 'false');
+    if (pop.parentNode) pop.parentNode.removeChild(pop);
+  }
+  function closeAllPopovers(except) {
+    var copy = OPEN_POPOVERS.slice();
+    for (var i = 0; i < copy.length; i++) {
+      if (copy[i] !== except) closePopover(copy[i]);
     }
+  }
+  function findPopoverByKind(kind) {
+    for (var i = 0; i < OPEN_POPOVERS.length; i++) {
+      if (OPEN_POPOVERS[i]._kind === kind) return OPEN_POPOVERS[i];
+    }
+    return null;
+  }
+
+  // Cal-picker — built on top of openPopover. Anchor is the button;
+  // the picker mounts as a sibling of the button (matching the existing
+  // .add-cal-popover absolute-positioning relative to .add-cal-wrap).
+  function closeCalPicker() {
+    var existing = findPopoverByKind('cal-picker');
+    if (existing) closePopover(existing);
   }
 
   function openCalPicker(btn, ev) {
-    closeCalPicker();
-    var pop = document.createElement('div');
-    pop.className = 'add-cal-popover';
-    pop.setAttribute('role', 'menu');
-    // Same set + ordering as Humanitix's add-to-calendar picker, minus
-    // their separate "Outlook desktop" option — that downloads the same
-    // .ics file as iCal, so we collapse them into one entry.
-    var options = [
-      { label: 'Download .ics', hint: 'iCal, Outlook desktop, etc.', kind: 'ics' },
-      { label: 'Google',        hint: '', kind: 'google' },
-      { label: 'Office 365',    hint: '', kind: 'outlook-office' },
-      { label: 'Outlook web',   hint: '', kind: 'outlook-live' },
-      { label: 'Yahoo',         hint: '', kind: 'yahoo' },
-    ];
-    for (var i = 0; i < options.length; i++) {
-      var opt = options[i];
-      var b = document.createElement('button');
-      b.type = 'button';
-      b.className = 'add-cal-option';
-      b.setAttribute('role', 'menuitem');
-      b.dataset.kind = opt.kind;
-      var labelSpan = document.createElement('span');
-      labelSpan.className = 'add-cal-option-label';
-      labelSpan.textContent = opt.label;
-      b.appendChild(labelSpan);
-      if (opt.hint) {
-        var hintSpan = document.createElement('span');
-        hintSpan.className = 'add-cal-option-hint';
-        hintSpan.textContent = opt.hint;
-        b.appendChild(hintSpan);
+    return openPopover(btn, function () {
+      var pop = document.createElement('div');
+      pop.className = 'add-cal-popover';
+      pop.setAttribute('role', 'menu');
+      // Same set + ordering as Humanitix's add-to-calendar picker, minus
+      // their separate "Outlook desktop" option — that downloads the same
+      // .ics file as iCal, so we collapse them into one entry.
+      var options = [
+        { label: 'Download .ics', hint: 'iCal, Outlook desktop, etc.', kind: 'ics' },
+        { label: 'Google',        hint: '', kind: 'google' },
+        { label: 'Office 365',    hint: '', kind: 'outlook-office' },
+        { label: 'Outlook web',   hint: '', kind: 'outlook-live' },
+        { label: 'Yahoo',         hint: '', kind: 'yahoo' },
+      ];
+      for (var i = 0; i < options.length; i++) {
+        var opt = options[i];
+        var b = document.createElement('button');
+        b.type = 'button';
+        b.className = 'add-cal-option';
+        b.setAttribute('role', 'menuitem');
+        b.dataset.kind = opt.kind;
+        var labelSpan = document.createElement('span');
+        labelSpan.className = 'add-cal-option-label';
+        labelSpan.textContent = opt.label;
+        b.appendChild(labelSpan);
+        if (opt.hint) {
+          var hintSpan = document.createElement('span');
+          hintSpan.className = 'add-cal-option-hint';
+          hintSpan.textContent = opt.hint;
+          b.appendChild(hintSpan);
+        }
+        pop.appendChild(b);
       }
-      pop.appendChild(b);
-    }
-    pop._anchorBtn = btn;
-    pop._eventId = String(ev.id);
-    btn.parentNode.appendChild(pop);
-    btn.setAttribute('aria-expanded', 'true');
-    openCalPickerEl = pop;
+      return pop;
+    }, { kind: 'cal-picker', eventId: ev.id });
+  }
+
+  // Card overflow popover — secondary actions tucked behind the `⋯`
+  // button at the end of each card's action row. Always mounts on
+  // <body> with position: fixed so it escapes every parent stacking
+  // context. (.event.extra cards in Show-more / Hidden disclosures
+  // have opacity:0.78 which establishes a stacking context, trapping
+  // any descendant z-index — the popover would render BEHIND the
+  // next category's title and cards otherwise. Body-mount + fixed is
+  // the only reliable way out.) Position is computed from the
+  // button's viewport rect so the menu still anchors to the click.
+  function openCardOverflow(btn, ev) {
+    var pop = openPopover(btn, function () {
+      var p = document.createElement('div');
+      p.className = 'card-overflow-popover';
+      p.setAttribute('role', 'menu');
+      var copyBtn = document.createElement('button');
+      copyBtn.type = 'button';
+      copyBtn.className = 'card-overflow-option';
+      copyBtn.setAttribute('role', 'menuitem');
+      copyBtn.dataset.kind = 'copy';
+      copyBtn.dataset.eventId = String(ev.id);
+      copyBtn.textContent = 'Copy link';
+      p.appendChild(copyBtn);
+      // Hide event — destructive but reversible. Sits below Copy with
+      // a one-line clarifier flagging that the hide is event-wide:
+      // the same event will disappear from every day it appears on
+      // (multi-day runs, weekly recurrences).
+      var hideBtn = document.createElement('button');
+      hideBtn.type = 'button';
+      hideBtn.className = 'card-overflow-option card-overflow-option--hide';
+      hideBtn.setAttribute('role', 'menuitem');
+      hideBtn.dataset.kind = 'hide';
+      hideBtn.dataset.eventId = String(ev.id);
+      var hideLabel = document.createElement('span');
+      hideLabel.className = 'card-overflow-option__label';
+      hideLabel.textContent = 'Hide event';
+      hideBtn.appendChild(hideLabel);
+      var hideHint = document.createElement('span');
+      hideHint.className = 'card-overflow-option__hint';
+      hideHint.textContent = 'Hides every occurrence across the week';
+      hideBtn.appendChild(hideHint);
+      p.appendChild(hideBtn);
+      return p;
+    }, { kind: 'card-overflow', eventId: ev.id, parent: document.body });
+    if (!pop) return null;
+    // Always position via fixed coords from the button rect. Right-
+    // anchor so the menu's right edge aligns with the button's right
+    // edge (mirrors what the prior `top: 100%; right: 0;` did when the
+    // popover was a sibling of the button). Clamp a few px from each
+    // edge for thumb-reachability and to avoid the device-edge cutoff.
+    var btnRect = btn.getBoundingClientRect();
+    pop.style.position = 'fixed';
+    pop.style.top = Math.max(8, btnRect.bottom + 4) + 'px';
+    pop.style.right = Math.max(8, window.innerWidth - btnRect.right) + 'px';
+    pop.style.left = 'auto';
+    return pop;
   }
 
   function handleCalOptionClick(kind, ev) {
@@ -4632,7 +5931,12 @@ body.has-banner > *:not(.deep-link-banner) {
   // Replace one .category section in the DOM with a freshly rendered
   // version, animating any cards that moved within it. Far cheaper
   // than the full-page renderAllAnimated when only one bucket changed.
-  function rerenderCategorySectionAnimated(dayIso, catKey, highlightId) {
+  // `opts.onPostRender` runs synchronously between the section swap
+  // and the FLIP newRect capture — used by callers to re-apply local
+  // DOM state (Hidden disclosure open, Show-more expanded) before
+  // measurement, so the FLIP transforms target the user-visible
+  // layout rather than the freshly-built collapsed default.
+  function rerenderCategorySectionAnimated(dayIso, catKey, highlightId, opts) {
     if (!lastRanking || !lastRanking[dayIso]) return false;
     var block = lastRanking[dayIso][catKey];
     if (!block) return false;
@@ -4653,6 +5957,8 @@ body.has-banner > *:not(.deep-link-banner) {
       var fresh0 = tpl0.firstElementChild;
       if (fresh0) section.parentNode.replaceChild(fresh0, section);
       else section.remove();
+      if (opts && opts.preserveSnap) applyOpenStates(opts.preserveSnap);
+      if (opts && typeof opts.onPostRender === 'function') opts.onPostRender();
       return true;
     }
 
@@ -4669,6 +5975,10 @@ body.has-banner > *:not(.deep-link-banner) {
     var newSection = tpl.firstElementChild;
     if (!newSection) { section.remove(); return true; }
     section.parentNode.replaceChild(newSection, section);
+    // Restore local DOM state in the freshly-built section before we
+    // measure newRects — see opts.preserveSnap comment above.
+    if (opts && opts.preserveSnap) applyOpenStates(opts.preserveSnap);
+    if (opts && typeof opts.onPostRender === 'function') opts.onPostRender();
 
     var next = newSection.querySelectorAll('.event[id^="event-"]');
     var highlightEl = highlightId
@@ -4708,8 +6018,262 @@ body.has-banner > *:not(.deep-link-banner) {
     return true;
   }
 
+  // ============================================================
+  //  Toast — single-instance, body-mounted, 5s auto-dismiss.
+  //  Used by hide/unhide/pin-while-hidden flows for confirmation +
+  //  Undo. Mounts as a direct child of <body> so renderAll's
+  //  rebuildDayPanels never tears it down. Module-level handles let
+  //  a second toast cancel the first cleanly.
+  // ============================================================
+  var TOAST_ID = 'app-toast';
+  var TOAST_DURATION_MS = 5000;
+  var toastTimer = null;
+  var toastUndoCb = null;
+
+  function dismissToast() {
+    if (toastTimer != null) { clearTimeout(toastTimer); toastTimer = null; }
+    toastUndoCb = null;
+    var existing = document.getElementById(TOAST_ID);
+    if (existing && existing.parentNode) {
+      existing.parentNode.removeChild(existing);
+    }
+  }
+
+  function showToast(message, opts) {
+    opts = opts || {};
+    // Cancel any in-flight toast (and its Undo callback) before mounting
+    // the new one so the user always sees the latest action.
+    dismissToast();
+    var t = document.createElement('div');
+    t.id = TOAST_ID;
+    t.className = 'toast';
+    t.setAttribute('role', 'status');
+    t.setAttribute('aria-live', 'polite');
+    var msg = document.createElement('span');
+    msg.className = 'toast__msg';
+    msg.textContent = message || '';
+    t.appendChild(msg);
+    if (opts.onUndo) {
+      toastUndoCb = opts.onUndo;
+      var undo = document.createElement('button');
+      undo.type = 'button';
+      undo.className = 'toast__undo';
+      undo.setAttribute('data-toast-undo', '1');
+      undo.textContent = opts.undoLabel || 'Undo';
+      t.appendChild(undo);
+    }
+    document.body.appendChild(t);
+    var ms = opts.durationMs || TOAST_DURATION_MS;
+    toastTimer = setTimeout(dismissToast, ms);
+  }
+
+  // ============================================================
+  //  Hide / Unhide — per-event reversible suppression. Hidden
+  //  events live only in their category's "Hidden" disclosure
+  //  (with an Unhide button) until the user restores them. The
+  //  hide list persists in profile.hidden_event_ids; HIDDEN_SET
+  //  mirrors it for O(1) checks during buildRanking.
+  // ============================================================
+  function toggleHide(eventId) {
+    var id = String(eventId);
+    if (HIDDEN_SET.has(id)) return;  // already hidden — Unhide path handles toggle-off
+    var list = (profile.hidden_event_ids || []).slice();
+    list.push(id);
+    profile.hidden_event_ids = list;
+    refreshHiddenSet();
+    // Hiding a pinned event auto-unpins so the two states aren't both
+    // claimed for the same id. Recovery is the per-card Unhide button
+    // in the Hidden disclosure (and Settings → Tags "restore all"); the
+    // earlier Undo toast was redundant given those affordances and
+    // misbehaved when many events were hidden in quick succession (the
+    // single-instance toast kept cancelling its predecessor's
+    // pin-restoration callback).
+    var pinList = (profile.pinned_event_ids || []).slice();
+    var pinIdx = pinList.indexOf(id);
+    if (pinIdx !== -1) {
+      pinList.splice(pinIdx, 1);
+      profile.pinned_event_ids = pinList;
+      refreshPinnedSet();
+    }
+    saveProfile();
+    // Hiding moves the event between buckets (curated/extras → hidden
+    // disclosure) — the optimized per-section rerender doesn't handle
+    // bucket migration, so do a full re-render. preserveScores keeps
+    // the score cache warm. Snapshot any open Hidden disclosures /
+    // Show-more sections so a hide from inside one doesn't snap it
+    // shut.
+    var snap = captureSectionUIState();
+    renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+    unlockMainHeight(snap);
+    // Settings → Tags footer reads from profile.hidden_event_ids; rebuild
+    // so the count surfaces correctly when the user next opens Settings.
+    rerenderSettingsPreservingSubtab();
+  }
+
+  // Snapshot per-section local UI state (Hidden disclosure open + Show-
+  // more expanded), keyed by (day-panel id, category). Both are local
+  // DOM state — renderAllAnimated and rerenderCategorySectionAnimated
+  // rebuild sections from scratch, which would snap them shut mid-
+  // browse. Capture before the rebuild, re-apply after.
+  //
+  // Hidden disclosure → <details> .open property.
+  // Show-more       → button[aria-expanded="true"] + sibling
+  //                   .events-expanded with `hidden=false` + label
+  //                   swapped to "Show fewer".
+  function captureSectionUIState() {
+    // Lock <main>'s height to its current rendered height so that
+    // rebuildDayPanels' "remove all .day elements then re-insert"
+    // step doesn't briefly shrink the document. Without this lock,
+    // the browser clamps window.scrollY to the smaller maxScroll
+    // mid-rebuild and the user sees the page snap to top before the
+    // new content lands — a visible "up then back down" flicker. With
+    // the lock, the document height stays put across the rebuild and
+    // scrollY is preserved naturally; no explicit scroll restore is
+    // needed.
+    var mainEl = document.getElementById('main');
+    var lockedHeight = null;
+    if (mainEl) {
+      lockedHeight = mainEl.offsetHeight;
+      mainEl.style.minHeight = lockedHeight + 'px';
+    }
+    var open = {
+      hidden: {},
+      showMore: {},
+      mainEl: mainEl,
+      lockedHeight: lockedHeight,
+    };
+    var nodes = document.querySelectorAll('.hidden-disclosure[open]');
+    for (var i = 0; i < nodes.length; i++) {
+      var section = nodes[i].closest('.category');
+      var dayPanel = nodes[i].closest('.day');
+      if (section && dayPanel && dayPanel.id) {
+        open.hidden[dayPanel.id + '|' + section.dataset.cat] = true;
+      }
+    }
+    var more = document.querySelectorAll('.show-more[aria-expanded="true"]');
+    for (var j = 0; j < more.length; j++) {
+      var sec2 = more[j].closest('.category');
+      var dp2 = more[j].closest('.day');
+      if (sec2 && dp2 && dp2.id) {
+        open.showMore[dp2.id + '|' + sec2.dataset.cat] = true;
+      }
+    }
+    return open;
+  }
+  // Re-apply Hidden disclosure + Show-more open state from a snapshot.
+  // MUST run synchronously between renderAll and the FLIP newRect
+  // capture (use the renderAllAnimated onPostRender hook). Running
+  // this AFTER FLIP would shift natural positions out from under the
+  // in-flight transforms and produce a visible "jump down then back
+  // up" on cards in unrelated sections.
+  function applyOpenStates(state) {
+    if (!state) return;
+    for (var key in state.hidden) {
+      var parts = key.split('|');
+      var el = document.querySelector(
+        '#' + parts[0] + ' .category[data-cat="' + parts[1] +
+        '"] .hidden-disclosure'
+      );
+      if (el) el.open = true;
+    }
+    for (var key2 in state.showMore) {
+      var p2 = key2.split('|');
+      var section = document.querySelector(
+        '#' + p2[0] + ' .category[data-cat="' + p2[1] + '"]'
+      );
+      if (!section) continue;
+      var btn = section.querySelector('.show-more');
+      var panel = section.querySelector('.events-expanded');
+      // Show-more may be absent now (the section's extras emptied out
+      // — e.g. the user pinned the only one). That's the "unless it's
+      // empty" exception: nothing to re-open, naturally collapsed.
+      if (!btn || !panel) continue;
+      btn.setAttribute('aria-expanded', 'true');
+      panel.hidden = false;
+      if (!btn.dataset.initialLabel) btn.dataset.initialLabel = btn.textContent;
+      btn.textContent = 'Show fewer';
+    }
+  }
+
+  // Release the <main> minHeight lock set by captureSectionUIState.
+  // Deferred to the next animation frame so any layout-affecting
+  // writes above finalize before we unconstrain the height.
+  function unlockMainHeight(state) {
+    if (!state || !state.mainEl) return;
+    var m = state.mainEl;
+    if (typeof requestAnimationFrame === 'function') {
+      requestAnimationFrame(function () { m.style.minHeight = ''; });
+    } else {
+      m.style.minHeight = '';
+    }
+  }
+
+  function unhide(eventId, opts) {
+    opts = opts || {};
+    var id = String(eventId);
+    if (!HIDDEN_SET.has(id)) return false;
+    var list = (profile.hidden_event_ids || []).slice();
+    var idx = list.indexOf(id);
+    if (idx !== -1) list.splice(idx, 1);
+    profile.hidden_event_ids = list;
+    refreshHiddenSet();
+    saveProfile();
+    if (!opts.silent) {
+      showToast(opts.message || 'Event unhidden');
+    }
+    if (!opts.skipRender) {
+      // Preserve currently-open Hidden disclosures + Show-more across
+      // the re-render so the user stays inside whichever bucket they
+      // were browsing. The open-state restore MUST land between
+      // renderAll and the FLIP newRect capture (via onPostRender) —
+      // otherwise the post-FLIP reflow shifts unrelated cards.
+      var snap = captureSectionUIState();
+      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      unlockMainHeight(snap);
+    }
+    rerenderSettingsPreservingSubtab();
+    return true;
+  }
+
+  function restoreAllHidden() {
+    var n = (profile.hidden_event_ids || []).length;
+    if (n === 0) return;
+    profile.hidden_event_ids = [];
+    refreshHiddenSet();
+    saveProfile();
+    showToast('Restored ' + n + ' hidden event' + (n === 1 ? '' : 's'));
+    var snap = captureSectionUIState();
+    renderAllAnimated(null, { preserveScores: true, preserveSnap: snap });
+    unlockMainHeight(snap);
+    rerenderSettingsPreservingSubtab();
+  }
+
   function togglePin(eventId) {
     var id = String(eventId);
+    // Snapshot Show-more + Hidden disclosure state so a pin from inside
+    // either bucket doesn't snap it shut. The optimized per-section
+    // rerender below rebuilds the section's <details>/<button> from
+    // scratch — without restore, the user would lose their place. The
+    // restore is a no-op for sections that don't get rebuilt.
+    var snap = captureSectionUIState();
+    // Pin-while-hidden: auto-unhide first, then continue into the pin
+    // path. Toast confirms the dual state change so nothing happens
+    // silently. Skip the optimized per-section rerender — a hidden→
+    // visible bucket migration needs a full rebuild.
+    if (HIDDEN_SET.has(id) && (profile.pinned_event_ids || []).indexOf(id) === -1) {
+      unhide(id, { silent: true, skipRender: true });
+      var list2 = (profile.pinned_event_ids || []).slice();
+      list2.push(id);
+      profile.pinned_event_ids = list2;
+      refreshPinnedSet();
+      saveProfile();
+      dismissFirstVisitNudge();
+      showToast('Event unhidden and pinned');
+      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      unlockMainHeight(snap);
+      rerenderSettingsPreservingSubtab();
+      return;
+    }
     var list = (profile.pinned_event_ids || []).slice();
     var prevIdx = list.indexOf(id);
     var nowPinned = prevIdx === -1;
@@ -4718,6 +6282,9 @@ body.has-banner > *:not(.deep-link-banner) {
     profile.pinned_event_ids = list;
     refreshPinnedSet();
     saveProfile();
+    // Pinning is the implicit "I'm engaged" gesture; auto-dismiss the
+    // first-visit nudge if it's still up.
+    if (nowPinned) dismissFirstVisitNudge();
 
     // Pin doesn't change scores or other events' visibility — only
     // the toggled event's filter-bypass and its sort within its own
@@ -4730,7 +6297,8 @@ body.has-banner > *:not(.deep-link-banner) {
     var loc = findItemInRanking(id, lastRanking);
     var ev = loc ? loc.item.event : eventsById[id];
     if (!ev) {
-      renderAllAnimated(id, { preserveScores: true });
+      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      unlockMainHeight(snap);
       return;
     }
     var filtered = wouldEventBeFiltered(ev, profile);
@@ -4763,16 +6331,21 @@ body.has-banner > *:not(.deep-link-banner) {
             }
           }
           if (!dayHasAny) {
-            renderAllAnimated(id, { preserveScores: true });
+            renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+            unlockMainHeight(snap);
             return;
           }
         }
       }
-      var swapped = rerenderCategorySectionAnimated(loc.day, loc.cat, id);
+      var swapped = rerenderCategorySectionAnimated(loc.day, loc.cat, id, {
+        preserveSnap: snap,
+      });
       if (!swapped) {
-        renderAllAnimated(id, { preserveScores: true });
+        renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+        unlockMainHeight(snap);
         return;
       }
+      unlockMainHeight(snap);
       updateSettingsBadge();
       return;
     }
@@ -4793,7 +6366,8 @@ body.has-banner > *:not(.deep-link-banner) {
         !lastRanking ||
         !lastRanking[ev.day] ||
         !lastRanking[ev.day][ev.category]) {
-      renderAllAnimated(id, { preserveScores: true });
+      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      unlockMainHeight(snap);
       return;
     }
     var targetBlock = lastRanking[ev.day][ev.category];
@@ -4808,11 +6382,15 @@ body.has-banner > *:not(.deep-link-banner) {
       // visible curated bucket regardless.
       is_expanded: true,
     });
-    var added = rerenderCategorySectionAnimated(ev.day, ev.category, id);
+    var added = rerenderCategorySectionAnimated(ev.day, ev.category, id, {
+      preserveSnap: snap,
+    });
     if (!added) {
-      renderAllAnimated(id, { preserveScores: true });
+      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      unlockMainHeight(snap);
       return;
     }
+    unlockMainHeight(snap);
     updateSettingsBadge();
   }
 
@@ -5292,6 +6870,8 @@ body.has-banner > *:not(.deep-link-banner) {
     if (!('animate' in document.createElement('div'))) {
       // Web Animations API unavailable — fall back to plain rebuild.
       renderAll(opts);
+      if (opts && opts.preserveSnap) applyOpenStates(opts.preserveSnap);
+      if (opts && typeof opts.onPostRender === 'function') opts.onPostRender();
       return;
     }
     var prev = document.querySelectorAll('.event[id^="event-"]');
@@ -5300,6 +6880,16 @@ body.has-banner > *:not(.deep-link-banner) {
       oldRects[prev[i].id] = prev[i].getBoundingClientRect();
     }
     renderAll(opts);
+    // Post-render: re-apply DOM-local state (Hidden disclosure open,
+    // Show-more expanded) BEFORE we measure newRects. Without this,
+    // the FLIP would compute deltas against the collapsed-default
+    // layout; a post-FLIP re-open would then shift cards' natural
+    // positions, leaving in-flight transforms visually pushing cards
+    // off by the disclosure/show-more height (the "jump down then
+    // animate back up" symptom). Callers pass the captured snapshot
+    // via opts.preserveSnap.
+    if (opts && opts.preserveSnap) applyOpenStates(opts.preserveSnap);
+    if (opts && typeof opts.onPostRender === 'function') opts.onPostRender();
     var next = document.querySelectorAll('.event[id^="event-"]');
     var highlightEl = highlightId
       ? document.getElementById('event-' + highlightId)
@@ -5403,11 +6993,64 @@ body.has-banner > *:not(.deep-link-banner) {
     // already cleared. Cheap visual-only update; no renderAll.
     clearSelectionVisuals();
 
+    // First-visit nudge dismiss button.
+    var nudgeDismiss = e.target.closest && e.target.closest('[data-nudge-dismiss]');
+    if (nudgeDismiss) {
+      dismissFirstVisitNudge();
+      return;
+    }
+
+    // Score-chip-moved notice dismiss button — persist the flag,
+    // remove the element. Re-renders won't bring it back.
+    var noticeDismiss = e.target.closest && e.target.closest('[data-score-notice-dismiss]');
+    if (noticeDismiss) {
+      try { localStorage.setItem(SCORE_CHIP_NOTICE_KEY, '1'); } catch (_) {}
+      var noticeEl = document.getElementById('score-chip-moved-notice');
+      if (noticeEl && noticeEl.parentNode) noticeEl.parentNode.removeChild(noticeEl);
+      return;
+    }
+    // Quiet-evening hint button — advance to the next day (in tabbed
+    // mode) or scroll to it (in stacked mode).
+    var advanceBtn = e.target.closest && e.target.closest('[data-advance-day]');
+    if (advanceBtn) {
+      advanceToNextDay(advanceBtn);
+      return;
+    }
+
     // Pin button — toggle pinned state, persist, re-render. Handled before
     // the calendar picker so a pin click doesn't open / close the picker.
     var pinBtn = e.target.closest && e.target.closest('.pin-btn');
     if (pinBtn) {
       togglePin(pinBtn.dataset.eventId);
+      return;
+    }
+
+    // Unhide button — sole action on a hidden card. Goes through the
+    // same unhide() helper as the toast Undo path so the rebuild and
+    // toast behaviour are identical. No toast on direct unhide (the
+    // user clicked the button right on the card; the visible bucket
+    // change confirms the action).
+    var unhideBtn = e.target.closest && e.target.closest('.unhide-btn');
+    if (unhideBtn) {
+      unhide(unhideBtn.dataset.eventId, { silent: true });
+      return;
+    }
+
+    // Toast Undo — invoke the saved callback (set by the most recent
+    // showToast call). The callback handles its own dismiss + render.
+    var toastUndo = e.target.closest && e.target.closest('[data-toast-undo]');
+    if (toastUndo) {
+      var cb = toastUndoCb;
+      if (cb) cb();
+      return;
+    }
+
+    // Settings → Tags footer "Restore all" — clears the entire hide
+    // list, refreshes, re-renders. Handled before the generic settings
+    // button delegations so it doesn't get caught by them.
+    var restoreAll = e.target.closest && e.target.closest('[data-restore-all-hidden]');
+    if (restoreAll) {
+      restoreAllHidden();
       return;
     }
 
@@ -5487,8 +7130,8 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     var calBtn = e.target.closest && e.target.closest('.add-cal-btn');
     if (calBtn) {
-      var wasOpen = openCalPickerEl &&
-        openCalPickerEl._anchorBtn === calBtn;
+      var openCal = findPopoverByKind('cal-picker');
+      var wasOpen = openCal && openCal._anchor === calBtn;
       closeCalPicker();
       if (!wasOpen) {
         var calEv = eventsById[calBtn.dataset.eventId];
@@ -5496,14 +7139,49 @@ body.has-banner > *:not(.deep-link-banner) {
       }
       return;
     }
-    if (openCalPickerEl &&
+    if (findPopoverByKind('cal-picker') &&
         !(e.target.closest && e.target.closest('.add-cal-popover'))) {
       closeCalPicker();
     }
 
-    // Search-row controls — clear button (× and the indicator/empty-state
-    // links share the same data attribute), All days toggle, Filters
-    // disclosure, category chip, and the date-idea-only checkbox.
+    // Card overflow popover: option clicks first, then toggle, then
+    // outside-click close. Mirrors the cal-picker pattern.
+    var ovOpt = e.target.closest && e.target.closest('.card-overflow-option');
+    if (ovOpt) {
+      var ovPop = ovOpt.closest('.card-overflow-popover');
+      var ovEv = ovPop && eventsById[ovPop._eventId];
+      var ovKind = ovOpt.dataset.kind;
+      if (ovEv && ovKind === 'copy') {
+        copyText(landingPageUrl(ovEv));
+      } else if (ovEv && ovKind === 'hide') {
+        // Close the popover first so it doesn't stick around over the
+        // re-rendered card. toggleHide handles the rest (toast + render).
+        closeAllPopovers();
+        toggleHide(ovOpt.dataset.eventId || ovEv.id);
+        return;
+      }
+      closeAllPopovers();
+      return;
+    }
+    var ovBtn = e.target.closest && e.target.closest('.card-overflow-btn');
+    if (ovBtn) {
+      var openOv = findPopoverByKind('card-overflow');
+      var ovWasOpen = openOv && openOv._anchor === ovBtn;
+      closeAllPopovers();
+      if (!ovWasOpen) {
+        var ovBtnEv = eventsById[ovBtn.dataset.eventId];
+        if (ovBtnEv) openCardOverflow(ovBtn, ovBtnEv);
+      }
+      return;
+    }
+    if (findPopoverByKind('card-overflow') &&
+        !(e.target.closest && e.target.closest('.card-overflow-popover'))) {
+      closeAllPopovers();
+    }
+
+    // Search-panel controls — clear button (× and indicator/empty-state
+    // links share the same data attribute), Week pill, search disclosure,
+    // category chip, and the date-idea-only checkbox.
     var clearBtn = e.target.closest && e.target.closest('[data-search-clear]');
     if (clearBtn) {
       e.preventDefault();
@@ -5518,13 +7196,26 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     var allDays = e.target.closest && e.target.closest('[data-toggle-all-days]');
     if (allDays) { toggleAllDays(); return; }
-    var filtersBtn = e.target.closest && e.target.closest('[data-toggle-filters]');
-    if (filtersBtn) { toggleFiltersPanel(); return; }
+    var searchBtn = e.target.closest && e.target.closest('[data-toggle-search]');
+    if (searchBtn) { toggleSearchPanel(); return; }
     var catChip = e.target.closest && e.target.closest('[data-category-chip]');
     if (catChip) { handleCategoryChip(catChip.dataset.categoryChip, catChip); return; }
 
-    var tab = e.target.closest && e.target.closest('.day-tab');
+    // Match both day-tabs (.day-tab) and the brand-row settings icon
+    // (.settings-icon-btn) — both carry data-tab and route through
+    // activate(). Week pill is excluded by its .week-pill class +
+    // having no data-tab attribute.
+    var tab = e.target.closest && e.target.closest('[data-tab]');
     if (tab) {
+      // Settings-icon click counts as engagement → dismiss the
+      // first-visit nudge regardless of whether settings is currently
+      // visible (the nudge element exists in the DOM either way).
+      // Also collapse the search panel — Settings is a context switch,
+      // and leaving the search drawer open behind it bloats the header.
+      if (tab.dataset.tab === 'settings') {
+        dismissFirstVisitNudge();
+        if (viewState.searchPanelOpen) toggleSearchPanel(false);
+      }
       // In stacked mode, a day-tab click smooth-scrolls to the section
       // instead of swapping the active panel (panels stay all-visible).
       // Exception: if we're CURRENTLY on Settings, all .day panels are
@@ -5600,6 +7291,16 @@ body.has-banner > *:not(.deep-link-banner) {
       return;
     }
 
+    // Show-event-scores Settings toggle. Bound to profile.show_score_chip;
+    // re-render preserves scores since the field is presentation-only.
+    var scoreToggle = e.target.closest && e.target.closest('[data-toggle-score-chip]');
+    if (scoreToggle && scoreToggle.tagName === 'INPUT') {
+      profile.show_score_chip = !!scoreToggle.checked;
+      saveProfile();
+      renderAll({ preserveScores: true });
+      return;
+    }
+
     var ruleBtn = e.target.closest && e.target.closest('.rule-toggle');
     if (ruleBtn) {
       var rRow = ruleBtn.closest('.rule-row');
@@ -5621,7 +7322,7 @@ body.has-banner > *:not(.deep-link-banner) {
 
     var action = e.target.closest && e.target.closest('[data-action]');
     if (action) {
-      if (action.dataset.action === 'reset-subcategories') {
+      if (action.dataset.action === 'reset-tags') {
         // Reset to the shipped defaults (not empty) so the baseline
         // taste seeding is restored.
         var base = defaultProfile.subcategory_tiers || {};
@@ -5630,7 +7331,7 @@ body.has-banner > *:not(.deep-link-banner) {
         saveProfile();
         rerenderSettingsPreservingSubtab();
         renderAll();
-      } else if (action.dataset.action === 'reset-facets') {
+      } else if (action.dataset.action === 'reset-vibes') {
         var fbase = defaultProfile.facet_tiers || {};
         profile.facet_tiers = {};
         for (var fk in fbase) profile.facet_tiers[fk] = fbase[fk];
@@ -5706,12 +7407,12 @@ body.has-banner > *:not(.deep-link-banner) {
         closeFeedbackModal();
         return;
       }
-      if (openCalPickerEl) {
-        closeCalPicker();
+      if (OPEN_POPOVERS.length) {
+        closeAllPopovers();
         return;
       }
-      if (viewState.filtersOpen) {
-        toggleFiltersPanel();
+      if (viewState.searchPanelOpen) {
+        toggleSearchPanel(false);
         return;
       }
       if (activeTab === 'settings') {
@@ -5778,6 +7479,19 @@ body.has-banner > *:not(.deep-link-banner) {
         showEventUnavailableBanner();
         return;
       }
+      // PR4b: a deep-link target that's user-hidden lives inside its
+      // category's <details class="hidden-disclosure">, which is closed
+      // by default. Walk up and open every collapsed disclosure between
+      // the card and its day panel so scrollIntoView lands on a visible
+      // element instead of a collapsed summary. closest('details') only
+      // finds the nearest ancestor; we currently nest one level but the
+      // loop is cheap and future-proofs against deeper nesting.
+      var det = card.closest('details');
+      while (det) {
+        if (!det.open) det.open = true;
+        det = det.parentNode && det.parentNode.closest
+              ? det.parentNode.closest('details') : null;
+      }
       card.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }, 80);
   }
@@ -5811,7 +7525,17 @@ body.has-banner > *:not(.deep-link-banner) {
 
   window.addEventListener('hashchange', fromHash);
 
-  window.addEventListener('resize', syncHeaderOffset);
+  // ResizeObserver covers every height-change source on the sticky
+  // header — search-panel slide, banner appearances, settings-modified
+  // badge, future widgets — without us having to thread re-measure
+  // calls through each one. Falls back to the legacy resize listener
+  // on the (vanishingly small) set of browsers without ResizeObserver.
+  if (siteHeader && 'ResizeObserver' in window) {
+    var headerRO = new ResizeObserver(syncHeaderOffset);
+    headerRO.observe(siteHeader);
+  } else {
+    window.addEventListener('resize', syncHeaderOffset);
+  }
 
   // ============================================================
   //  Boot
@@ -5829,6 +7553,7 @@ body.has-banner > *:not(.deep-link-banner) {
     fromHash();
   }
   syncHeaderOffset();
+  scheduleTonightRelabel();
 })();
 
 </script>
