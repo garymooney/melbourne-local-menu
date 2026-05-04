@@ -231,9 +231,10 @@ body {
   stroke-width: 1.25;
 }
 .header-icon-label { display: none; }
-/* Search-icon label visible from 360px up — mobile is exactly where
-   discoverability is hardest, so the label earns its space. */
-@media (min-width: 360px) {
+/* Search-icon label only appears once the brand row has slack to
+   share — on phones the universal magnifier glyph carries
+   discoverability, and the label was eating brand-text width. */
+@media (min-width: 480px) {
   .search-icon-btn .header-icon-label { display: inline; }
 }
 /* 320–360px crunch — the brand row needs to stay one line. Tighten the
