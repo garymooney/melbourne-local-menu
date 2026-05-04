@@ -4611,20 +4611,12 @@ body.has-banner > *:not(.deep-link-banner) {
     );
   }
 
-  // One-shot crumb at the foot of Settings → Tags pointing power users
-  // (any non-default tier override) at the score-chip toggle they
-  // probably don't know exists. Suppressed when scores are already on,
-  // for casual users without tier overrides, and after dismissal.
+  // One-shot crumb at the foot of Settings → Tags pointing every
+  // visitor at the score-chip toggle they probably don't know exists.
+  // Suppressed when scores are already on or after dismissal.
   var SCORE_CHIP_CRUMB_KEY = 'melbourne-menu-score-chip-crumb-dismissed-v1';
   function shouldShowScoreChipCrumb() {
     if (profile.show_score_chip) return false;
-    var defs = (defaultProfile.subcategory_tiers) || {};
-    var cur = profile.subcategory_tiers || {};
-    var anyOverride = false;
-    for (var k in cur) {
-      if (cur[k] !== (defs[k] || 'neutral')) { anyOverride = true; break; }
-    }
-    if (!anyOverride) return false;
     try {
       if (localStorage.getItem(SCORE_CHIP_CRUMB_KEY)) return false;
     } catch (_) {
