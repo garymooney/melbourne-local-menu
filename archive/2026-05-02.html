@@ -1283,7 +1283,7 @@ body.has-banner > *:not(.deep-link-banner) {
   z-index: 8;
 }
 @media (hover: hover) {
-  .event.extra:has(.score-chip:hover) {
+  .event.extra:has(.score-chip:hover:not(.hover-suppressed)) {
     opacity: 1;
     z-index: 8;
   }
@@ -1452,7 +1452,7 @@ body.has-banner > *:not(.deep-link-banner) {
   color: var(--text);
 }
 @media (hover: hover) {
-  .score-chip:hover .score-debug {
+  .score-chip:hover:not(.hover-suppressed) .score-debug {
     opacity: 1;
     color: var(--text);
   }
@@ -1482,9 +1482,13 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 /* Hover shows the tooltip only on devices with a real pointer. On
    touch, :hover is sticky after a tap and would keep the tooltip
-   open even after the user explicitly toggles .open off. */
+   open even after the user explicitly toggles .open off.
+   .hover-suppressed is set by the click handler when the user toggles
+   .open off — it stays applied until the mouse leaves the chip, so a
+   click on a hovering chip actually closes it instead of staying open
+   under :hover. */
 @media (hover: hover) {
-  .score-chip:hover .score-breakdown {
+  .score-chip:hover:not(.hover-suppressed) .score-breakdown {
     display: block;
   }
 }
@@ -8231,6 +8235,7 @@ body.has-banner > *:not(.deep-link-banner) {
       }
     }
     if (chipEl) {
+      var wasOpen = chipEl.classList.contains('open');
       chipEl.classList.toggle('open');
       // After toggling closed, drop :focus-within so the tooltip-show
       // CSS rules that key off focus-within don't keep it visible.
@@ -8239,6 +8244,16 @@ body.has-banner > *:not(.deep-link-banner) {
       if (!chipEl.classList.contains('open') &&
           typeof chipEl.blur === 'function') {
         chipEl.blur();
+      }
+      // Desktop: even after toggling .open off, the mouse is still
+      // on the chip → :hover keeps the tooltip visible. Mark the chip
+      // so the hover-show rule skips it until the mouse leaves; the
+      // mouseout handler clears the class so a subsequent hover works
+      // normally.
+      if (wasOpen) {
+        chipEl.classList.add('hover-suppressed');
+      } else {
+        chipEl.classList.remove('hover-suppressed');
       }
       syncTooltipOpenClass(chipEl);
       return;
@@ -8302,8 +8317,10 @@ body.has-banner > *:not(.deep-link-banner) {
   function syncTooltipOpenClass(chip) {
     var card = chip.closest('.event');
     if (!card) return;
+    var hoverActive = chip.matches(':hover')
+      && !chip.classList.contains('hover-suppressed');
     var open = chip.classList.contains('open')
-      || chip.matches(':hover')
+      || hoverActive
       || chip.contains(document.activeElement);
     card.classList.toggle('tooltip-open', open);
   }
@@ -8316,6 +8333,9 @@ body.has-banner > *:not(.deep-link-banner) {
     if (!chip) return;
     var to = e.relatedTarget;
     if (to && chip.contains(to)) return;
+    // Mouse has left the chip — clear the post-click hover-suppress
+    // so the next hover behaves normally.
+    chip.classList.remove('hover-suppressed');
     syncTooltipOpenClass(chip);
   });
   document.addEventListener('focusin', function (e) {
