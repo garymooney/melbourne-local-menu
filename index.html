@@ -814,10 +814,6 @@ body {
   margin-bottom: calc(-1 * var(--day-heading-h, 80px));
   pointer-events: none;
 }
-.day--stacked .category-header {
-  /* Sticky band sits flush below the sticky day-heading. */
-  top: calc(var(--header-offset, 120px) + var(--day-heading-h, 80px));
-}
 
 /* First-visit nudge — soft sparkle box above the first day's events
    pointing at the gear icon. Reuses --soft-warm-tint (the cross-PR
@@ -1022,9 +1018,6 @@ body:has(#first-visit-nudge) .day {
   border-top: 1px solid color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
   padding: 10px 0 6px;
   margin: 0 0 0.6em;
-  position: sticky;
-  top: var(--header-offset, 120px);
-  z-index: 5;
 }
 .category-header .count {
   display: inline-block;
@@ -8338,6 +8331,21 @@ body.has-banner > *:not(.deep-link-banner) {
     chip.classList.remove('hover-suppressed');
     syncTooltipOpenClass(chip);
   });
+  // Close hover-only tooltips on scroll. .open chips (pinned by tap or
+  // click) stay; the assumption is the user explicitly pinned them and
+  // wants to keep reading. Hover-shown tooltips get the hover-suppressed
+  // class so the :hover CSS rule stops firing — the mouseout handler
+  // clears the class once the cursor leaves, so a subsequent hover
+  // behaves normally.
+  window.addEventListener('scroll', function () {
+    var hoveredChips = document.querySelectorAll('.score-chip:hover');
+    for (var hci = 0; hci < hoveredChips.length; hci++) {
+      var c = hoveredChips[hci];
+      if (c.classList.contains('open')) continue;
+      c.classList.add('hover-suppressed');
+      syncTooltipOpenClass(c);
+    }
+  }, { capture: true, passive: true });
   document.addEventListener('focusin', function (e) {
     var chip = e.target.closest && e.target.closest('.score-chip');
     if (chip) syncTooltipOpenClass(chip);
