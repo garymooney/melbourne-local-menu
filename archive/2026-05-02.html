@@ -694,49 +694,56 @@ body {
    belong to as they scroll the stacked feed. */
 
 /* All-week heading panel — appears above the first day panel only when
-   the All-week tab is selected. Established as the largest banner in
-   the stacked feed so the user reads it as the parent of everything
-   below; small uppercase "VIEWING" eyebrow distinguishes it from a
-   day heading. Mounted via JS in renderAll when showAllDays is on. */
+   the All-week tab is selected. Mirrors the single-day .day-heading
+   hero exactly so it reads as the parent banner of the stacked feed;
+   the per-day headings step DOWN one level via .day--stacked rules
+   below, preserving the hierarchy. Mounted via JS in renderAll when
+   showAllDays is on. */
 .all-week-heading {
   position: relative;
+  font-size: var(--fs-7);
+  font-weight: var(--fw-bold);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--accent-warm) 28%, transparent),
-    color-mix(in srgb, var(--accent-cool) 28%, transparent)
+    color-mix(in srgb, var(--accent-warm) var(--day-heading-warm-stop), transparent),
+    color-mix(in srgb, var(--accent-cool) var(--day-heading-cool-stop), transparent)
   );
-  padding: 22px 22px 24px 28px;
-  border-radius: 10px;
-  margin: 1em 0 1.2em;
+  padding: 24px 18px 20px 22px;
+  border-radius: 8px;
+  /* Match a single-day .day-heading's vertical position exactly. That
+     heading sits inside .day { padding-top: 0.6em } (em there is .day's
+     16px body font, so ~9.6px) plus the heading's own margin-top: 1em
+     (em there is the heading's --fs-7 font). The All-week banner has
+     no .day wrapper, so we add the missing 0.6rem (0.6 × root font,
+     ~9.6px) directly to its top margin to align flush with where a
+     day-heading would land in single-day mode.  */
+  margin: calc(1em + 0.6rem) 0 0.6em;
+  letter-spacing: var(--ls-normal);
+  line-height: 1.15;
 }
 .all-week-heading::before {
   content: "";
   position: absolute;
-  top: 0; bottom: 0; left: 0;
-  width: 8px;
-  border-radius: 10px 0 0 10px;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  border-radius: 8px 0 0 8px;
   background: linear-gradient(180deg, var(--accent-warm), var(--accent-cool));
+  opacity: 0.85;
   pointer-events: none;
-}
-.all-week-heading__eyebrow {
-  margin: 0 0 6px;
-  font-size: var(--fs-2);
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-uppercase);
-  text-transform: uppercase;
-  color: var(--muted);
 }
 .all-week-heading__title {
   margin: 0;
-  font-size: calc(var(--fs-7) * 1.1);
-  font-weight: var(--fw-black, 800);
-  letter-spacing: var(--ls-normal);
-  line-height: 1.1;
+  font: inherit;
+  letter-spacing: inherit;
+  line-height: inherit;
 }
+.all-week-heading__lead { font-weight: var(--fw-bold); }
 .all-week-heading__sep {
-  margin: 0 0.35em;
-  color: color-mix(in srgb, var(--muted) 70%, transparent);
-  font-weight: var(--fw-medium);
+  color: var(--faint);
+  font-weight: var(--fw-regular);
+  margin: 0 0.15em;
 }
 .all-week-heading__trail {
   font-weight: var(--fw-medium);
@@ -5313,10 +5320,9 @@ body.has-banner > *:not(.deep-link-banner) {
     sec.id = 'all-week-heading';
     sec.className = 'all-week-heading';
     sec.innerHTML =
-      '<p class="all-week-heading__eyebrow">Viewing</p>' +
       '<h2 class="all-week-heading__title">' +
-        '<span class="all-week-heading__lead">All week</span>' +
-        '<span class="all-week-heading__sep" aria-hidden="true">·</span>' +
+        '<span class="all-week-heading__lead">All week</span> ' +
+        '<span class="all-week-heading__sep" aria-hidden="true">·</span> ' +
         '<span class="all-week-heading__trail">' +
           escapeHtml(formatDayShort(firstIso)) + ' &mdash; ' +
           escapeHtml(formatDayShort(lastIso)) +
