@@ -828,7 +828,10 @@ body:has(#first-visit-nudge) .day {
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
 @media (prefers-reduced-motion: no-preference) {
-  .first-visit-nudge { transition: opacity 0.18s ease; }
+  .first-visit-nudge { transition: opacity 0.22s ease; }
+}
+.first-visit-nudge--confirm .first-visit-nudge__icon {
+  color: var(--free-green);
 }
 
 /* One-shot inline notice mounted at the top of the menu when a power
@@ -902,6 +905,31 @@ body:has(#first-visit-nudge) .day {
   background: color-mix(in srgb, var(--accent-warm) 12%, var(--card-bg));
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+.empty-evening-hint__lead { color: var(--muted); }
+.empty-evening-hint__title {
+  color: var(--dark);
+  font-weight: 600;
+}
+.empty-evening-hint:hover .empty-evening-hint__lead,
+.empty-evening-hint:focus-visible .empty-evening-hint__lead {
+  color: var(--dark);
+}
+
+/* Brief warm-tint pulse used by advanceToNextDay() so the swap to a
+   new day registers visually. 600ms is short enough to read as a
+   confirmation, not chrome. */
+@keyframes day-heading-flash {
+  0%   { background-color: color-mix(in srgb, var(--accent-warm) 18%, transparent); }
+  60%  { background-color: color-mix(in srgb, var(--accent-warm) 8%, transparent); }
+  100% { background-color: transparent; }
+}
+.day-heading--flash {
+  animation: day-heading-flash 600ms ease-out;
+  border-radius: 6px;
+}
+@media (prefers-reduced-motion: reduce) {
+  .day-heading--flash { animation: none; }
 }
 .category { margin: 1.2em 0 1em; }
 /* Quiet sticky section anchor. The warm-tinted top rule lives on the
@@ -1827,6 +1855,45 @@ body.has-banner > *:not(.deep-link-banner) {
   outline: none;
 }
 
+/* Settings → Tags footer crumb pointing power users at the
+   score-chip toggle (Appearance). One-shot; dismissable. */
+.score-chip-crumb {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 10px;
+  padding: 8px 10px 8px 14px;
+  font-size: var(--fs-2);
+  color: var(--muted);
+  line-height: 1.4;
+  background: transparent;
+  border: 1px dashed color-mix(in srgb, var(--accent-cool) 32%, var(--rule));
+  border-radius: 8px;
+}
+.score-chip-crumb__msg { flex: 1; }
+.score-chip-crumb__msg strong { color: var(--dark); font-weight: var(--fw-medium); }
+.score-chip-crumb__close {
+  appearance: none;
+  flex: 0 0 auto;
+  width: 24px;
+  height: 24px;
+  padding: 0;
+  font: inherit;
+  font-size: 1.1em;
+  line-height: 1;
+  color: var(--muted);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+}
+.score-chip-crumb__close:hover,
+.score-chip-crumb__close:focus-visible {
+  color: var(--dark);
+  background: color-mix(in srgb, var(--muted) 12%, transparent);
+  outline: none;
+}
+
 /* --- end PR 4a -------------------------------------------------- */
 
 /* PR 3 hybrid: date-idea pill picks up the same warm→cool brand
@@ -2176,6 +2243,13 @@ body.has-banner > *:not(.deep-link-banner) {
   border-radius: 6px;
   border-left: 3px solid var(--accent-cool);
 }
+.settings-panel-desc {
+  font-size: 0.88em;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 0 0 0.75em;
+  padding: 0 2px;
+}
 
 /* Rules + Shape sub-tabs share a row layout: label block on the left,
  * a control on the right. The rule-toggle is a simple on/off button;
@@ -2485,7 +2559,7 @@ body.has-banner > *:not(.deep-link-banner) {
 <div class="brand-stripe" aria-hidden="true"></div>
 <div class="brand-text">
 <h1 class="site-title"><span class="site-title-melbourne">Melbourne</span><span class="site-title-localmenu">Local Menu</span></h1>
-<p class="site-tagline">Inner-north events</p>
+<p class="site-tagline">What's on tonight in Melbourne's inner north &mdash; a weekly curated menu</p>
 </div>
 </div>
 <div class="header-icons">
@@ -2495,7 +2569,7 @@ body.has-banner > *:not(.deep-link-banner) {
 </div>
 <div class="tabs-row">
 <nav class="day-tabs" role="tablist" aria-label="Days"></nav>
-<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day stacked" title="Show every day stacked vertically">Week</button></span>
+<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day stacked" title="Show every day stacked vertically">All week</button></span>
 </div>
 <div class="search-panel" id="search-panel" hidden>
 <div class="search-input-wrap">
@@ -3876,7 +3950,25 @@ body.has-banner > *:not(.deep-link-banner) {
     return parts.join('\n');
   }
 
-  function renderDayHtml(dayIso, byCatMap, profile) {
+  // Pick the highest-scored curated item across all categories of a
+  // day. Used to preview "what you'd see tomorrow" inside the quiet-
+  // evening hint. Returns null if the day has no curated items at all.
+  function pickDayTopEvent(byCatMap) {
+    if (!byCatMap) return null;
+    var best = null;
+    for (var ck in byCatMap) {
+      var block = byCatMap[ck];
+      if (!block || !block.length) continue;
+      for (var bi = 0; bi < block.length; bi++) {
+        var it = block[bi];
+        if (it.is_expanded) continue;
+        if (!best || (it.score || 0) > (best.score || 0)) best = it;
+      }
+    }
+    return best;
+  }
+
+  function renderDayHtml(dayIso, byCatMap, profile, nextDayTop) {
     byCatMap = byCatMap || {};
     var heading = formatDayHeading(dayIso);
     var daySlug = slugify(heading);
@@ -3917,11 +4009,29 @@ body.has-banner > *:not(.deep-link-banner) {
     // would just send the user to another search-narrowed list.
     var quietHint = '';
     if (!searchQueryRaw && curatedCount > 0 && curatedCount <= 2) {
-      quietHint =
-        '<button class="empty-evening-hint" type="button" ' +
-        'data-advance-day="next" aria-label="See what\'s on tomorrow">' +
-        'Quiet evening — see what\'s on tomorrow ' +
-        '<span aria-hidden="true">↓</span></button>\n';
+      if (nextDayTop && nextDayTop.event && nextDayTop.event.title) {
+        var nextTitle = String(nextDayTop.event.title);
+        var nextId = String(nextDayTop.event.id);
+        quietHint =
+          '<button class="empty-evening-hint" type="button" ' +
+          'data-advance-day="next" ' +
+          'data-advance-focus-event-id="' + escapeHtml(nextId) + '" ' +
+          'aria-label="Also worth a look tomorrow: ' +
+              escapeHtml(nextTitle) + '">' +
+          '<span class="empty-evening-hint__lead">' +
+              'Quieter night &mdash; also worth a look:' +
+          '</span> ' +
+          '<span class="empty-evening-hint__title">' +
+              escapeHtml(nextTitle) +
+          '</span> <span aria-hidden="true">&rarr;</span>' +
+          '</button>\n';
+      } else {
+        quietHint =
+          '<button class="empty-evening-hint" type="button" ' +
+          'data-advance-day="next" aria-label="See what\'s on tomorrow">' +
+          'Quieter night &mdash; see what\'s on tomorrow ' +
+          '<span aria-hidden="true">&darr;</span></button>\n';
+      }
     }
     return (
       '<section class="day" id="day-' + daySlug + '" role="tabpanel" ' +
@@ -4494,6 +4604,41 @@ body.has-banner > *:not(.deep-link-banner) {
     );
   }
 
+  // One-shot crumb at the foot of Settings → Tags pointing power users
+  // (any non-default tier override) at the score-chip toggle they
+  // probably don't know exists. Suppressed when scores are already on,
+  // for casual users without tier overrides, and after dismissal.
+  var SCORE_CHIP_CRUMB_KEY = 'melbourne-menu-score-chip-crumb-dismissed-v1';
+  function shouldShowScoreChipCrumb() {
+    if (profile.show_score_chip) return false;
+    var defs = (defaultProfile.subcategory_tiers) || {};
+    var cur = profile.subcategory_tiers || {};
+    var anyOverride = false;
+    for (var k in cur) {
+      if (cur[k] !== (defs[k] || 'neutral')) { anyOverride = true; break; }
+    }
+    if (!anyOverride) return false;
+    try {
+      if (localStorage.getItem(SCORE_CHIP_CRUMB_KEY)) return false;
+    } catch (_) {
+      return false;
+    }
+    return true;
+  }
+  function renderScoreChipCrumb() {
+    if (!shouldShowScoreChipCrumb()) return '';
+    return (
+      '<div class="score-chip-crumb">' +
+        '<span class="score-chip-crumb__msg">' +
+          'Curious why these events? Show event scores in ' +
+          '<strong>Appearance</strong>.' +
+        '</span>' +
+        '<button type="button" class="score-chip-crumb__close" ' +
+          'data-score-crumb-dismiss aria-label="Dismiss">&times;</button>' +
+      '</div>'
+    );
+  }
+
   function renderThemePickerHtml() {
     var theme = profile.theme || 'auto';
     function btn(value, label) {
@@ -4569,14 +4714,19 @@ body.has-banner > *:not(.deep-link-banner) {
           'aria-selected="false">Appearance</button>' +
       '</nav>' +
       '<div class="settings-panel" data-subtab="tags">' +
+        '<p class="settings-panel-desc">Tier categories so the menu picks ' +
+          'more of what you want and quietly drops the rest.</p>' +
         renderSubcatGroups() +
         renderHiddenEventsFooter() +
+        renderScoreChipCrumb() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
             'data-action="reset-tags">Reset all tags</button>' +
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="vibes" hidden>' +
+        '<p class="settings-panel-desc">Tune which event flavours rank ' +
+          'higher.</p>' +
         renderFacetGroups() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
@@ -4584,6 +4734,8 @@ body.has-banner > *:not(.deep-link-banner) {
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="rules" hidden>' +
+        '<p class="settings-panel-desc">Hard filters &mdash; free-only, ' +
+          'date-night, favourite venues, and so on.</p>' +
         renderRulesPanel() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
@@ -4591,6 +4743,8 @@ body.has-banner > *:not(.deep-link-banner) {
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="suburbs" hidden>' +
+        '<p class="settings-panel-desc">Boost or hide events by ' +
+          'location.</p>' +
         renderSuburbsPanel() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
@@ -4598,6 +4752,8 @@ body.has-banner > *:not(.deep-link-banner) {
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="shape" hidden>' +
+        '<p class="settings-panel-desc">How strict, how varied, how much ' +
+          'to favour the cheap.</p>' +
         renderShapePanel() +
         '<div class="settings-actions">' +
           '<button class="settings-action" type="button" ' +
@@ -4605,6 +4761,7 @@ body.has-banner > *:not(.deep-link-banner) {
         '</div>' +
       '</div>' +
       '<div class="settings-panel" data-subtab="appearance" hidden>' +
+        '<p class="settings-panel-desc">Theme and on-screen extras.</p>' +
         renderThemePickerHtml() +
       '</div>'
     );
@@ -4715,12 +4872,47 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     if (idx < 0 || idx >= tabs.length - 1) return;
     var nextSlug = tabs[idx + 1].dataset.tab;
+    var focusEventId = btn.dataset && btn.dataset.advanceFocusEventId;
     if (viewState.showAllDays) {
       var next = document.getElementById('day-' + nextSlug);
-      if (next) next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      if (next) {
+        next.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        flashDayHeading(next);
+      }
     } else {
       activate(nextSlug, {});
+      var nextTabbed = document.getElementById('day-' + nextSlug);
+      if (nextTabbed) flashDayHeading(nextTabbed);
     }
+    // Optional focus on the previewed top event after the day swap so
+    // the user lands directly on the title we just promised them.
+    // Defers a tick so activate()'s panel toggle and any sticky-header
+    // measure settle before scrollIntoView fires.
+    if (focusEventId) {
+      setTimeout(function () {
+        var card = document.getElementById('event-' + focusEventId);
+        if (card) {
+          card.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }
+      }, 60);
+    }
+  }
+
+  // Brief warm-tint pulse on the destination day-heading after a tab
+  // swap so the eye knows what just changed. Reduced-motion gated by
+  // the @keyframes consumer's media query.
+  function flashDayHeading(dayEl) {
+    if (!dayEl) return;
+    var heading = dayEl.querySelector('.day-heading');
+    if (!heading) return;
+    heading.classList.remove('day-heading--flash');
+    // Force reflow so re-adding the class restarts the animation when
+    // advancing repeatedly within the same render.
+    void heading.offsetWidth;
+    heading.classList.add('day-heading--flash');
+    setTimeout(function () {
+      heading.classList.remove('day-heading--flash');
+    }, 700);
   }
 
   function activate(tabName, opts) {
@@ -4881,10 +5073,37 @@ body.has-banner > *:not(.deep-link-banner) {
     mainEl.insertBefore(box, mainEl.firstChild);
   }
 
-  function dismissFirstVisitNudge() {
+  function dismissFirstVisitNudge(opts) {
     try { localStorage.setItem(FIRST_VISIT_NUDGE_KEY, '1'); } catch (_) {}
     var el = document.getElementById('first-visit-nudge');
-    if (el && el.parentNode) el.parentNode.removeChild(el);
+    if (!el || !el.parentNode) return;
+    // Pin-driven dismissals briefly swap the body to a confirmation
+    // ("Nice — pinned. The gear has more controls...") so the user
+    // sees their gesture acknowledged AND gets pointed at Settings
+    // before the nudge fades. Got-it / settings-tab dismissals stay
+    // silent — those paths are explicit user gestures already.
+    if (opts && opts.confirmation) {
+      el.classList.add('first-visit-nudge--confirm');
+      el.innerHTML =
+        '<svg class="first-visit-nudge__icon" viewBox="0 0 24 24" ' +
+          'fill="none" stroke="currentColor" stroke-width="1.5" ' +
+          'stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+          '<path d="M20 6 9 17l-5-5"/>' +
+        '</svg>' +
+        '<span class="first-visit-nudge__msg">' +
+          '<strong>Nice &mdash; pinned.</strong> The gear (top right) has ' +
+          'more controls when you want them.' +
+        '</span>';
+      setTimeout(function () {
+        if (!el || !el.parentNode) return;
+        el.style.opacity = '0';
+        setTimeout(function () {
+          if (el && el.parentNode) el.parentNode.removeChild(el);
+        }, 220);
+      }, 3000);
+      return;
+    }
+    el.parentNode.removeChild(el);
   }
 
   // One-shot inline notice for power users (any subcategory_tier
@@ -4945,7 +5164,9 @@ body.has-banner > *:not(.deep-link-banner) {
     var tpl = document.createElement('div');
     var stacked = !!viewState.showAllDays;
     for (var j = 0; j < days.length; j++) {
-      var h = renderDayHtml(days[j], ranking[days[j]], profile);
+      var nextDay = j + 1 < days.length ? days[j + 1] : null;
+      var nextTop = nextDay ? pickDayTopEvent(ranking[nextDay]) : null;
+      var h = renderDayHtml(days[j], ranking[days[j]], profile, nextTop);
       if (!h) continue;
       tpl.innerHTML = h;
       var dayEl = tpl.firstElementChild;
@@ -6060,7 +6281,7 @@ body.has-banner > *:not(.deep-link-banner) {
       hideBtn.appendChild(hideLabel);
       var hideHint = document.createElement('span');
       hideHint.className = 'card-overflow-option__hint';
-      hideHint.textContent = 'Hides every occurrence across the week';
+      hideHint.textContent = 'Hides this event from every day it appears';
       hideBtn.appendChild(hideHint);
       p.appendChild(hideBtn);
       return p;
@@ -6471,8 +6692,11 @@ body.has-banner > *:not(.deep-link-banner) {
     refreshPinnedSet();
     saveProfile();
     // Pinning is the implicit "I'm engaged" gesture; auto-dismiss the
-    // first-visit nudge if it's still up.
-    if (nowPinned) dismissFirstVisitNudge();
+    // first-visit nudge if it's still up. Confirmation mode briefly
+    // swaps the nudge body to "Nice — pinned" before fading, so the
+    // gesture is acknowledged AND the user is pointed at the gear
+    // before the nudge disappears.
+    if (nowPinned) dismissFirstVisitNudge({ confirmation: true });
 
     // Pin doesn't change scores or other events' visibility — only
     // the toggled event's filter-bypass and its sort within its own
@@ -7195,6 +7419,16 @@ body.has-banner > *:not(.deep-link-banner) {
       try { localStorage.setItem(SCORE_CHIP_NOTICE_KEY, '1'); } catch (_) {}
       var noticeEl = document.getElementById('score-chip-moved-notice');
       if (noticeEl && noticeEl.parentNode) noticeEl.parentNode.removeChild(noticeEl);
+      return;
+    }
+
+    // Score-chip discoverability crumb (Settings → Tags footer) dismiss.
+    // Persists in localStorage so it doesn't return on Tags re-render.
+    var crumbDismiss = e.target.closest && e.target.closest('[data-score-crumb-dismiss]');
+    if (crumbDismiss) {
+      try { localStorage.setItem(SCORE_CHIP_CRUMB_KEY, '1'); } catch (_) {}
+      var crumbEl = crumbDismiss.closest('.score-chip-crumb');
+      if (crumbEl && crumbEl.parentNode) crumbEl.parentNode.removeChild(crumbEl);
       return;
     }
     // Quiet-evening hint button — advance to the next day (in tabbed
