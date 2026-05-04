@@ -182,6 +182,15 @@ body {
   font-weight: var(--fw-medium);
   line-height: 1.3;
 }
+/* Two-form tagline — long sentence at >=480px, short label below. The
+   long form wraps to two lines on phones and steals vertical room from
+   the cards strip; the short form keeps the brand row at one line on
+   320–479px viewports. */
+.tagline-short { display: none; }
+@media (max-width: 479px) {
+  .tagline-long { display: none; }
+  .tagline-short { display: inline; }
+}
 @media (min-width: 640px) {
   .site-tagline {
     white-space: nowrap;
@@ -427,7 +436,10 @@ body {
   flex: 1 1 auto;
   width: 100%;
   font-family: var(--body-font);
-  font-size: var(--fs-4);
+  /* 16px floor — iOS Safari auto-zooms on focus when an input renders
+     below 16px, jolting the layout. max() keeps the desktop feel
+     (~14.7px from --fs-4) where viewport zoom isn't a concern. */
+  font-size: max(16px, var(--fs-4));
   color: var(--dark);
   background: var(--bg);
   border: 1px solid var(--rule);
@@ -2613,7 +2625,7 @@ body.has-banner > *:not(.deep-link-banner) {
 <div class="brand-stripe" aria-hidden="true"></div>
 <div class="brand-text">
 <h1 class="site-title"><span class="site-title-melbourne">Melbourne</span><span class="site-title-localmenu">Local Menu</span></h1>
-<p class="site-tagline">What's on tonight in Melbourne's inner north</p>
+<p class="site-tagline"><span class="tagline-long">What's on tonight in Melbourne's inner north</span><span class="tagline-short">Inner-north events</span></p>
 </div>
 </div>
 <div class="header-icons">
@@ -5755,13 +5767,18 @@ body.has-banner > *:not(.deep-link-banner) {
         }
       }
       var n = searchStats.events;
+      // Tight copy so the banner fits one line on a 360px phone. Each
+      // count + unit pair stays bonded with a non-breaking space so
+      // "7 days" can never split across lines mid-phrase.
+      var nUnit = (n === 1 ? 'match' : 'matches');
+      var dUnit = (dayCount === 1 ? 'day' : 'days');
       var msg =
-        'Showing <strong>' + n + ' event' + (n === 1 ? '' : 's') + '</strong>' +
-        ' matching “<strong>' + escapeHtml(searchQueryRaw) + '</strong>”' +
-        ' across <strong>' + dayCount + ' day' + (dayCount === 1 ? '' : 's') + '</strong>';
+        '<strong>' + n + '&nbsp;' + nUnit + '</strong>' +
+        ' in <strong>' + dayCount + '&nbsp;' + dUnit + '</strong>' +
+        ' for “<strong>' + escapeHtml(searchQueryRaw) + '</strong>”';
       var hh = searchStats.hiddenAlsoMatch || 0;
       if (hh > 0) {
-        msg += ' · <strong>' + hh + ' hidden</strong> also match' +
+        msg += ' · <strong>' + hh + '&nbsp;hidden</strong> also match' +
                (hh === 1 ? 'es' : '');
       }
       return msg +
@@ -6379,6 +6396,24 @@ body.has-banner > *:not(.deep-link-banner) {
     parent.appendChild(pop);
     if (anchor) anchor.setAttribute('aria-expanded', 'true');
     OPEN_POPOVERS.push(pop);
+    // closeOnScroll — for popovers anchored via fixed-position viewport
+    // coords (card-overflow), the popover stays put while the page
+    // scrolls beneath it. Close on first scroll so it never floats
+    // detached from the button it points at.
+    if (opts.closeOnScroll) {
+      var onScroll = function () {
+        window.removeEventListener('scroll', onScroll, true);
+        closePopover(pop);
+      };
+      pop._scrollListener = onScroll;
+      // Defer one frame so the click that opened the popover doesn't
+      // count as a scroll on iOS momentum-scrolling resume.
+      requestAnimationFrame(function () {
+        if (pop.parentNode) {
+          window.addEventListener('scroll', onScroll, { capture: true, passive: true });
+        }
+      });
+    }
     return pop;
   }
   // Close any popover that opted into outside-click dismissal when the
@@ -6399,6 +6434,10 @@ body.has-banner > *:not(.deep-link-banner) {
     if (!pop) return;
     var idx = OPEN_POPOVERS.indexOf(pop);
     if (idx !== -1) OPEN_POPOVERS.splice(idx, 1);
+    if (pop._scrollListener) {
+      window.removeEventListener('scroll', pop._scrollListener, true);
+      pop._scrollListener = null;
+    }
     if (pop._anchor) pop._anchor.setAttribute('aria-expanded', 'false');
     // Only restore focus if it's currently inside the popover — we don't
     // want to steal focus from wherever the user just clicked.
@@ -6512,7 +6551,7 @@ body.has-banner > *:not(.deep-link-banner) {
       p.appendChild(hideBtn);
       return p;
     }, { kind: 'card-overflow', eventId: ev.id, parent: document.body,
-         closeOnOutsideClick: true });
+         closeOnOutsideClick: true, closeOnScroll: true });
     if (!pop) return null;
     // Always position via fixed coords from the button rect. Right-
     // anchor so the menu's right edge aligns with the button's right
