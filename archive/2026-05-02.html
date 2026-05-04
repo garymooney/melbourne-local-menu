@@ -3971,6 +3971,7 @@ body.has-banner > *:not(.deep-link-banner) {
     if (sections.length === 0) {
       return (
         '<section class="day day--empty" id="day-' + daySlug + '" ' +
+        'data-day-iso="' + escapeHtml(dayIso) + '" ' +
         'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
         '<h2 class="day-heading">' +
           '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
@@ -4013,8 +4014,9 @@ body.has-banner > *:not(.deep-link-banner) {
       }
     }
     return (
-      '<section class="day" id="day-' + daySlug + '" role="tabpanel" ' +
-      'aria-labelledby="tab-' + daySlug + '" hidden>\n' +
+      '<section class="day" id="day-' + daySlug + '" ' +
+      'data-day-iso="' + escapeHtml(dayIso) + '" ' +
+      'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
       '<h2 class="day-heading">' +
         '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
         ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
@@ -6352,10 +6354,27 @@ body.has-banner > *:not(.deep-link-banner) {
     if (url) window.open(url, '_blank', 'noopener');
   }
 
-  function findItemInRanking(eventId, ranking) {
+  function findItemInRanking(eventId, ranking, preferDay) {
     if (!ranking) return null;
     var id = String(eventId);
+    // Multi-day events (TV runs, exhibitions, weekly recurrences) live
+    // in lastRanking under every day they're on. Prefer the caller's
+    // requested day so a pin click on the visible Saturday card doesn't
+    // resolve to the May-2 published-week-start instance whose panel
+    // isn't in the current 7-day display window.
+    if (preferDay && ranking[preferDay]) {
+      var pByCat = ranking[preferDay];
+      for (var pCat in pByCat) {
+        var pBlock = pByCat[pCat];
+        for (var pi = 0; pi < pBlock.length; pi++) {
+          if (String(pBlock[pi].event.id) === id) {
+            return { day: preferDay, cat: pCat, block: pBlock, idx: pi, item: pBlock[pi] };
+          }
+        }
+      }
+    }
     for (var day in ranking) {
+      if (day === preferDay) continue;
       var byCat = ranking[day];
       for (var cat in byCat) {
         var block = byCat[cat];
@@ -6387,6 +6406,11 @@ body.has-banner > *:not(.deep-link-banner) {
   // DOM state (Hidden disclosure open, Show-more expanded) before
   // measurement, so the FLIP transforms target the user-visible
   // layout rather than the freshly-built collapsed default.
+  // FLIP animation duration in ms. Held as a module constant so the
+  // post-FLIP cleanup timers (height-lock release, z-index clear) stay
+  // in sync with the actual animation length.
+  var FLIP_DURATION_MS = 320;
+
   function rerenderCategorySectionAnimated(dayIso, catKey, highlightId, opts) {
     if (!lastRanking || !lastRanking[dayIso]) return false;
     var block = lastRanking[dayIso][catKey];
@@ -6413,11 +6437,21 @@ body.has-banner > *:not(.deep-link-banner) {
       return true;
     }
 
+    // Cancel any in-flight FLIP transforms on prev cards from a previous
+    // pin click that's still animating. Without this, getBoundingClientRect
+    // returns the visually-displayed (mid-transform) rect instead of the
+    // natural rect, which gives the new FLIP wrong oldRects and sends the
+    // card flying off-screen.
     var prev = section.querySelectorAll('.event[id^="event-"]');
+    cancelInFlightFlip(prev);
     var oldRects = {};
     for (var i = 0; i < prev.length; i++) {
-      oldRects[prev[i].id] = prev[i].getBoundingClientRect();
+      oldRects[flipKey(prev[i])] = prev[i].getBoundingClientRect();
     }
+    // Lock the section's height to its current value during the FLIP so
+    // sibling sections in the same day don't shift while the cards inside
+    // are translating to their new positions.
+    var sectionLockedHeight = section.getBoundingClientRect().height;
 
     var html = renderCategoryHtml(catKey, block, profile);
     if (!html) { section.remove(); return true; }
@@ -6425,6 +6459,9 @@ body.has-banner > *:not(.deep-link-banner) {
     tpl.innerHTML = html;
     var newSection = tpl.firstElementChild;
     if (!newSection) { section.remove(); return true; }
+    if (sectionLockedHeight) {
+      newSection.style.minHeight = sectionLockedHeight + 'px';
+    }
     section.parentNode.replaceChild(newSection, section);
     // Restore local DOM state in the freshly-built section before we
     // measure newRects — see opts.preserveSnap comment above.
@@ -6439,7 +6476,7 @@ body.has-banner > *:not(.deep-link-banner) {
     var highlightAnim = null;
     for (var j = 0; j < next.length; j++) {
       var el = next[j];
-      var oldRect = oldRects[el.id];
+      var oldRect = oldRects[flipKey(el)];
       if (!oldRect) continue;
       var newRect = el.getBoundingClientRect();
       // Skip cards transitioning to/from a hidden "Show more"
@@ -6457,16 +6494,46 @@ body.has-banner > *:not(.deep-link-banner) {
           { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
           { transform: 'translate(0, 0)' }
         ],
-        { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        { duration: FLIP_DURATION_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
       );
       if (el === highlightEl) highlightAnim = anim;
     }
     if (highlightEl) {
       var clearZ = function () { highlightEl.style.zIndex = ''; };
       if (highlightAnim) highlightAnim.onfinish = clearZ;
-      else setTimeout(clearZ, 340);
+      else setTimeout(clearZ, FLIP_DURATION_MS + 20);
     }
+    // Release the section height-lock once the FLIP is over, so the
+    // section can settle to its natural height afterwards.
+    setTimeout(function () { newSection.style.minHeight = ''; },
+      FLIP_DURATION_MS + 20);
     return true;
+  }
+
+  // Cancel any active Web Animations on the given NodeList of cards.
+  // No-op on browsers without getAnimations (Safari < 13.1) — those
+  // browsers also fall through the Web-Animations-API guard upstream.
+  function cancelInFlightFlip(nodes) {
+    for (var i = 0; i < nodes.length; i++) {
+      var n = nodes[i];
+      if (!n.getAnimations) continue;
+      var anims = n.getAnimations();
+      for (var j = 0; j < anims.length; j++) {
+        try { anims[j].cancel(); } catch (_) {}
+      }
+    }
+  }
+
+  // Multi-day events (TV runs, exhibitions, weekly recurrences) render
+  // with the SAME `id="event-XXX"` in every day panel they appear in.
+  // Keying FLIP rects by id alone collides — the last instance to be
+  // measured overwrites the rest, and the loop later computes wildly
+  // wrong dx/dy for the surviving id (cards "teleport" from the
+  // document bottom and animate up). Scope the key by the enclosing
+  // day panel id so each instance gets its own rect.
+  function flipKey(el) {
+    var dayEl = el.closest('.day');
+    return (dayEl && dayEl.id ? dayEl.id : '') + '|' + el.id;
   }
 
   // ============================================================
@@ -6525,9 +6592,10 @@ body.has-banner > *:not(.deep-link-banner) {
   //  hide list persists in profile.hidden_event_ids; HIDDEN_SET
   //  mirrors it for O(1) checks during buildRanking.
   // ============================================================
-  function toggleHide(eventId) {
+  function toggleHide(eventId, opts) {
     var id = String(eventId);
     if (HIDDEN_SET.has(id)) return;  // already hidden — Unhide path handles toggle-off
+    var preferDay = opts && opts.preferDay;
     var list = (profile.hidden_event_ids || []).slice();
     list.push(id);
     profile.hidden_event_ids = list;
@@ -6547,18 +6615,94 @@ body.has-banner > *:not(.deep-link-banner) {
       refreshPinnedSet();
     }
     saveProfile();
-    // Hiding moves the event between buckets (curated/extras → hidden
-    // disclosure) — the optimized per-section rerender doesn't handle
-    // bucket migration, so do a full re-render. preserveScores keeps
-    // the score cache warm. Snapshot any open Hidden disclosures /
-    // Show-more sections so a hide from inside one doesn't snap it
-    // shut.
+    // Move the event from curated/expanded → block.hidden in lastRanking
+    // for every (day, cat) it appears in, then per-section rerender each
+    // affected section. Way faster than a full rebuild for multi-day
+    // events (TV runs, exhibitions) which would otherwise re-rank +
+    // re-render all 7 day panels just to move one card per section.
+    var affected = moveItemToHiddenBucket(id);
     var snap = captureSectionUIState();
-    renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+    if (!affected.length) {
+      // Event not in any cached block (defensive — shouldn't happen for
+      // a visible card). Fall back to full rebuild.
+      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+    } else {
+      rerenderAffectedSections(affected, id, preferDay, snap);
+    }
     unlockMainHeight(snap);
     // Settings → Tags footer reads from profile.hidden_event_ids; rebuild
     // so the count surfaces correctly when the user next opens Settings.
     rerenderSettingsPreservingSubtab();
+  }
+
+  // Move every occurrence of `id` from curated/expanded → block.hidden
+  // in lastRanking. Returns the list of (day, cat) sections that need
+  // a per-section rerender to reflect the move.
+  function moveItemToHiddenBucket(id) {
+    var affected = [];
+    if (!lastRanking) return affected;
+    for (var day in lastRanking) {
+      for (var cat in lastRanking[day]) {
+        var block = lastRanking[day][cat];
+        for (var i = block.length - 1; i >= 0; i--) {
+          if (String(block[i].event.id) === id) {
+            var item = block.splice(i, 1)[0];
+            item.is_user_hidden = true;
+            block.hidden = block.hidden || [];
+            block.hidden.push(item);
+            affected.push({ day: day, cat: cat });
+          }
+        }
+      }
+    }
+    return affected;
+  }
+
+  // Inverse of moveItemToHiddenBucket: pull the event out of every
+  // block.hidden it lives in and put it back into the visible block.
+  // sortForDisplay at render time decides whether it lands in curated
+  // or expanded based on item.is_expanded.
+  function moveItemFromHiddenBucket(id) {
+    var affected = [];
+    if (!lastRanking) return affected;
+    for (var day in lastRanking) {
+      for (var cat in lastRanking[day]) {
+        var block = lastRanking[day][cat];
+        var hiddenArr = block.hidden;
+        if (!hiddenArr) continue;
+        for (var i = hiddenArr.length - 1; i >= 0; i--) {
+          if (String(hiddenArr[i].event.id) === id) {
+            var item = hiddenArr.splice(i, 1)[0];
+            item.is_user_hidden = false;
+            block.push(item);
+            affected.push({ day: day, cat: cat });
+          }
+        }
+      }
+    }
+    return affected;
+  }
+
+  // Per-section rerender each affected (day, cat). When preferDay is
+  // provided, that day rerenders FIRST so the user sees the section
+  // they're looking at update before the off-screen ones.
+  function rerenderAffectedSections(affected, highlightId, preferDay, snap) {
+    if (preferDay) {
+      affected.sort(function (a, b) {
+        if (a.day === preferDay && b.day !== preferDay) return -1;
+        if (b.day === preferDay && a.day !== preferDay) return 1;
+        return 0;
+      });
+    }
+    for (var ai = 0; ai < affected.length; ai++) {
+      var a = affected[ai];
+      // rerenderCategorySectionAnimated returns false when the day
+      // panel isn't in the current display window; we skip silently —
+      // the next full renderAll will resolve any drift.
+      rerenderCategorySectionAnimated(a.day, a.cat, highlightId, {
+        preserveSnap: snap,
+      });
+    }
   }
 
   // Snapshot per-section local UI state (Hidden disclosure open + Show-
@@ -6652,17 +6796,21 @@ body.has-banner > *:not(.deep-link-banner) {
   function unlockMainHeight(state) {
     if (!state || !state.mainEl) return;
     var m = state.mainEl;
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(function () { m.style.minHeight = ''; });
-    } else {
-      m.style.minHeight = '';
-    }
+    // Wait until the FLIP animation has settled before clearing the
+    // height lock. Releasing the lock mid-animation lets <main> shrink,
+    // which clamps window.scrollY to a smaller maxScroll and shifts
+    // every card's natural baseline upward — turning the in-flight
+    // translate(...) → translate(0,0) into a "fly off-screen, animate
+    // back" glitch on long sections (e.g. Watch).
+    setTimeout(function () { m.style.minHeight = ''; },
+      FLIP_DURATION_MS + 20);
   }
 
   function unhide(eventId, opts) {
     opts = opts || {};
     var id = String(eventId);
     if (!HIDDEN_SET.has(id)) return false;
+    var preferDay = opts.preferDay;
     var list = (profile.hidden_event_ids || []).slice();
     var idx = list.indexOf(id);
     if (idx !== -1) list.splice(idx, 1);
@@ -6673,13 +6821,16 @@ body.has-banner > *:not(.deep-link-banner) {
       showToast(opts.message || 'Event unhidden');
     }
     if (!opts.skipRender) {
-      // Preserve currently-open Hidden disclosures + Show-more across
-      // the re-render so the user stays inside whichever bucket they
-      // were browsing. The open-state restore MUST land between
-      // renderAll and the FLIP newRect capture (via onPostRender) —
-      // otherwise the post-FLIP reflow shifts unrelated cards.
+      // Mirror toggleHide: move every occurrence out of block.hidden
+      // back into the visible block, then per-section rerender just
+      // the affected sections instead of full-rebuilding the page.
+      var affected = moveItemFromHiddenBucket(id);
       var snap = captureSectionUIState();
-      renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      if (!affected.length) {
+        renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
+      } else {
+        rerenderAffectedSections(affected, id, preferDay, snap);
+      }
       unlockMainHeight(snap);
     }
     rerenderSettingsPreservingSubtab();
@@ -6699,8 +6850,9 @@ body.has-banner > *:not(.deep-link-banner) {
     rerenderSettingsPreservingSubtab();
   }
 
-  function togglePin(eventId) {
+  function togglePin(eventId, opts) {
     var id = String(eventId);
+    var preferDay = opts && opts.preferDay;
     // Snapshot Show-more + Hidden disclosure state so a pin from inside
     // either bucket doesn't snap it shut. The optimized per-section
     // rerender below rebuilds the section's <details>/<button> from
@@ -6748,7 +6900,7 @@ body.has-banner > *:not(.deep-link-banner) {
     // for a day / category that was empty under the current filters)
     // or when removing this event would empty the day entirely (the
     // day tab and panel both need to disappear).
-    var loc = findItemInRanking(id, lastRanking);
+    var loc = findItemInRanking(id, lastRanking, preferDay);
     var ev = loc ? loc.item.event : eventsById[id];
     if (!ev) {
       renderAllAnimated(id, { preserveScores: true, preserveSnap: snap });
@@ -7329,9 +7481,10 @@ body.has-banner > *:not(.deep-link-banner) {
       return;
     }
     var prev = document.querySelectorAll('.event[id^="event-"]');
+    cancelInFlightFlip(prev);
     var oldRects = {};
     for (var i = 0; i < prev.length; i++) {
-      oldRects[prev[i].id] = prev[i].getBoundingClientRect();
+      oldRects[flipKey(prev[i])] = prev[i].getBoundingClientRect();
     }
     renderAll(opts);
     // Post-render: re-apply DOM-local state (Hidden disclosure open,
@@ -7357,7 +7510,7 @@ body.has-banner > *:not(.deep-link-banner) {
     var highlightAnim = null;
     for (var j = 0; j < next.length; j++) {
       var el = next[j];
-      var oldRect = oldRects[el.id];
+      var oldRect = oldRects[flipKey(el)];
       if (!oldRect) continue;  // new card; just appears in place
       var newRect = el.getBoundingClientRect();
       // Skip cards transitioning to/from a hidden "Show more"
@@ -7373,7 +7526,7 @@ body.has-banner > *:not(.deep-link-banner) {
           { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
           { transform: 'translate(0, 0)' }
         ],
-        { duration: 320, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
+        { duration: FLIP_DURATION_MS, easing: 'cubic-bezier(0.2, 0.8, 0.2, 1)' }
       );
       if (el === highlightEl) highlightAnim = anim;
     }
@@ -7383,7 +7536,7 @@ body.has-banner > *:not(.deep-link-banner) {
       // Even if the highlighted card had zero delta (no animation
       // returned), drop the z-index after a short delay so it doesn't
       // get stuck above its peers forever.
-      else setTimeout(clearZ, 340);
+      else setTimeout(clearZ, FLIP_DURATION_MS + 20);
     }
   }
 
@@ -7483,9 +7636,15 @@ body.has-banner > *:not(.deep-link-banner) {
 
     // Pin button — toggle pinned state, persist, re-render. Handled before
     // the calendar picker so a pin click doesn't open / close the picker.
+    // Pass the enclosing day's ISO date so multi-day events (TV runs,
+    // exhibitions) resolve to the visible day's section, not the first
+    // occurrence in lastRanking which may be outside the display window.
     var pinBtn = e.target.closest && e.target.closest('.pin-btn');
     if (pinBtn) {
-      togglePin(pinBtn.dataset.eventId);
+      var pinDayEl = pinBtn.closest('.day');
+      var pinDayIso = pinDayEl && pinDayEl.dataset.dayIso;
+      togglePin(pinBtn.dataset.eventId,
+        pinDayIso ? { preferDay: pinDayIso } : undefined);
       return;
     }
 
@@ -7496,7 +7655,12 @@ body.has-banner > *:not(.deep-link-banner) {
     // change confirms the action).
     var unhideBtn = e.target.closest && e.target.closest('.unhide-btn');
     if (unhideBtn) {
-      unhide(unhideBtn.dataset.eventId, { silent: true });
+      var unhideDayEl = unhideBtn.closest('.day');
+      var unhideDayIso = unhideDayEl && unhideDayEl.dataset.dayIso;
+      unhide(unhideBtn.dataset.eventId, {
+        silent: true,
+        preferDay: unhideDayIso || undefined,
+      });
       return;
     }
 
@@ -7622,8 +7786,11 @@ body.has-banner > *:not(.deep-link-banner) {
       } else if (ovEv && ovKind === 'hide') {
         // Close the popover first so it doesn't stick around over the
         // re-rendered card. toggleHide handles the rest (toast + render).
+        var ovDayEl = ovOpt.closest('.day');
+        var ovDayIso = ovDayEl && ovDayEl.dataset.dayIso;
         closeAllPopovers();
-        toggleHide(ovOpt.dataset.eventId || ovEv.id);
+        toggleHide(ovOpt.dataset.eventId || ovEv.id,
+          ovDayIso ? { preferDay: ovDayIso } : undefined);
         return;
       }
       closeAllPopovers();
