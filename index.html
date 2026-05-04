@@ -1271,11 +1271,17 @@ body.has-banner > *:not(.deep-link-banner) {
    tooltip is open we restore opacity to 1 so the tooltip background
    reads as solid; this also removes the opacity-induced stacking
    context, letting the tooltip's own z-index render above the sticky
-   .category-header. */
+   .category-header.
+
+   z-index keeps the card above its siblings during the 200ms opacity
+   fade-in. While opacity is transitioning 0.78 → 1, the parent still
+   has a stacking context, so without a positive z-index the next
+   sibling card would paint over the tooltip mid-transition. */
 .event.extra:has(.score-chip:hover),
 .event.extra:has(.score-chip:focus-within),
 .event.extra:has(.score-chip.open) {
   opacity: 1;
+  z-index: 5;
 }
 /* :has() fallback — older Safari/Firefox/Android WebView don't support
    the rule above and would render the score-breakdown tooltip at the
@@ -1283,6 +1289,7 @@ body.has-banner > *:not(.deep-link-banner) {
    on chip hover/focus/open so the same opacity reset fires. */
 .event.extra.tooltip-open {
   opacity: 1;
+  z-index: 5;
 }
 .event.extra .venue,
 .event.extra .title {
@@ -7858,6 +7865,22 @@ body.has-banner > *:not(.deep-link-banner) {
     // returns from the handlers below take effect with selection
     // already cleared. Cheap visual-only update; no renderAll.
     clearSelectionVisuals();
+
+    // Score-chip tooltip closes on any click that lands outside a
+    // chip — including pin/calendar/share/copy buttons. Runs at the
+    // top so the early-returns from the action handlers below don't
+    // strand a tooltip open over the action the user is now taking.
+    // The chip's own click (toggle open/closed) is handled by the
+    // dedicated chip section further down; we only do the off-chip
+    // close-everything pass here.
+    var topChipEl = e.target.closest && e.target.closest('.score-chip');
+    if (!topChipEl) {
+      var topOpenChips = document.querySelectorAll('.score-chip.open');
+      for (var tci = 0; tci < topOpenChips.length; tci++) {
+        topOpenChips[tci].classList.remove('open');
+        syncTooltipOpenClass(topOpenChips[tci]);
+      }
+    }
 
     // First-visit nudge dismiss button.
     var nudgeDismiss = e.target.closest && e.target.closest('[data-nudge-dismiss]');
