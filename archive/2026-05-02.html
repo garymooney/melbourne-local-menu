@@ -5669,7 +5669,23 @@ body.has-banner > *:not(.deep-link-banner) {
     // Force a fresh render so panels get .day--stacked class applied/removed.
     renderAll({ preserveScores: true });
   }
-  function toggleAllDays() { setAllWeekActive(true); }
+  function toggleAllDays() {
+    // Clicking the All-week pill from Settings should leave Settings
+    // and show the stacked feed. setAllWeekActive's renderAll ends by
+    // re-activating the current activeTab — if that's still 'settings',
+    // the freshly-built day panels would just be hidden again. Pre-flip
+    // activeTab to a day slug so the renderAll's tail activates a day
+    // tab and the stacked feed actually appears.
+    if (activeTab === 'settings') {
+      var nextTab = lastDayTab || firstAvailableDayTab();
+      if (nextTab) {
+        activeTab = nextTab;
+        var hash = '#day-' + nextTab;
+        if (location.hash !== hash) history.replaceState(null, '', hash);
+      }
+    }
+    setAllWeekActive(true);
+  }
 
   // Open / close the search panel. `force` overrides the toggle:
   // toggleSearchPanel(true) opens, toggleSearchPanel(false) closes,
@@ -8088,14 +8104,16 @@ body.has-banner > *:not(.deep-link-banner) {
         dismissFirstVisitNudge();
         if (viewState.searchPanelOpen) toggleSearchPanel(false);
       }
-      // Tab semantics: clicking a day-tab while stacked EXITS stacked
-      // mode and activates that single day. Set activeTab to the click
-      // target BEFORE the renderAll fires so the freshly-rendered tab
-      // strip + the activate() at the end of renderAll both pick the
-      // clicked day — otherwise today's tab would briefly highlight
-      // (since activeTab was still pointing at scroll-spy's last
-      // tracked day) before our explicit activate() lands.
-      if (viewState.showAllDays && tab.dataset.tab !== 'settings') {
+      // Tab semantics: clicking ANY tab while stacked EXITS stacked
+      // mode (whether the destination is a day tab or Settings). Set
+      // activeTab to the click target BEFORE the renderAll fires so
+      // the freshly-rendered tab strip + the activate() at the end of
+      // renderAll both pick the clicked target — otherwise today's
+      // tab would briefly highlight (since activeTab was still
+      // pointing at scroll-spy's last tracked day) before our explicit
+      // activate() lands. Settings click also gets here so the Week
+      // pill visibly deselects when entering Settings.
+      if (viewState.showAllDays) {
         activeTab = tab.dataset.tab;
         setAllWeekActive(false);
       }
