@@ -288,7 +288,7 @@ body {
   cursor: pointer;
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: center;
   line-height: 1.15;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
@@ -353,13 +353,13 @@ body {
   color: var(--muted);
   padding: 8px 14px;
   display: inline-flex;
+  flex-direction: column;
   align-items: center;
   border-radius: 8px;
   font-family: var(--body-font);
   font-size: var(--fs-3);
-  font-weight: var(--fw-medium);
   cursor: pointer;
-  letter-spacing: 0.3px;
+  line-height: 1.15;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
 }
 .week-pill:hover { border-color: var(--accent-warm); color: var(--dark); }
@@ -1985,11 +1985,12 @@ body.has-banner > *:not(.deep-link-banner) {
   margin-top: 1.2em;
 }
 
-/* --- Event count badge on each day tab; live-updated from the ranking. */
+/* --- Event count badge on each day tab; live-updated from the ranking.
+   Parent (.day-tab / .week-pill) uses align-items: center, so the
+   badge centres horizontally alongside the weekday/date labels above. */
 .tab-count {
   display: inline-block;
   margin-top: 4px;
-  margin-left: 6px;
   padding: 0 5px;
   min-width: 1.4em;
   font-size: 0.78em;
@@ -2622,7 +2623,7 @@ body.has-banner > *:not(.deep-link-banner) {
 </div>
 <div class="tabs-row">
 <nav class="day-tabs" role="tablist" aria-label="Days"></nav>
-<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day of the week stacked" title="Show every day of the week stacked">All week</button></span>
+<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day of the week stacked" title="Show every day of the week stacked"><span class="tab-weekday">All week</span><span class="tab-count" data-week-count></span></button></span>
 </div>
 <div class="search-panel" id="search-panel" hidden>
 <div class="search-input-wrap">
@@ -5445,6 +5446,19 @@ body.has-banner > *:not(.deep-link-banner) {
     if (weekPillBtn) {
       weekPillBtn.setAttribute(
         'aria-pressed', viewState.showAllDays ? 'true' : 'false');
+      // Sum the per-day counts for the All-week pill's badge so it
+      // mirrors the day pills' .tab-count treatment.
+      var weekTotal = 0;
+      for (var dk in dayCounts) {
+        if (Object.prototype.hasOwnProperty.call(dayCounts, dk)) {
+          weekTotal += (dayCounts[dk] || 0);
+        }
+      }
+      var weekCountEl = weekPillBtn.querySelector('[data-week-count]');
+      if (weekCountEl) {
+        weekCountEl.textContent = String(weekTotal);
+        weekCountEl.setAttribute('aria-label', weekTotal + ' events this week');
+      }
     }
 
     rebuildDayPanels(ranking, days, profile);
