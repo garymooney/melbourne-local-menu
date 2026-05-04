@@ -10,11 +10,15 @@
   --accent-warm: #c4452b;
   --accent-cool: #3a86ff;
   --dark: #1a1a1a;
+  --text: #1a1a1a;
   --muted: #555;
-  --faint: #888;
+  --faint: #6b6b6b;
   --rule: #e5e5e5;
-  --card-bg: #fafafa;
-  --bg: #ffffff;
+  /* PR 3 hybrid card refresh: warmer page bg + brighter card surface
+     creates the page-vs-card lift; the quieter shadow then doesn't have
+     to do all the visibility work. */
+  --card-bg: #ffffff;
+  --bg: #f5efe3;
   --free-green: #3a9d3a;
   --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono-font: 'SF Mono', Consolas, monospace;
@@ -32,39 +36,63 @@
   --fw-medium: 600;
   --fw-bold: 700;
   --fw-black: 800;
+  /* Letter-spacing ladder. The file used to ship 6 distinct values
+     ("vibes" tracking) — these four tokens cover everything from a
+     tightened brand title to spaced-out ALL-CAPS section labels. */
+  --ls-tight: -0.2px;
+  --ls-normal: 0.3px;
+  --ls-wide: 1.2px;
+  --ls-uppercase: 2px;
   /* Soft warm wash on a card-bg base. Used by brand mark, first-visit
      nudge (PR 3), and other quiet warm tints. Theme-aware: dark mode
      bumps the percentage so the wash stays visible against #1e1e1e. */
   --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 4%, var(--card-bg));
+  /* PR 3 pin treatment: pinned cards bg-shift toward warm-cream. 4% in
+     light mode reads as a quiet tint against #ffffff; bumped in dark. */
+  --pinned-tint: color-mix(in srgb, #ff6b4a 4%, var(--card-bg));
+  /* Day-heading hero gradient stops. Light mode at 22/22 reads against
+     #ffffff; dark mode bumps to 32/32 because a flat 13% washes out
+     completely against #121212. Per-theme tokens let one .day-heading
+     rule pick up the right stops automatically. */
+  --day-heading-warm-stop: 22%;
+  --day-heading-cool-stop: 22%;
 }
 /* Auto dark mode — fires when the OS prefers dark AND the user hasn't
    explicitly chosen "light" via the Settings appearance picker. */
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) {
     --dark: #f0f0f0;
+    --text: #f0f0f0;
     --muted: #bbb;
-    --faint: #999;
+    --faint: #a8a8a8;
     --rule: #333;
-    --card-bg: #1e1e1e;
-    --bg: #121212;
+    --card-bg: #2d2620;
+    --bg: #1a1612;
     --accent-warm: #ff6b4a;
     --accent-cool: #5a9dff;
     --free-green: #5fbe5f;
     --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 14%, var(--card-bg));
+    --pinned-tint: color-mix(in srgb, #ff6b4a 8%, var(--card-bg));
+    --day-heading-warm-stop: 32%;
+    --day-heading-cool-stop: 32%;
   }
 }
 /* Manual dark override — takes effect even when the OS prefers light. */
 :root[data-theme="dark"] {
   --dark: #f0f0f0;
+  --text: #f0f0f0;
   --muted: #bbb;
-  --faint: #999;
+  --faint: #a8a8a8;
   --rule: #333;
-  --card-bg: #1e1e1e;
-  --bg: #121212;
+  --card-bg: #2d2620;
+  --bg: #1a1612;
   --accent-warm: #ff6b4a;
   --accent-cool: #5a9dff;
   --free-green: #5fbe5f;
   --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 14%, var(--card-bg));
+  --pinned-tint: color-mix(in srgb, #ff6b4a 8%, var(--card-bg));
+  --day-heading-warm-stop: 32%;
+  --day-heading-cool-stop: 32%;
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
@@ -136,11 +164,11 @@ body {
   min-width: 0;
 }
 .site-title {
-  font-size: 1.55em;
+  font-size: var(--fs-6);
   font-weight: var(--fw-black);
   margin: 0;
   line-height: 1.1;
-  letter-spacing: -0.2px;
+  letter-spacing: var(--ls-tight);
 }
 .site-title-melbourne { color: var(--dark); }
 .site-title-localmenu { color: var(--accent-warm); margin-left: 0.3em; }
@@ -193,10 +221,37 @@ body {
 }
 .header-icon-btn[aria-expanded="true"] { color: var(--dark); }
 .header-icon-btn[aria-selected="true"] { color: var(--accent-cool); }
-.header-icon-btn svg { width: 20px; height: 20px; display: block; }
+.header-icon-btn svg {
+  width: 20px;
+  height: 20px;
+  display: block;
+  /* Match action-row icon weight (see .pin-btn svg etc.). The shipped
+     stroke-width="1.5" reads heavy at 20px; 1.25 lands closer to the
+     refined Lucide weight the design is aiming for. */
+  stroke-width: 1.25;
+}
 .header-icon-label { display: none; }
-@media (min-width: 480px) {
+/* Search-icon label visible from 360px up — mobile is exactly where
+   discoverability is hardest, so the label earns its space. */
+@media (min-width: 360px) {
   .search-icon-btn .header-icon-label { display: inline; }
+}
+/* 320–360px crunch — the brand row needs to stay one line. Tighten the
+   header icon-button minimum, drop the title down a step, and let the
+   week-pill scrim shrink with the viewport. */
+@media (max-width: 360px) {
+  .header-icon-btn { min-width: 40px; padding: 0 6px; }
+  .site-title {
+    font-size: var(--fs-6);
+    overflow: hidden;
+    text-overflow: ellipsis;
+    min-width: 0;
+  }
+  .week-pill-wrap::before { width: clamp(40px, 18vw, 80px); }
+  .week-pill-wrap::after {
+    left: calc(-1 * clamp(40px, 18vw, 80px));
+    background: linear-gradient(to right, transparent, var(--bg) clamp(40px, 18vw, 80px));
+  }
 }
 /* Day-tabs row + day-tab pills + Week pill (separate class so existing
    .day-tab selectors don't pick it up). */
@@ -466,7 +521,7 @@ body {
   background: color-mix(in srgb, var(--accent-warm) 8%, var(--card-bg));
   border-top: 1px solid color-mix(in srgb, var(--accent-warm) 30%, var(--rule));
   border-bottom: 1px solid color-mix(in srgb, var(--accent-warm) 30%, var(--rule));
-  font-size: 0.85em;
+  font-size: var(--fs-3);
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -527,7 +582,7 @@ body {
   background: color-mix(in srgb, var(--accent-warm) 8%, var(--card-bg));
   border-top: 1px solid color-mix(in srgb, var(--accent-warm) 30%, var(--rule));
   border-bottom: 1px solid color-mix(in srgb, var(--accent-warm) 30%, var(--rule));
-  font-size: 0.85em;
+  font-size: var(--fs-3);
   color: var(--muted);
   display: flex;
   align-items: center;
@@ -556,10 +611,10 @@ body {
   gap: 6px;
 }
 .filter-section-label {
-  font-size: 0.72em;
+  font-size: var(--fs-1);
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 1.5px;
+  letter-spacing: var(--ls-wide);
   color: var(--faint);
 }
 .category-chips {
@@ -635,7 +690,7 @@ body {
 /* Stacked-days mode: each .day panel is visible. Add a soft separator
    between days so the eye picks out the boundary as you scroll. */
 .day.day--stacked + .day.day--stacked {
-  margin-top: 1.6em;
+  margin-top: 2.4em;
   border-top: 1px dashed var(--rule);
   padding-top: 0.6em;
 }
@@ -649,18 +704,35 @@ body {
 }
 .day[hidden] { display: none; }
 .day-heading {
+  position: relative;
   font-size: var(--fs-7);
   font-weight: var(--fw-bold);
   background: linear-gradient(
     90deg,
-    color-mix(in srgb, var(--accent-warm) 13%, transparent),
-    color-mix(in srgb, var(--accent-cool) 13%, transparent)
+    color-mix(in srgb, var(--accent-warm) var(--day-heading-warm-stop), transparent),
+    color-mix(in srgb, var(--accent-cool) var(--day-heading-cool-stop), transparent)
   );
-  padding: 24px 18px 20px;
+  padding: 24px 18px 20px 22px;
   border-radius: 8px;
   margin: 1em 0 0.6em;
-  letter-spacing: 0.2px;
+  letter-spacing: var(--ls-normal);
   line-height: 1.15;
+}
+/* 6px brand-stripe echo on the left edge — same warm→cool vocabulary
+   as the masthead .brand-stripe, repeated as a rhythm anchor where
+   each day begins. Sits inside the rounded radius via overflow trim
+   on the parent. */
+.day-heading::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 0;
+  width: 6px;
+  border-radius: 8px 0 0 8px;
+  background: linear-gradient(180deg, var(--accent-warm), var(--accent-cool));
+  opacity: 0.85;
+  pointer-events: none;
 }
 .day-heading__lead { font-weight: var(--fw-bold); }
 .day-heading__sep {
@@ -711,13 +783,28 @@ body:has(#first-visit-nudge) .day {
   width: 20px;
   height: 20px;
   color: var(--accent-warm);
+  stroke-width: 1.25;
 }
 .first-visit-nudge__msg { flex: 1; line-height: 1.45; }
 .first-visit-nudge__msg strong {
   font-weight: var(--fw-bold);
   margin-right: 2px;
 }
-.first-visit-nudge__gear { white-space: nowrap; }
+/* Inline cog inside the body copy. Matches the header settings icon
+   exactly (same Lucide outline) so "tap [cog]" points at the visible
+   header glyph rather than at a different emoji. */
+.first-visit-nudge__gear {
+  display: inline-flex;
+  align-items: center;
+  vertical-align: -3px;
+  margin: 0 1px;
+}
+.first-visit-nudge__gear svg {
+  width: 1.05em;
+  height: 1.05em;
+  color: var(--accent-warm);
+  stroke-width: 1.25;
+}
 .first-visit-nudge__close {
   appearance: none;
   background: transparent;
@@ -815,48 +902,27 @@ body:has(#first-visit-nudge) .day {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
-/* The 1px gradient-tinted top rule lives on the section, not the
-   sticky header inside it — otherwise the rule sticks to the top
-   alongside the site-header's gradient hairline (two stacked stuck
-   lines that drift apart on certain viewport widths due to sub-
-   pixel rounding). Here it scrolls naturally as a section divider. */
-.category {
-  margin: 1.2em 0 1em;
-  border-top: 1px solid color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
-}
-/* Quiet sticky section anchor — drops the warm fill + dark side border
-   that previously made these read as headlines competing with the
-   day-heading hero. Now: body text weight, uppercase letter-spaced
-   label + small count. The section's top rule lives on .category. */
+.category { margin: 1.2em 0 1em; }
+/* Quiet sticky section anchor. The warm-tinted top rule lives on the
+   header itself (not on .category) so it stays visible while the
+   header is stuck — previously the rule scrolled away when the user
+   was deep inside a category. Body text weight, uppercase letter-
+   spaced label + small count. */
 .category-header {
   display: flex;
   align-items: baseline;
   font-size: var(--fs-3);
   font-weight: var(--fw-bold);
   text-transform: uppercase;
-  letter-spacing: 2.5px;
+  letter-spacing: var(--ls-uppercase);
   color: var(--muted);
   background: var(--bg);
-  padding: 8px 0 6px;
+  border-top: 1px solid color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
+  padding: 10px 0 6px;
   margin: 0 0 0.6em;
   position: sticky;
   top: var(--header-offset, 120px);
   z-index: 5;
-}
-/* Solid-bg cap that extends 4px above the sticky header. The site-
-   header at z-index 10 paints over it whenever they're flush; when
-   sub-pixel sticky positioning leaves a hairline gap (the symptom
-   was events scrolling past becoming visible between the open
-   search panel and the category header), the cap fills it. */
-.category-header::before {
-  content: "";
-  position: absolute;
-  top: -4px;
-  left: 0;
-  right: 0;
-  height: 4px;
-  background: var(--bg);
-  pointer-events: none;
 }
 .category-header .count {
   display: inline-block;
@@ -864,7 +930,7 @@ body:has(#first-visit-nudge) .day {
   padding: 0;
   font-size: var(--fs-2);
   font-weight: var(--fw-medium);
-  letter-spacing: 0.5px;
+  letter-spacing: var(--ls-normal);
   color: var(--faint);
   text-transform: none;
   line-height: 1.5;
@@ -876,50 +942,97 @@ body:has(#first-visit-nudge) .day {
 }
 .events {
   display: grid;
-  gap: 8px;
+  gap: 12px;
 }
 .events[hidden] { display: none; }
 @media (min-width: 640px) {
-  .events { grid-template-columns: repeat(2, 1fr); }
+  .events { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 }
 @media (min-width: 1024px) {
   .events { grid-template-columns: repeat(3, 1fr); }
 }
+/* PR 3 hybrid card surface. The legacy 3px coloured left stripe is
+   gone — page-vs-card contrast (warmer --bg, brighter --card-bg) does
+   the lift work, and the shadow stays restrained.
+   Three-column grid (auto auto 1fr) + grid-auto-flow: row dense lets
+   .price land in col 2 of the .time row via dense backfill, with a
+   middle-dot ::before separator. Every other direct child spans the
+   full row. */
 .event {
-  border-left: 3px solid var(--accent-warm);
-  padding: 10px 14px 10px 14px;
+  border: 1px solid rgba(20, 18, 16, 0.08);
+  border-radius: 6px;
   background: var(--card-bg);
-  border-radius: 0 6px 6px 0;
-  display: flex;
-  flex-direction: column;
+  padding: 14px 16px 12px;
   position: relative;
+  display: grid;
+  grid-template-columns: auto auto 1fr;
+  grid-auto-flow: row dense;
+  column-gap: 0;
+  align-items: start;
+  box-shadow:
+    0 1px 2px rgba(20, 18, 16, 0.04),
+    0 4px 12px -4px rgba(20, 18, 16, 0.06);
   /* Pull deep-link / scrollIntoView targets clear of TWO stacked
      sticky bars: the site header (--header-offset, set live by
      syncHeaderOffset) and the category header (.category-header,
      ~44px). +12px of breathing room so the card top isn't flush. */
   scroll-margin-top: calc(var(--header-offset, 120px) + 56px);
 }
-/* Pinned cards: thicken the left border 3px → 5px and shift to the cool
-   accent. Compensates for the pin button leaving the corner — the wider
-   coloured stripe is the new glance-test signal that this card is held. */
+.event > * { grid-column: 1 / -1; }
+.event > .time { grid-column: 1; align-self: baseline; }
+.event > .price { grid-column: 2; align-self: baseline; justify-self: start; }
+.event > .price::before {
+  content: "·";
+  margin: 0 0.5em;
+  color: #a89e90;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event {
+    border: 1px solid rgba(255, 250, 245, 0.06);
+    box-shadow:
+      0 1px 0 rgba(255, 255, 255, 0.04) inset,
+      0 2px 8px rgba(0, 0, 0, 0.35);
+  }
+}
+:root[data-theme="dark"] .event {
+  border: 1px solid rgba(255, 250, 245, 0.06);
+  box-shadow:
+    0 1px 0 rgba(255, 255, 255, 0.04) inset,
+    0 2px 8px rgba(0, 0, 0, 0.35);
+}
+/* Pinned cards: warm-cream tint shift + 2px cool gauge mark on the
+   left edge (::after, inset 1px top/bottom so it reads as a tick mark
+   rather than a Trello tab). The legacy 5px cool border + glow is
+   gone; the gauge + tint are the new glance-test signals. */
 .event.pinned {
-  border-left-width: 5px;
-  border-left-color: var(--accent-cool);
-  box-shadow: 0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+  background: var(--pinned-tint);
+}
+.event.pinned::after {
+  content: "";
+  position: absolute;
+  top: 1px;
+  bottom: 1px;
+  left: 0;
+  width: 2px;
+  background: var(--accent-cool);
+  border-radius: 2px 0 0 2px;
+  pointer-events: none;
 }
 /* Selected cards stay visible (skipping the "Show more" expansion) and
    carry a subtle warm-tinted halo so the user remembers which ones
-   they tapped. Lighter visual weight than .pinned. */
+   they tapped. Composes with pinned without double-ring noise. */
 .event.selected {
-  box-shadow: 0 0 0 2px color-mix(in srgb, var(--accent-warm) 55%, transparent);
+  box-shadow:
+    0 1px 2px rgba(20, 18, 16, 0.04),
+    0 4px 12px -4px rgba(20, 18, 16, 0.06),
+    0 0 0 2px color-mix(in srgb, var(--accent-warm) 45%, transparent);
   background: color-mix(in srgb, var(--accent-warm) 5%, var(--card-bg));
 }
 .event.selected.pinned {
-  /* Pinned takes precedence on the inset border colour; selected
-     adds a warmer outer halo so both states are visible together. */
   box-shadow:
-    0 0 0 1px color-mix(in srgb, var(--accent-cool) 30%, transparent),
-    0 0 0 3px color-mix(in srgb, var(--accent-warm) 40%, transparent);
+    0 1px 2px rgba(20, 18, 16, 0.04),
+    0 4px 12px -4px rgba(20, 18, 16, 0.06),
+    0 0 0 2px color-mix(in srgb, var(--accent-warm) 45%, transparent);
 }
 /* When any event is selected, fade everything else so the selected
    card stands out. Two selectors: the modern :has() form (Chrome
@@ -976,6 +1089,32 @@ body.has-banner > *:not(.deep-link-banner) {
   transition: opacity 0.2s ease;
   pointer-events: none;
 }
+/* WCAG 2.5.5 — every card-action button gets a 44×44 hit target.
+   Visual chrome (border + background) follows the box, so the row
+   feels chunkier; the trade-off is intentional — original redesign
+   plan promised tappable controls and these were ~22–26px before. */
+.pin-btn,
+.add-cal-btn,
+.share-btn,
+.copy-link-btn,
+.card-overflow-btn,
+.unhide-btn {
+  min-width: 44px;
+  min-height: 44px;
+  justify-content: center;
+}
+/* The SVG markup ships stroke-width="1.5" sized for the old 13–14px
+   icons. At the bumped 18–22px sizes that renders ~50% thicker on
+   screen and reads as heavy. CSS override pulls every action-button
+   icon back to a refined ~1.25 weight without editing the SVG paths. */
+.pin-btn svg,
+.add-cal-btn svg,
+.share-btn svg,
+.copy-link-btn svg,
+.card-overflow-btn svg,
+.unhide-btn svg {
+  stroke-width: 1.25;
+}
 /* Pin lives in the action row (PR 2 dropped the absolute corner mount).
    Mirrors the share / cal button sizing so the row reads as one cluster
    of equally-weighted controls. */
@@ -983,7 +1122,7 @@ body.has-banner > *:not(.deep-link-banner) {
   appearance: none;
   padding: 2px 6px;
   font: inherit;
-  font-size: 0.72em;
+  font-size: var(--fs-1);
   color: var(--faint);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
@@ -995,33 +1134,8 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1;
 }
 .pin-btn svg {
-  width: 13px;
-  height: 13px;
-  display: block;
-}
-/* Pinned status — own row above .event-actions so the pin button's
-   width stays fixed when the user toggles pin. Cool accent + small
-   pushpin icon makes pinned cards readable at scroll-by glance,
-   pairing with the 5px cool left border. */
-.event-pinned-status {
-  display: inline-flex;
-  align-items: center;
-  gap: 5px;
-  margin-top: 6px;
-  align-self: flex-start;
-  padding: 2px 8px;
-  font-size: var(--fs-2);
-  font-weight: var(--fw-medium);
-  font-style: italic;
-  letter-spacing: 0.3px;
-  text-transform: lowercase;
-  color: var(--accent-cool);
-  background: color-mix(in srgb, var(--accent-cool) 10%, transparent);
-  border-radius: 10px;
-}
-.event-pinned-status svg {
-  width: 12px;
-  height: 12px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 .pin-btn:hover {
@@ -1034,11 +1148,21 @@ body.has-banner > *:not(.deep-link-banner) {
   border-color: color-mix(in srgb, var(--accent-cool) 50%, transparent);
   background: color-mix(in srgb, var(--accent-cool) 8%, transparent);
 }
+/* PR 3: with the coloured left stripe gone, .extra recedes via a full
+   dashed border instead. Same opacity-down treatment so Show-more
+   cards still read as deliberately quieter. */
 .event.extra {
-  border-left-color: var(--rule);
-  border-left-style: dashed;
+  border: 1px dashed rgba(20, 18, 16, 0.12);
   background: transparent;
   opacity: 0.78;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event.extra {
+    border: 1px dashed rgba(255, 250, 245, 0.10);
+  }
+}
+:root[data-theme="dark"] .event.extra {
+  border: 1px dashed rgba(255, 250, 245, 0.10);
 }
 /* `opacity: 0.78` fades every descendant including the score-breakdown
    tooltip, making it see-through against whatever is behind. When the
@@ -1051,6 +1175,13 @@ body.has-banner > *:not(.deep-link-banner) {
 .event.extra:has(.score-chip.open) {
   opacity: 1;
 }
+/* :has() fallback — older Safari/Firefox/Android WebView don't support
+   the rule above and would render the score-breakdown tooltip at the
+   parent's 0.78 opacity. JS toggles .tooltip-open on the parent .event
+   on chip hover/focus/open so the same opacity reset fires. */
+.event.extra.tooltip-open {
+  opacity: 1;
+}
 .event.extra .venue,
 .event.extra .title {
   font-weight: 500;
@@ -1061,34 +1192,57 @@ body.has-banner > *:not(.deep-link-banner) {
 /* Fallback admit — empty-block rescue. Dimmed-but-not-as-faded as
    .extra so the row still reads as part of the curated set. */
 .event.fallback {
-  border-left-color: var(--rule);
-  border-left-style: dotted;
+  border: 1px dotted rgba(20, 18, 16, 0.16);
   opacity: 0.88;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event.fallback {
+    border: 1px dotted rgba(255, 250, 245, 0.14);
+  }
+}
+:root[data-theme="dark"] .event.fallback {
+  border: 1px dotted rgba(255, 250, 245, 0.14);
 }
 .event.fallback .score-debug {
   font-style: italic;
   color: var(--muted);
 }
+/* PR 3 hybrid eyebrow voice: venue + suburb at near-equal mixed-case
+   weight (NOT small-caps, no tracking-wide). They read as one quiet
+   two-line eyebrow rather than "loud venue / quieter suburb". */
 .venue {
-  font-size: 1.05em;
-  font-weight: 700;
-  color: var(--dark);
-  line-height: 1.25;
+  font-size: 13.5px;
+  line-height: 17px;
+  font-weight: 500;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #6a6258;
+  margin: 0;
 }
 .suburb {
-  font-size: 0.75em;
-  color: var(--faint);
-  text-transform: uppercase;
-  letter-spacing: 1.2px;
-  margin-top: 2px;
+  font-size: 13px;
+  line-height: 17px;
+  font-weight: 400;
+  letter-spacing: 0;
+  text-transform: none;
+  color: #6a6258;
+  margin-top: 1px;
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event .venue,
+  :root:not([data-theme="light"]) .event .suburb { color: #a89e90; }
+}
+:root[data-theme="dark"] .event .venue,
+:root[data-theme="dark"] .event .suburb { color: #a89e90; }
+/* Title — loudest thing on the card. */
 .title {
-  color: var(--accent-warm);
+  color: #141210;
   text-decoration: none;
-  font-weight: 600;
-  font-size: 0.98em;
-  margin-top: 5px;
-  line-height: 1.3;
+  font-size: 17px;
+  line-height: 22px;
+  font-weight: 580;
+  letter-spacing: -0.005em;
+  margin-top: 6px;
   /* Mobile: long-press should select text (so the user can copy the
      title) instead of showing the link callout menu. -webkit-touch-
      callout: none suppresses the link menu; user-select: text re-
@@ -1098,36 +1252,56 @@ body.has-banner > *:not(.deep-link-banner) {
   user-select: text;
 }
 .title:hover { text-decoration: underline; }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event .title { color: #f4f1ed; }
+}
+:root[data-theme="dark"] .event .title { color: #f4f1ed; }
+/* Time + price — same row via the .event grid. Tabular-nums lines up
+   the digits between cards so a column scan reads cleanly. */
 .time {
-  font-size: 0.88em;
-  color: var(--muted);
-  margin-top: 3px;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #6a6258;
+  margin-top: 6px;
 }
 .description {
-  font-size: 0.87em;
+  font-size: 14px;
+  line-height: 20px;
+  font-weight: 400;
   color: var(--muted);
   margin-top: 5px;
-  line-height: 1.4;
 }
 .price {
-  font-size: 0.82em;
-  color: var(--faint);
-  font-family: var(--mono-font);
-  font-weight: 500;
-  margin-top: 5px;
+  font-size: 13px;
+  font-weight: 540;
+  font-variant-numeric: tabular-nums;
+  /* Drop the mono-font so .price sits flush with .time visually. */
+  font-family: var(--body-font);
+  color: #6a6258;
+  margin-top: 6px;
 }
 .price.free {
   color: var(--free-green);
-  font-weight: 700;
+  font-weight: 600;
 }
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event .time,
+  :root:not([data-theme="light"]) .event .price { color: #a89e90; }
+  /* Free-green wins over the muted-taupe override in dark mode. */
+  :root:not([data-theme="light"]) .event .price.free { color: var(--free-green); }
+}
+:root[data-theme="dark"] .event .time,
+:root[data-theme="dark"] .event .price { color: #a89e90; }
+:root[data-theme="dark"] .event .price.free { color: var(--free-green); }
 .badges { margin-top: 6px; display: flex; flex-wrap: wrap; gap: 6px; }
 .pill {
   display: inline-block;
   padding: 3px 10px;
   border-radius: 12px;
-  font-size: 0.72em;
-  font-weight: 700;
-  letter-spacing: 0.3px;
+  font-size: 11px;
+  font-weight: 500;
+  letter-spacing: 0.02em;
   line-height: 1.35;
 }
 .pill.subcategory {
@@ -1228,13 +1402,13 @@ body.has-banner > *:not(.deep-link-banner) {
      between glyph and pill edge matches on both sides. */
   padding: 2px 6px 2px 4px;
   font: inherit;
-  font-size: 0.72em;
+  font-size: var(--fs-1);
   color: var(--faint);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
   border-radius: 10px;
   cursor: pointer;
-  letter-spacing: 0.2px;
+  letter-spacing: var(--ls-normal);
   display: inline-flex;
   align-items: center;
   /* gap=0: each SVG already has whitespace inside its viewBox so the
@@ -1243,8 +1417,8 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1;
 }
 .add-cal-btn svg {
-  width: 16px;
-  height: 16px;
+  width: 20px;
+  height: 20px;
   display: block;
 }
 .add-cal-btn:hover,
@@ -1289,7 +1463,7 @@ body.has-banner > *:not(.deep-link-banner) {
 .share-btn {
   padding: 2px 6px;
   font: inherit;
-  font-size: 0.72em;
+  font-size: var(--fs-1);
   color: var(--faint);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
@@ -1302,8 +1476,8 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .copy-link-btn svg,
 .share-btn svg {
-  width: 13px;
-  height: 13px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 .copy-link-btn:hover,
@@ -1372,7 +1546,7 @@ body.has-banner > *:not(.deep-link-banner) {
 .card-overflow-btn {
   padding: 2px 6px;
   font: inherit;
-  font-size: 0.72em;
+  font-size: var(--fs-1);
   color: var(--faint);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
@@ -1383,8 +1557,8 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1;
 }
 .card-overflow-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 22px;
+  height: 22px;
   display: block;
 }
 .card-overflow-btn:hover,
@@ -1520,8 +1694,8 @@ body.has-banner > *:not(.deep-link-banner) {
   gap: 4px;
   padding: 2px 8px;
   font: inherit;
-  font-size: 0.72em;
-  letter-spacing: 0.2px;
+  font-size: var(--fs-1);
+  letter-spacing: var(--ls-normal);
   color: var(--faint);
   background: transparent;
   border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
@@ -1530,8 +1704,8 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1;
 }
 .unhide-btn svg {
-  width: 14px;
-  height: 14px;
+  width: 18px;
+  height: 18px;
   display: block;
 }
 .unhide-btn:hover {
@@ -1654,9 +1828,17 @@ body.has-banner > *:not(.deep-link-banner) {
 
 /* --- end PR 4a -------------------------------------------------- */
 
-.pill.date-idea {
+/* PR 3 hybrid: date-idea pill picks up the same warm→cool brand
+   gradient the masthead .brand-stripe uses. var(--accent-warm) and
+   var(--accent-cool) shift per theme so the pill follows light/dark
+   automatically. The text-shadow keeps white legible across both ends
+   of the gradient. */
+.pill.date-idea,
+.event .pill.date-idea {
   color: #fff;
-  background: linear-gradient(90deg, #ff006e, #fb5607, #ffbe0b, #3a9d3a);
+  background: linear-gradient(90deg, var(--accent-warm), var(--accent-cool));
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
+  border: 0;
 }
 .acknowledgement {
   margin: 1.5em auto 0;
@@ -1674,9 +1856,9 @@ body.has-banner > *:not(.deep-link-banner) {
 .site-byline {
   margin: 4em 0 0;
   text-align: center;
-  font-size: 0.75em;
+  font-size: var(--fs-2);
   color: var(--faint);
-  letter-spacing: 0.5px;
+  letter-spacing: var(--ls-normal);
 }
 .site-byline.feedback-byline {
   margin-top: 1.2em;
@@ -1741,10 +1923,10 @@ body.has-banner > *:not(.deep-link-banner) {
   color: var(--muted);
   padding: 8px 14px;
   font-family: var(--body-font);
-  font-size: 0.88em;
+  font-size: var(--fs-3);
   font-weight: 600;
   cursor: pointer;
-  letter-spacing: 0.3px;
+  letter-spacing: var(--ls-normal);
 }
 .settings-subtab:hover { color: var(--dark); }
 .settings-subtab[aria-selected="true"] {
@@ -1827,10 +2009,10 @@ body.has-banner > *:not(.deep-link-banner) {
 
 .subcat-group { margin-bottom: 1.2em; }
 .subcat-group-heading {
-  font-size: 0.92em;
+  font-size: var(--fs-4);
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 2px;
+  letter-spacing: var(--ls-uppercase);
   color: var(--accent-warm);
   margin: 0 0 0.5em;
   padding-bottom: 0.35em;
@@ -1885,15 +2067,19 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .tri:last-child { border-right: none; }
 .tri:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
-.tri[aria-pressed="true"][data-value="love"]  { background: #3a9d3a; color: #fff; }
-.tri[aria-pressed="true"][data-value="like"]  { background: #a1cf5f; color: #fff; }
+/* Pressed-state colours route through brand vars so they stay correct
+   per theme. The "Avoid" red used to be a hardcoded light-mode warm
+   (#c4452b) that didn't shift in dark mode — sat next to the actual
+   --accent-warm (which DOES shift) as two competing reds. */
+.tri[aria-pressed="true"][data-value="love"]  { background: var(--free-green); color: #fff; }
+.tri[aria-pressed="true"][data-value="like"]  { background: color-mix(in srgb, var(--free-green) 65%, var(--card-bg)); color: #fff; }
 .tri[aria-pressed="true"][data-value="neutral"] { background: var(--muted); color: #fff; }
-.tri[aria-pressed="true"][data-value="avoid"] { background: #c4452b; color: #fff; }
+.tri[aria-pressed="true"][data-value="avoid"] { background: var(--accent-warm); color: #fff; }
 /* Suburb tier chips reuse .tri styling but with their own colors so
    they read as a different scale from love/like/avoid. */
 .tri[aria-pressed="true"][data-value="home"]     { background: var(--accent-warm); color: #fff; }
 .tri[aria-pressed="true"][data-value="local"]    { background: var(--accent-cool); color: #fff; }
-.tri[aria-pressed="true"][data-value="included"] { background: #6b8db5; color: #fff; }
+.tri[aria-pressed="true"][data-value="included"] { background: color-mix(in srgb, var(--accent-cool) 50%, var(--card-bg)); color: #fff; }
 .tri[aria-pressed="true"][data-value="outside"]  { background: var(--muted); color: #fff; }
 
 .suburb-row {
@@ -2044,8 +2230,8 @@ body.has-banner > *:not(.deep-link-banner) {
   min-width: 4.5em;
 }
 .rule-toggle[aria-pressed="true"] {
-  background: #3a9d3a;
-  border-color: #3a9d3a;
+  background: var(--free-green);
+  border-color: var(--free-green);
   color: #fff;
 }
 .rule-toggle[aria-pressed="false"] {
@@ -2058,7 +2244,7 @@ body.has-banner > *:not(.deep-link-banner) {
  * the subcategory/facet rows, with distinct pressed colours for the
  * three pin-rule values. */
 .tri[aria-pressed="true"][data-value="pin"] { background: var(--accent-warm); color: #fff; }
-.tri[aria-pressed="true"][data-value="on"]  { background: #3a9d3a; color: #fff; }
+.tri[aria-pressed="true"][data-value="on"]  { background: var(--free-green); color: #fff; }
 .tri[aria-pressed="true"][data-value="off"] { background: var(--muted); color: #fff; }
 
 .shape-input,
@@ -2363,23 +2549,13 @@ body.has-banner > *:not(.deep-link-banner) {
   // View state — UI preferences that aren't part of the scoring profile.
   // Kept in a separate localStorage key so they don't leak into the
   // feedback profile-diff snapshot.
-  //
-  // Cross-version migration: searchPanelOpen replaces the prior
-  // filtersOpen key. The loader reads both for at least one release so
-  // a session opened in version A doesn't clobber a session opened in
-  // version B; the saver writes only the new key. Once the legacy
-  // window has closed the `?? parsed.filtersOpen` fallback can be
-  // dropped in a follow-up.
   function loadViewState() {
     try {
       var raw = localStorage.getItem(VIEW_STORAGE_KEY);
       var parsed = raw ? JSON.parse(raw) : {};
-      var searchOpen = (parsed.searchPanelOpen != null)
-        ? !!parsed.searchPanelOpen
-        : !!parsed.filtersOpen;
       return {
         showAllDays: !!parsed.showAllDays,
-        searchPanelOpen: searchOpen,
+        searchPanelOpen: !!parsed.searchPanelOpen,
       };
     } catch (_) { return { showAllDays: false, searchPanelOpen: false }; }
   }
@@ -3521,8 +3697,9 @@ body.has-banner > *:not(.deep-link-banner) {
     parts.push('<div class="event-actions">');
     // Pin button — first so it reads as the primary "keep this" gesture.
     // Filled pushpin when pinned, outline when not. No inline text label
-    // (lives in .event-pinned-status above so toggling pin doesn't shift
-    // the rest of the action row).
+    // — PR 3 dropped the .event-pinned-status status row; the pinned
+    // signal is now the warm-cream tint shift on the card plus the 2px
+    // cool gauge mark on the left edge (.event.pinned + ::after in CSS).
     parts.push(
       '<button class="pin-btn" type="button" ' + evIdAttr + ' ' +
       'aria-pressed="' + (pinned ? 'true' : 'false') + '" ' +
@@ -3594,22 +3771,6 @@ body.has-banner > *:not(.deep-link-banner) {
       '</button>'
     );
     parts.push('</div>');  // close .event-actions
-    // "Pinned" status row sits BELOW the action row so toggling pin
-    // doesn't shift any element above it — empty space simply appears
-    // at the bottom of the card. Cool-accent chip + 5px cool left
-    // border together are the two glance-test signals.
-    if (pinned) {
-      parts.push(
-        '<div class="event-pinned-status" aria-hidden="true">' +
-          '<svg viewBox="0 0 24 24" fill="currentColor" stroke="currentColor" ' +
-          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
-          '<path d="M12 17v5"/>' +
-          '<path d="M9 10.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24V16a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V7a1 1 0 0 1 1-1 2 2 0 0 0 0-4H8a2 2 0 0 0 0 4 1 1 0 0 1 1 1z"/>' +
-          '</svg>' +
-          '<span>pinned</span>' +
-        '</div>'
-      );
-    }
     parts.push('</article>');
     return parts.join('\n');
   }
@@ -3693,9 +3854,16 @@ body.has-banner > *:not(.deep-link-banner) {
       var summaryText = searchActive
         ? nHidden + ' hidden matching your search'
         : nHidden + ' hidden';
+      // Screen readers otherwise hear "3 hidden, button" with no anchor
+      // back to the category. Spell out the category and the affordance.
+      var ariaCat = display;
+      var ariaLabel = nHidden + ' ' + ariaCat + ' '
+        + (nHidden === 1 ? 'event' : 'events')
+        + " you've hidden. Expand to restore.";
       parts.push(
         '<details class="hidden-disclosure">' +
-        '<summary>' + summaryText + '</summary>' +
+        '<summary aria-label="' + escapeHtml(ariaLabel) + '">'
+        + summaryText + '</summary>' +
         '<div class="events events-hidden">\n' +
         hiddenItems.map(function (it) {
           return renderEventHtml(it, profile);
@@ -4700,7 +4868,12 @@ body.has-banner > *:not(.deep-link-banner) {
       '<span class="first-visit-nudge__msg">' +
         '<strong>First time?</strong> Browse what’s on tonight, then ' +
         'tap <span class="first-visit-nudge__gear" aria-hidden="true">' +
-        '⚙️</span> to tune the menu to your taste.' +
+        '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+          'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round">' +
+          '<path d="M12.22 2h-.44a2 2 0 0 0-2 2v.18a2 2 0 0 1-1 1.73l-.43.25a2 2 0 0 1-2 0l-.15-.08a2 2 0 0 0-2.73.73l-.22.38a2 2 0 0 0 .73 2.73l.15.1a2 2 0 0 1 1 1.72v.51a2 2 0 0 1-1 1.74l-.15.09a2 2 0 0 0-.73 2.73l.22.38a2 2 0 0 0 2.73.73l.15-.08a2 2 0 0 1 2 0l.43.25a2 2 0 0 1 1 1.73V20a2 2 0 0 0 2 2h.44a2 2 0 0 0 2-2v-.18a2 2 0 0 1 1-1.73l.43-.25a2 2 0 0 1 2 0l.15.08a2 2 0 0 0 2.73-.73l.22-.39a2 2 0 0 0-.73-2.73l-.15-.08a2 2 0 0 1-1-1.74v-.5a2 2 0 0 1 1-1.74l.15-.09a2 2 0 0 0 .73-2.73l-.22-.38a2 2 0 0 0-2.73-.73l-.15.08a2 2 0 0 1-2 0l-.43-.25a2 2 0 0 1-1-1.73V4a2 2 0 0 0-2-2z"/>' +
+          '<circle cx="12" cy="12" r="3"/>' +
+        '</svg>' +
+        '</span> to tune the menu to your taste.' +
       '</span>' +
       '<button type="button" class="first-visit-nudge__close" ' +
         'data-nudge-dismiss>Got it</button>';
@@ -5761,6 +5934,12 @@ body.has-banner > *:not(.deep-link-banner) {
     if (!pop) return null;
     pop._anchor = anchor;
     pop._kind = opts.kind || 'popover';
+    // Focus return — capture the element that had focus when the popover
+    // opened (usually the anchor that was just clicked). On close,
+    // closePopover restores focus there if it's still inside the popover,
+    // so a keyboard user is never stranded on document.body.
+    var ae = document.activeElement;
+    pop._returnFocusTo = (ae && ae !== document.body) ? ae : anchor;
     if (opts.eventId != null) pop._eventId = String(opts.eventId);
     var parent = opts.parent || (anchor && anchor.parentNode) || document.body;
     parent.appendChild(pop);
@@ -5773,7 +5952,15 @@ body.has-banner > *:not(.deep-link-banner) {
     var idx = OPEN_POPOVERS.indexOf(pop);
     if (idx !== -1) OPEN_POPOVERS.splice(idx, 1);
     if (pop._anchor) pop._anchor.setAttribute('aria-expanded', 'false');
+    // Only restore focus if it's currently inside the popover — we don't
+    // want to steal focus from wherever the user just clicked.
+    var rt = pop._returnFocusTo;
+    var stealing = pop.contains(document.activeElement);
     if (pop.parentNode) pop.parentNode.removeChild(pop);
+    if (stealing && rt && typeof rt.focus === 'function'
+        && document.contains(rt)) {
+      try { rt.focus(); } catch (_) {}
+    }
   }
   function closeAllPopovers(except) {
     var copy = OPEN_POPOVERS.slice();
@@ -7316,9 +7503,16 @@ body.has-banner > *:not(.deep-link-banner) {
     var chipEl = e.target.closest && e.target.closest('.score-chip');
     var openChips = document.querySelectorAll('.score-chip.open');
     for (var oc = 0; oc < openChips.length; oc++) {
-      if (openChips[oc] !== chipEl) openChips[oc].classList.remove('open');
+      if (openChips[oc] !== chipEl) {
+        openChips[oc].classList.remove('open');
+        syncTooltipOpenClass(openChips[oc]);
+      }
     }
-    if (chipEl) { chipEl.classList.toggle('open'); return; }
+    if (chipEl) {
+      chipEl.classList.toggle('open');
+      syncTooltipOpenClass(chipEl);
+      return;
+    }
 
     var action = e.target.closest && e.target.closest('[data-action]');
     if (action) {
@@ -7390,6 +7584,42 @@ body.has-banner > *:not(.deep-link-banner) {
     } else if (e.target.matches('input[data-quick-toggle]')) {
       handleQuickToggle(e.target.dataset.quickToggle, e.target.checked);
     }
+  });
+
+  // :has() fallback for the score-breakdown tooltip on .event.extra cards.
+  // Older Safari (<15.4), Firefox (<121), and Android WebView don't honour
+  // the .event.extra:has(.score-chip:hover) opacity reset, so the tooltip
+  // would render semi-transparent. Mirror the rule with a JS-toggled
+  // .tooltip-open class.
+  function syncTooltipOpenClass(chip) {
+    var card = chip.closest('.event');
+    if (!card) return;
+    var open = chip.classList.contains('open')
+      || chip.matches(':hover')
+      || chip.contains(document.activeElement);
+    card.classList.toggle('tooltip-open', open);
+  }
+  document.addEventListener('mouseover', function (e) {
+    var chip = e.target.closest && e.target.closest('.score-chip');
+    if (chip) syncTooltipOpenClass(chip);
+  });
+  document.addEventListener('mouseout', function (e) {
+    var chip = e.target.closest && e.target.closest('.score-chip');
+    if (!chip) return;
+    var to = e.relatedTarget;
+    if (to && chip.contains(to)) return;
+    syncTooltipOpenClass(chip);
+  });
+  document.addEventListener('focusin', function (e) {
+    var chip = e.target.closest && e.target.closest('.score-chip');
+    if (chip) syncTooltipOpenClass(chip);
+  });
+  document.addEventListener('focusout', function (e) {
+    var chip = e.target.closest && e.target.closest('.score-chip');
+    if (!chip) return;
+    var to = e.relatedTarget;
+    if (to && chip.contains(to)) return;
+    syncTooltipOpenClass(chip);
   });
 
   document.addEventListener('keydown', function (e) {
