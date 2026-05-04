@@ -244,8 +244,8 @@ body {
   .search-icon-btn .header-icon-label { display: inline; }
 }
 /* 320–360px crunch — the brand row needs to stay one line. Tighten the
-   header icon-button minimum, drop the title down a step, and let the
-   week-pill scrim shrink with the viewport. */
+   header icon-button minimum, drop the title down a step, and squeeze
+   the inline Week pill so the day strip still fits. */
 @media (max-width: 360px) {
   .header-icon-btn { min-width: 40px; padding: 0 6px; }
   .site-title {
@@ -254,11 +254,9 @@ body {
     text-overflow: ellipsis;
     min-width: 0;
   }
-  .week-pill-wrap::before { width: clamp(40px, 18vw, 80px); }
-  .week-pill-wrap::after {
-    left: calc(-1 * clamp(40px, 18vw, 80px));
-    background: linear-gradient(to right, transparent, var(--bg) clamp(40px, 18vw, 80px));
-  }
+  .week-pill-wrap { margin-left: 4px; }
+  .week-pill-wrap::before { margin-right: 8px; height: 20px; }
+  .week-pill { padding: 8px 10px; }
 }
 /* Day-tabs row + day-tab pills + Week pill (separate class so existing
    .day-tab selectors don't pick it up). */
@@ -266,11 +264,7 @@ body {
   display: flex;
   align-items: center;
   margin: 0 -1em;
-  /* No padding-right: the .week-pill is sticky at right: 0, and any
-     padding-right would create a scrollable zone past the pill where
-     day-tabs become visible during horizontal scroll. Left padding
-     keeps day-tabs aligned with the rest of the page content. */
-  padding: 4px 0 10px 1em;
+  padding: 4px 1em 10px;
   overflow-x: auto;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
@@ -328,71 +322,33 @@ body {
 }
 .tab-weekday { font-weight: var(--fw-bold); letter-spacing: 0.3px; }
 .tab-date { font-size: var(--fs-2); opacity: 0.85; margin-top: 1px; }
-/* Week pill — own class so existing .day-tab selectors (firstAvailableDayTab,
-   arrow-key handler, IntersectionObserver scroll-spy) don't pick it up.
-   Sticky-right with a left-side scrim so it stays visible during horizontal
-   scroll on mobile. */
-/* Sticky wrapper holds the Week pill. The wrapper's solid var(--bg)
-   background acts as a "backing square" behind the pill — the pill's
-   rounded corners are transparent at the corner triangles, but the
-   wrapper's rectangular bg fills those triangles, so day-tab edges
-   can't peek through. Day-tabs are at default z-index in the row;
-   the wrapper at z-index: 1 stacks above them. */
+/* Week pill — own class so existing .day-tab selectors
+   (firstAvailableDayTab, arrow-key handler, IntersectionObserver
+   scroll-spy) don't pick it up. Sits inline at the end of the day
+   strip, separated by a thin vertical rule, and behaves as the (N+1)th
+   tab — selecting it shows the whole-week stacked feed. */
 .week-pill-wrap {
-  position: sticky;
-  right: 0;
   flex: 0 0 auto;
-  /* Wrapper stretches to the row's tallest item so its bg + scrim
-     cover the full row height; the pill inside is centred within it
-     at its natural single-line size. */
-  align-self: stretch;
-  margin-left: auto;
+  align-self: center;
+  margin-left: 8px;
   display: inline-flex;
   align-items: center;
-  /* Padding-left extends the wrapper (and its bg + scrim anchor)
-     past the pill's left edge so day-tabs fully fade behind solid bg
-     a little before reaching the pill itself. */
-  padding-left: 14px;
-  background: var(--bg);
-  z-index: 1;
-  /* Promote to its own compositing layer to stop the ~1px sub-pixel
-     drift on horizontal scroll at certain viewport widths. */
-  transform: translateZ(0);
-  will-change: transform;
 }
 .week-pill-wrap::before {
+  /* Vertical separator: 1px line with breathing room on each side so
+     the Week pill reads as a sibling-but-distinct member of the strip
+     (the 8th tab, not "just another day"). */
   content: "";
-  position: absolute;
-  top: 0;
-  bottom: 0;
-  /* Sits entirely to the LEFT of the wrapper — it's purely the fade
-     transition from the day-tabs scroll area into the wrapper's solid
-     bg. No need to overlap into the pill area now that the wrapper's
-     own bg covers the corner triangles. */
-  right: 100%;
-  width: 80px;
-  background: linear-gradient(to right, transparent, var(--bg));
-  pointer-events: none;
-}
-.week-pill-wrap::after {
-  content: "";
-  position: absolute;
-  /* Extend the wrapper's bg coverage 4px below the wrapper itself so
-     the active day-tab's gradient under-stripe (which now sits at
-     bottom: -3px on the day-tab, ~2px outside the day-tab box and
-     into the row's bottom padding) is still covered when the tab
-     scrolls behind. Mirrors the scrim's 80px left-fade so a stripe
-     peeking out in the scrim region is also covered. */
-  top: 100%;
-  left: -80px;
-  right: 0;
-  height: 4px;
-  background: linear-gradient(to right, transparent, var(--bg) 80px);
-  pointer-events: none;
+  display: block;
+  width: 1px;
+  height: 22px;
+  background: var(--rule);
+  margin-right: 12px;
+  flex: 0 0 auto;
 }
 .week-pill {
   position: relative;
-  background: var(--bg);
+  background: transparent;
   border: 1px solid var(--rule);
   color: var(--muted);
   padding: 8px 14px;
@@ -405,17 +361,30 @@ body {
   cursor: pointer;
   letter-spacing: 0.3px;
   transition: background 0.15s, color 0.15s, border-color 0.15s;
-  z-index: 1;
 }
 .week-pill:hover { border-color: var(--accent-warm); color: var(--dark); }
 .week-pill:focus-visible {
   outline: none;
   box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
+/* Selected state mirrors an active .day-tab: outline + 3px gradient
+   under-stripe so the Week pill reads as the active tab in the strip
+   when stacked mode is on. */
 .week-pill[aria-pressed="true"] {
-  background: var(--accent-warm);
+  background: transparent;
   border-color: var(--accent-warm);
-  color: #fff;
+  color: var(--accent-warm);
+}
+.week-pill[aria-pressed="true"]::after {
+  content: "";
+  position: absolute;
+  left: 6px;
+  right: 6px;
+  bottom: -3px;
+  height: 3px;
+  background: linear-gradient(90deg, var(--accent-warm), var(--accent-cool));
+  border-radius: 2px;
+  pointer-events: none;
 }
 
 /* ============================================================
@@ -713,6 +682,114 @@ body {
 .day-heading__trail {
   font-weight: var(--fw-medium);
   color: var(--muted);
+}
+
+/* ============================================================
+   All-week (stacked) view: visual hierarchy
+   ============================================================
+   The All-week heading is the page anchor (parent), day headings step
+   down a level (children/section dividers), category headers step
+   down further. Both day-headings and category-headers stay sticky so
+   the user always knows which day + category the on-screen events
+   belong to as they scroll the stacked feed. */
+
+/* All-week heading panel — appears above the first day panel only when
+   the All-week tab is selected. Established as the largest banner in
+   the stacked feed so the user reads it as the parent of everything
+   below; small uppercase "VIEWING" eyebrow distinguishes it from a
+   day heading. Mounted via JS in renderAll when showAllDays is on. */
+.all-week-heading {
+  position: relative;
+  background: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-warm) 28%, transparent),
+    color-mix(in srgb, var(--accent-cool) 28%, transparent)
+  );
+  padding: 22px 22px 24px 28px;
+  border-radius: 10px;
+  margin: 1em 0 1.2em;
+}
+.all-week-heading::before {
+  content: "";
+  position: absolute;
+  top: 0; bottom: 0; left: 0;
+  width: 8px;
+  border-radius: 10px 0 0 10px;
+  background: linear-gradient(180deg, var(--accent-warm), var(--accent-cool));
+  pointer-events: none;
+}
+.all-week-heading__eyebrow {
+  margin: 0 0 6px;
+  font-size: var(--fs-2);
+  font-weight: var(--fw-bold);
+  letter-spacing: var(--ls-uppercase);
+  text-transform: uppercase;
+  color: var(--muted);
+}
+.all-week-heading__title {
+  margin: 0;
+  font-size: calc(var(--fs-7) * 1.1);
+  font-weight: var(--fw-black, 800);
+  letter-spacing: var(--ls-normal);
+  line-height: 1.1;
+}
+.all-week-heading__sep {
+  margin: 0 0.35em;
+  color: color-mix(in srgb, var(--muted) 70%, transparent);
+  font-weight: var(--fw-medium);
+}
+.all-week-heading__trail {
+  font-weight: var(--fw-medium);
+  color: var(--muted);
+}
+
+/* Sticky day-heading in stacked mode — steps DOWN one level from the
+   single-day hero (smaller font, tighter padding, washed-down gradient,
+   thinner brand stripe). Pinned to top of viewport so the user always
+   knows which day the events under their cursor belong to. */
+.day--stacked .day-heading {
+  position: sticky;
+  top: var(--header-offset, 120px);
+  z-index: 6;
+  font-size: var(--fs-6);
+  padding: 14px 18px 14px 20px;
+  margin: 0.4em 0 0.4em;
+  border-radius: 6px;
+  /* Solid bg-color backing under the gradient so the body of the
+     heading is opaque (the gradient mix uses transparent stops).
+     Corners are still rounded — the .day-heading-square-bg sibling
+     below covers the bounding-box corners that the rounded radius
+     would otherwise leave transparent. */
+  background-color: var(--bg);
+  background-image: linear-gradient(
+    90deg,
+    color-mix(in srgb, var(--accent-warm) 16%, transparent),
+    color-mix(in srgb, var(--accent-cool) 16%, transparent)
+  );
+}
+.day--stacked .day-heading::before {
+  width: 5px;
+  border-radius: 6px 0 0 6px;
+}
+/* Square backing bar paints behind the rounded sticky day-heading and
+   fills its bounding-box corners with the page bg, so events scrolling
+   underneath can't peek through the rounded-corner triangles. Inserted
+   as a sibling immediately before each .day-heading by JS; sized via
+   --day-heading-h which JS measures after the heading mounts. */
+.day-heading-square-bg {
+  position: sticky;
+  top: var(--header-offset, 120px);
+  height: var(--day-heading-h, 80px);
+  background: var(--bg);
+  z-index: 5;
+  /* Negative margin so the bg overlays the day-heading's flow slot
+     instead of pushing it down; both pin at the same viewport top. */
+  margin-bottom: calc(-1 * var(--day-heading-h, 80px));
+  pointer-events: none;
+}
+.day--stacked .category-header {
+  /* Sticky band sits flush below the sticky day-heading. */
+  top: calc(var(--header-offset, 120px) + var(--day-heading-h, 80px));
 }
 
 /* First-visit nudge — soft sparkle box above the first day's events
@@ -2538,7 +2615,7 @@ body.has-banner > *:not(.deep-link-banner) {
 </div>
 <div class="tabs-row">
 <nav class="day-tabs" role="tablist" aria-label="Days"></nav>
-<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day stacked" title="Show every day stacked vertically">All week</button></span>
+<span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day of the week stacked" title="Show every day of the week stacked">All week</button></span>
 </div>
 <div class="search-panel" id="search-panel" hidden>
 <div class="search-input-wrap">
@@ -4934,11 +5011,18 @@ body.has-banner > *:not(.deep-link-banner) {
     // Settings icon-button lives in the brand row (not .day-tabs), so
     // include it via [data-tab] so its aria-selected/tabindex flip in
     // sync with the day-tab strip.
+    // Tab semantics for the All-week view: when stacked, the Week pill
+    // is the active tab — no day-tab should be highlighted. Settings
+    // icon still selects normally so its highlight is preserved.
+    var stackedActive = !!viewState.showAllDays && tabName !== 'settings';
     var allTabs = document.querySelectorAll('[data-tab]');
     for (var i = 0; i < allTabs.length; i++) {
-      var match = allTabs[i].dataset.tab === tabName;
-      allTabs[i].setAttribute('aria-selected', match ? 'true' : 'false');
-      allTabs[i].tabIndex = match ? 0 : -1;
+      var t = allTabs[i];
+      var match = t.dataset.tab === tabName;
+      var dayTab = t.classList.contains('day-tab');
+      var selected = stackedActive && dayTab ? false : match;
+      t.setAttribute('aria-selected', selected ? 'true' : 'false');
+      t.tabIndex = selected ? 0 : -1;
     }
 
     var dayPanels = document.querySelectorAll('.day');
@@ -5157,16 +5241,21 @@ body.has-banner > *:not(.deep-link-banner) {
   function rebuildDayPanels(ranking, days, profile) {
     var mainEl = document.getElementById('main');
     if (!mainEl) return;
-    // Remove existing .day nodes (but keep settings-view intact — its
-    // chip state + scroll position are client-local and shouldn't be
-    // wiped every time we re-rank).
+    // Remove existing .day nodes + the all-week banner (but keep
+    // settings-view intact — its chip state + scroll position are
+    // client-local and shouldn't be wiped every time we re-rank).
     var existing = mainEl.querySelectorAll('.day');
     for (var i = 0; i < existing.length; i++) existing[i].remove();
+    var existingBanner = document.getElementById('all-week-heading');
+    if (existingBanner) existingBanner.remove();
     renderFirstVisitNudge(mainEl);
     renderScoreChipMovedNotice(mainEl);
     var settingsView = document.getElementById('settings-view');
     var tpl = document.createElement('div');
     var stacked = !!viewState.showAllDays;
+    var firstDayInsertedBefore = null;
+    var firstDayIso = null;
+    var lastDayIso = null;
     for (var j = 0; j < days.length; j++) {
       var nextDay = j + 1 < days.length ? days[j + 1] : null;
       var nextTop = nextDay ? pickDayTopEvent(ranking[nextDay]) : null;
@@ -5180,12 +5269,75 @@ body.has-banner > *:not(.deep-link-banner) {
         // Drop the `hidden` attribute the template sets by default —
         // every day panel is visible in stacked mode.
         dayEl.hidden = false;
+        // Square backing bar sits BEFORE each day-heading (sibling
+        // inside the .day section). When the heading is sticky, this
+        // sibling pins at the same top; the heading paints over it,
+        // and the bar's solid bg fills the rounded-corner triangles
+        // so cards scrolling underneath can't peek through.
+        var heading = dayEl.querySelector('.day-heading');
+        if (heading) {
+          var bg = document.createElement('div');
+          bg.className = 'day-heading-square-bg';
+          bg.setAttribute('aria-hidden', 'true');
+          heading.parentNode.insertBefore(bg, heading);
+        }
       }
       if (settingsView && settingsView.parentNode === mainEl) {
         mainEl.insertBefore(dayEl, settingsView);
       } else {
         mainEl.appendChild(dayEl);
       }
+      if (firstDayInsertedBefore === null) firstDayInsertedBefore = dayEl;
+      if (firstDayIso === null) firstDayIso = days[j];
+      lastDayIso = days[j];
+    }
+    if (stacked && firstDayInsertedBefore) {
+      // All-week banner sits above the first day panel as the parent
+      // anchor for the stacked feed (so the user reads "All week" as
+      // higher in hierarchy than the per-day section dividers below).
+      var banner = buildAllWeekHeading(firstDayIso, lastDayIso);
+      if (banner) mainEl.insertBefore(banner, firstDayInsertedBefore);
+      // Defer to the next frame so the freshly-inserted day-heading has
+      // committed layout before we measure its rendered height.
+      if (typeof requestAnimationFrame === 'function') {
+        requestAnimationFrame(syncDayHeadingHeight);
+      } else {
+        setTimeout(syncDayHeadingHeight, 0);
+      }
+    }
+  }
+
+  function buildAllWeekHeading(firstIso, lastIso) {
+    if (!firstIso || !lastIso) return null;
+    var sec = document.createElement('section');
+    sec.id = 'all-week-heading';
+    sec.className = 'all-week-heading';
+    sec.innerHTML =
+      '<p class="all-week-heading__eyebrow">Viewing</p>' +
+      '<h2 class="all-week-heading__title">' +
+        '<span class="all-week-heading__lead">All week</span>' +
+        '<span class="all-week-heading__sep" aria-hidden="true">·</span>' +
+        '<span class="all-week-heading__trail">' +
+          escapeHtml(formatDayShort(firstIso)) + ' &mdash; ' +
+          escapeHtml(formatDayShort(lastIso)) +
+        '</span>' +
+      '</h2>';
+    return sec;
+  }
+  function formatDayShort(iso) {
+    var d = new Date(iso + 'T12:00:00');
+    return WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' +
+      MONTHS_SHORT[d.getMonth()];
+  }
+  // Measure the sticky day-heading's rendered height and expose it on
+  // <html> as --day-heading-h, so the sticky category-header below it
+  // sits flush instead of leaving a gap that events scroll through.
+  function syncDayHeadingHeight() {
+    var heading = document.querySelector('.day--stacked .day-heading');
+    if (!heading) return;
+    var h = heading.getBoundingClientRect().height;
+    if (h > 0) {
+      document.documentElement.style.setProperty('--day-heading-h', h + 'px');
     }
   }
 
@@ -5277,7 +5429,17 @@ body.has-banner > *:not(.deep-link-banner) {
     var dayCounts = computeDayCounts(ranking);
 
     var tabsEl = document.querySelector('.day-tabs');
-    if (tabsEl) tabsEl.innerHTML = renderTabsHtml(days, dayCounts, activeTab);
+    if (tabsEl) {
+      // Tab semantics: Week pill is the active tab while stacked, so
+      // pass null as activeSlug — none of the day pills should render
+      // selected when the whole-week feed is the current view.
+      var renderActive = viewState.showAllDays ? null : activeTab;
+      tabsEl.innerHTML = renderTabsHtml(days, dayCounts, renderActive);
+    }
+    if (weekPillBtn) {
+      weekPillBtn.setAttribute(
+        'aria-pressed', viewState.showAllDays ? 'true' : 'false');
+    }
 
     rebuildDayPanels(ranking, days, profile);
     updateSettingsBadge();
@@ -5440,15 +5602,21 @@ body.has-banner > *:not(.deep-link-banner) {
     if (searchInputEl) searchInputEl.focus();
   }
 
-  function toggleAllDays() {
-    viewState.showAllDays = !viewState.showAllDays;
+  // Week pill behaves as a tab (not a toggle): clicking ENTERS stacked
+  // mode. Idempotent if already stacked. To LEAVE stacked the user
+  // clicks a day-tab, which routes through the day-tab click handler
+  // and exits stacked + activates the single day.
+  function setAllWeekActive(active) {
+    if (viewState.showAllDays === active) return;
+    viewState.showAllDays = active;
     saveViewState();
     if (weekPillBtn) {
-      weekPillBtn.setAttribute('aria-pressed', viewState.showAllDays ? 'true' : 'false');
+      weekPillBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
     }
     // Force a fresh render so panels get .day--stacked class applied/removed.
     renderAll({ preserveScores: true });
   }
+  function toggleAllDays() { setAllWeekActive(true); }
 
   // Open / close the search panel. `force` overrides the toggle:
   // toggleSearchPanel(true) opens, toggleSearchPanel(false) closes,
@@ -5628,14 +5796,9 @@ body.has-banner > *:not(.deep-link-banner) {
       if (!dayEl) return;
       var slug = (dayEl.id || '').replace(/^day-/, '');
       if (!slug) return;
-      // Update tab highlight without re-running activate (which would
-      // collapse panels — we want them all visible in stacked mode).
-      var allTabs = document.querySelectorAll('.day-tab');
-      for (var i = 0; i < allTabs.length; i++) {
-        var match = allTabs[i].dataset.tab === slug;
-        allTabs[i].setAttribute('aria-selected', match ? 'true' : 'false');
-        allTabs[i].tabIndex = match ? 0 : -1;
-      }
+      // Tab semantics: while stacked, the Week pill is the active tab.
+      // Track activeTab internally for "last day" memory but don't
+      // visually steal the highlight from Week.
       activeTab = slug;
       lastDayTab = slug;
       try { sessionStorage.setItem(SESSION_LAST_DAY, slug); } catch (_) {}
@@ -7845,39 +8008,18 @@ body.has-banner > *:not(.deep-link-banner) {
         dismissFirstVisitNudge();
         if (viewState.searchPanelOpen) toggleSearchPanel(false);
       }
-      // In stacked mode, a day-tab click smooth-scrolls to the section
-      // instead of swapping the active panel (panels stay all-visible).
-      // Exception: if we're CURRENTLY on Settings, all .day panels are
-      // hidden (activate('settings') hid them) — fall through to a full
-      // activate() to un-hide them and hide settings-view first.
-      var leavingSettings = activeTab === 'settings';
-      if (viewState.showAllDays && tab.dataset.tab !== 'settings'
-          && !leavingSettings) {
-        var target = document.getElementById('day-' + tab.dataset.tab);
-        // Mark the click target active immediately; the scroll-spy observer
-        // would also pick it up once the scroll lands, but updating now
-        // avoids a brief lag where the previous tab still looks selected.
-        var allTabs = document.querySelectorAll('.day-tab');
-        for (var ti = 0; ti < allTabs.length; ti++) {
-          var match = allTabs[ti] === tab;
-          allTabs[ti].setAttribute('aria-selected', match ? 'true' : 'false');
-          allTabs[ti].tabIndex = match ? 0 : -1;
-        }
+      // Tab semantics: clicking a day-tab while stacked EXITS stacked
+      // mode and activates that single day. Set activeTab to the click
+      // target BEFORE the renderAll fires so the freshly-rendered tab
+      // strip + the activate() at the end of renderAll both pick the
+      // clicked day — otherwise today's tab would briefly highlight
+      // (since activeTab was still pointing at scroll-spy's last
+      // tracked day) before our explicit activate() lands.
+      if (viewState.showAllDays && tab.dataset.tab !== 'settings') {
         activeTab = tab.dataset.tab;
-        lastDayTab = tab.dataset.tab;
-        try { sessionStorage.setItem(SESSION_LAST_DAY, tab.dataset.tab); } catch (_) {}
-        if (target) target.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        return;
+        setAllWeekActive(false);
       }
       activate(tab.dataset.tab, { updateHash: true });
-      // Coming back from Settings into stacked mode — activate() un-hid
-      // all panels and set aria-selected; smooth-scroll the picked day
-      // into view so the click feels like the stacked-mode click does.
-      if (viewState.showAllDays && tab.dataset.tab !== 'settings'
-          && leavingSettings) {
-        var land = document.getElementById('day-' + tab.dataset.tab);
-        if (land) land.scrollIntoView({ behavior: 'smooth', block: 'start' });
-      }
       return;
     }
 
@@ -8204,6 +8346,13 @@ body.has-banner > *:not(.deep-link-banner) {
   }
   syncHeaderOffset();
   scheduleTonightRelabel();
+  // Re-measure the sticky day-heading on resize — viewport-width
+  // changes can shift padding / line-height and bump its rendered
+  // height by a few px, which the category-header sticky-top calc
+  // depends on.
+  window.addEventListener('resize', function () {
+    if (viewState.showAllDays) syncDayHeadingHeight();
+  });
 })();
 
 </script>
