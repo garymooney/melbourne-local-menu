@@ -1277,11 +1277,16 @@ body.has-banner > *:not(.deep-link-banner) {
    fade-in. While opacity is transitioning 0.78 → 1, the parent still
    has a stacking context, so without a positive z-index the next
    sibling card would paint over the tooltip mid-transition. */
-.event.extra:has(.score-chip:hover),
 .event.extra:has(.score-chip:focus-within),
 .event.extra:has(.score-chip.open) {
   opacity: 1;
-  z-index: 5;
+  z-index: 8;
+}
+@media (hover: hover) {
+  .event.extra:has(.score-chip:hover) {
+    opacity: 1;
+    z-index: 8;
+  }
 }
 /* :has() fallback — older Safari/Firefox/Android WebView don't support
    the rule above and would render the score-breakdown tooltip at the
@@ -1289,7 +1294,7 @@ body.has-banner > *:not(.deep-link-banner) {
    on chip hover/focus/open so the same opacity reset fires. */
 .event.extra.tooltip-open {
   opacity: 1;
-  z-index: 5;
+  z-index: 8;
 }
 .event.extra .venue,
 .event.extra .title {
@@ -1441,11 +1446,16 @@ body.has-banner > *:not(.deep-link-banner) {
   text-underline-offset: 2px;
   text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
 }
-.score-chip:hover .score-debug,
 .score-chip:focus-within .score-debug,
 .score-chip.open .score-debug {
   opacity: 1;
   color: var(--text);
+}
+@media (hover: hover) {
+  .score-chip:hover .score-debug {
+    opacity: 1;
+    color: var(--text);
+  }
 }
 .score-breakdown {
   display: none;
@@ -1466,10 +1476,17 @@ body.has-banner > *:not(.deep-link-banner) {
   line-height: 1.5;
   white-space: normal;
 }
-.score-chip:hover .score-breakdown,
 .score-chip:focus-within .score-breakdown,
 .score-chip.open .score-breakdown {
   display: block;
+}
+/* Hover shows the tooltip only on devices with a real pointer. On
+   touch, :hover is sticky after a tap and would keep the tooltip
+   open even after the user explicitly toggles .open off. */
+@media (hover: hover) {
+  .score-chip:hover .score-breakdown {
+    display: block;
+  }
 }
 .score-breakdown-row {
   display: flex;
@@ -8215,6 +8232,14 @@ body.has-banner > *:not(.deep-link-banner) {
     }
     if (chipEl) {
       chipEl.classList.toggle('open');
+      // After toggling closed, drop :focus-within so the tooltip-show
+      // CSS rules that key off focus-within don't keep it visible.
+      // Mobile taps also leave :hover sticky, but that's now scoped
+      // to (hover: hover) media so it doesn't fire on touch.
+      if (!chipEl.classList.contains('open') &&
+          typeof chipEl.blur === 'function') {
+        chipEl.blur();
+      }
       syncTooltipOpenClass(chipEl);
       return;
     }
