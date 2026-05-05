@@ -2077,15 +2077,22 @@ body.has-banner > *:not(.deep-link-banner) {
 
 .settings-subtabs {
   display: flex;
-  flex-wrap: wrap;
+  flex-wrap: nowrap;
   gap: 4px;
   margin: 0.4em 0 1em;
+  padding: 4px 8px;
   border-bottom: 2px solid var(--rule);
   position: sticky;
   top: var(--header-offset, 120px);
   background: var(--bg);
   z-index: 4;
+  /* Single-row scroll on narrow viewports — strip stays one line tall
+     no matter how many panels exist. Scrollbar hidden across browsers. */
+  overflow-x: auto;
+  scrollbar-width: none;
+  -ms-overflow-style: none;
 }
+.settings-subtabs::-webkit-scrollbar { display: none; }
 .settings-subtab {
   flex: 0 0 auto;
   background: transparent;
@@ -2093,10 +2100,10 @@ body.has-banner > *:not(.deep-link-banner) {
   border-bottom: 2px solid transparent;
   margin-bottom: -2px;
   color: var(--muted);
-  padding: 8px 14px;
+  padding: 4px 10px;
   font-family: var(--body-font);
-  font-size: var(--fs-3);
-  font-weight: 600;
+  font-size: var(--fs-4);
+  font-weight: 500;
   cursor: pointer;
   letter-spacing: var(--ls-normal);
 }
@@ -2105,6 +2112,21 @@ body.has-banner > *:not(.deep-link-banner) {
   color: var(--accent-cool);
   border-bottom-color: var(--accent-cool);
 }
+/* Per-tab modified dot — small cool accent dot at the trailing edge
+   of any tab whose panel has at least one row diverging from default.
+   Cool (not warm) per the modified-state system in DESIGN_SETTINGS §6:
+   warm is reserved for selection (pressed chips) and would clash with
+   the Avoid-pressed chip on a modified row. */
+.settings-subtab__dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-cool);
+  margin-left: 6px;
+  vertical-align: 1px;
+}
+.settings-subtab__dot[hidden] { display: none; }
 
 .settings-panel[hidden] { display: none; }
 
@@ -2253,6 +2275,35 @@ body.has-banner > *:not(.deep-link-banner) {
 .tri[aria-pressed="true"][data-value="local"]    { background: var(--accent-cool); color: #fff; }
 .tri[aria-pressed="true"][data-value="included"] { background: color-mix(in srgb, var(--accent-cool) 50%, var(--card-bg)); color: #fff; }
 .tri[aria-pressed="true"][data-value="outside"]  { background: var(--muted); color: #fff; }
+/* Friendly Tuning chips (data-tuning-chip="N") — pressed state defaults
+   to the warm selection accent (matches the Theme picker). Chips with
+   data-tuning-color override to map onto the topic-tier palette so
+   leftmost (love-green) reads as "boost / show more" and rightmost
+   (avoid-red) as "restrict / show less". */
+.tri[aria-pressed="true"][data-tuning-chip] {
+  background: var(--accent-warm);
+  color: #fff;
+}
+.tri[aria-pressed="true"][data-tuning-color="love"] {
+  background: var(--free-green);
+  color: #fff;
+}
+.tri[aria-pressed="true"][data-tuning-color="like"] {
+  background: color-mix(in srgb, var(--free-green) 65%, var(--card-bg));
+  color: #fff;
+}
+.tri[aria-pressed="true"][data-tuning-color="meh"] {
+  background: var(--muted);
+  color: #fff;
+}
+.tri[aria-pressed="true"][data-tuning-color="avoid-soft"] {
+  background: color-mix(in srgb, var(--accent-warm) 60%, var(--muted));
+  color: #fff;
+}
+.tri[aria-pressed="true"][data-tuning-color="avoid"] {
+  background: var(--accent-warm);
+  color: #fff;
+}
 
 .suburb-row {
   display: grid;
@@ -2264,19 +2315,88 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .suburb-row:last-child { border-bottom: none; }
 
-/* Modified-state indicator: small accent dot before the row name when
-   the row's current value differs from the shipped default. Hooks off
-   data-modified="true" set by the row renderer + each handler. */
+/* Modified-state visual system (DESIGN_SETTINGS §6). Cool, not warm:
+   warm is reserved for selection (pressed chips) and would clash with
+   an Avoid-pressed chip on a modified row. Two coordinated cues:
+   (1) inline dot before the row name, (2) a separate ↺ reset button
+   revealed on hover/focus (or always on touch). Dot is indicator-only
+   — the reset is its own affordance, never conflated, so the most
+   exploratory gesture (hover/tap to see what changed) isn't
+   accidentally destructive. (Row-tint background was tried and
+   dropped — the dot already reads clearly enough.) */
 .subcat-row[data-modified="true"] .subcat-name::before,
 .suburb-row[data-modified="true"] .subcat-name::before,
 .facet-row[data-modified="true"] .facet-name::before,
 .rule-row[data-modified="true"] .rule-name::before,
 .shape-row[data-modified="true"] .shape-name::before {
   content: "● ";
-  color: var(--accent-warm);
+  color: var(--accent-cool);
   font-size: 0.7em;
   vertical-align: 1px;
   margin-right: 3px;
+}
+
+/* ↺ row-reset button — always present in DOM but hidden via CSS
+   unless the row is modified. Modified rows reveal the button on
+   hover / focus-within (desktop), or always on touch (no hover). */
+.row-reset-btn {
+  display: none;
+  align-items: center;
+  justify-content: center;
+  width: 22px;
+  height: 22px;
+  padding: 0;
+  border: 1px solid var(--rule);
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.95em;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0;
+  transition: opacity 0.12s, color 0.12s, border-color 0.12s;
+  flex-shrink: 0;
+  /* Sits in column 2, between the label and chips. The chip cluster
+     stays anchored to the row's right edge — label (1fr) absorbs the
+     reset's width so chips don't shift on toggle. */
+}
+[data-modified="true"] .row-reset-btn {
+  display: inline-flex;
+}
+.subcat-row[data-modified="true"]:hover .row-reset-btn,
+.suburb-row[data-modified="true"]:hover .row-reset-btn,
+.facet-row[data-modified="true"]:hover .row-reset-btn,
+.rule-row[data-modified="true"]:hover .row-reset-btn,
+.shape-row[data-modified="true"]:hover .row-reset-btn,
+.subcat-row[data-modified="true"]:focus-within .row-reset-btn,
+.suburb-row[data-modified="true"]:focus-within .row-reset-btn,
+.facet-row[data-modified="true"]:focus-within .row-reset-btn,
+.rule-row[data-modified="true"]:focus-within .row-reset-btn,
+.shape-row[data-modified="true"]:focus-within .row-reset-btn {
+  opacity: 0.7;
+}
+.row-reset-btn:hover, .row-reset-btn:focus-visible {
+  opacity: 1 !important;
+  color: var(--accent-cool);
+  border-color: var(--accent-cool);
+  outline: none;
+}
+@media (hover: none) {
+  [data-modified="true"] .row-reset-btn { opacity: 0.7; }
+}
+
+/* When a row is modified the reset button takes a third grid column.
+   Not modified: the button is display:none so the existing 2-col
+   grid layout is unchanged. */
+.subcat-row[data-modified="true"],
+.suburb-row[data-modified="true"] {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+}
+.rule-row[data-modified="true"],
+.shape-row[data-modified="true"],
+.facet-row[data-modified="true"] {
+  grid-template-columns: 1fr auto auto;
 }
 
 .settings-actions {
@@ -2354,6 +2474,15 @@ body.has-banner > *:not(.deep-link-banner) {
   margin: 0 0 0.75em;
   padding: 0 2px;
 }
+.settings-storage-note {
+  font-size: 0.78em;
+  color: var(--muted);
+  line-height: 1.4;
+  margin: 1.25em 0 0;
+  padding: 0 2px;
+  text-align: center;
+  opacity: 0.75;
+}
 
 /* Rules + Shape sub-tabs share a row layout: label block on the left,
  * a control on the right. The rule-toggle is a simple on/off button;
@@ -2381,12 +2510,48 @@ body.has-banner > *:not(.deep-link-banner) {
   margin-top: 3px;
   line-height: 1.35;
 }
-.rule-weight {
-  display: inline-block;
-  font-family: var(--mono-font);
-  font-size: 0.78em;
-  color: var(--faint);
-  margin-left: 6px;
+/* Hint visibility is fit-driven: each row renders both the inline
+   hint and a `(?)` button. `measureSettingsHints` toggles
+   data-hint-mode based on whether the hint overflows its column. */
+/* Visible mode: show the inline hint (block-stacked under the name),
+   hide the (?). Hint uses nowrap+ellipsis as a fallback for the
+   one-frame window before measure runs. Once measured, overflowing
+   rows flip to collapsed mode and never show ellipsis. */
+.rule-row[data-hint-mode="visible"] .rule-hint,
+.shape-row[data-hint-mode="visible"] .shape-hint,
+.facet-row[data-hint-mode="visible"] .facet-blurb {
+  display: block;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 100%;
+}
+.rule-row[data-hint-mode="visible"] .row-help,
+.shape-row[data-hint-mode="visible"] .row-help,
+.facet-row[data-hint-mode="visible"] .row-help {
+  display: none;
+}
+/* Collapsed mode: hide the inline hint, show the (?) inline next to
+   the row name. The text wrapper switches from block stack to flex
+   row; the (?) sits between the name and the chip cluster. */
+.rule-row[data-hint-mode="collapsed"] .rule-hint,
+.shape-row[data-hint-mode="collapsed"] .shape-hint,
+.facet-row[data-hint-mode="collapsed"] .facet-blurb {
+  display: none;
+}
+.rule-row[data-hint-mode="collapsed"] > .rule-text,
+.shape-row[data-hint-mode="collapsed"] > .shape-text,
+.facet-row[data-hint-mode="collapsed"] > .facet-label {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 6px;
+  flex-wrap: nowrap;
+}
+.rule-row[data-hint-mode="collapsed"] .rule-name,
+.shape-row[data-hint-mode="collapsed"] .shape-name,
+.facet-row[data-hint-mode="collapsed"] .facet-name {
+  display: inline;
 }
 .rule-action {
   display: inline-block;
@@ -2394,6 +2559,73 @@ body.has-banner > *:not(.deep-link-banner) {
   font-style: italic;
   color: var(--faint);
   margin-left: 6px;
+}
+
+/* Per-row score-effect badge — small mono number showing the current
+   contribution this row makes to an event's score. Hidden by default;
+   revealed when the user opts into Show event scores (Tuning >
+   Advanced), via the body[data-show-scores="true"] attribute that
+   applyScoreVisibility() sets. */
+.row-score-effect {
+  display: none;
+  font-family: var(--mono-font);
+  font-size: 0.78em;
+  font-weight: 400;
+  color: var(--faint);
+  margin-left: 6px;
+}
+body[data-show-scores="true"] .row-score-effect:not(:empty) {
+  display: inline-block;
+}
+
+/* Row-help (?) button — small circular icon shown in collapsed-hint
+   mode between the row name and the chip cluster. Clicking it opens
+   a popover with the full hint text. */
+.row-help {
+  flex: 0 0 auto;
+  width: 18px;
+  height: 18px;
+  padding: 0;
+  border-radius: 50%;
+  border: 1px solid var(--rule);
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 0.72em;
+  font-weight: 600;
+  line-height: 1;
+  cursor: pointer;
+  opacity: 0.65;
+  transition: opacity 0.12s, border-color 0.12s, color 0.12s;
+}
+.row-help:hover, .row-help:focus-visible {
+  opacity: 1;
+  border-color: var(--accent-cool);
+  color: var(--accent-cool);
+  outline: none;
+}
+.row-help[aria-expanded="true"] {
+  opacity: 1;
+  border-color: var(--accent-cool);
+  color: var(--accent-cool);
+}
+
+/* Row-help popover — body-mounted, fixed-positioned bubble. Width
+   capped so long hints wrap across a few lines rather than spilling
+   to the viewport edge. closeOnScroll dismisses on user-driven scroll
+   (with 12px threshold so iOS rubber-band doesn't fire it). */
+.row-help-popover {
+  position: fixed;
+  z-index: 1000;
+  max-width: 260px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  color: var(--dark);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.12);
+  font-size: 0.82em;
+  line-height: 1.4;
 }
 .rule-toggle {
   flex: 0 0 auto;
@@ -2431,7 +2663,9 @@ body.has-banner > *:not(.deep-link-banner) {
   display: flex;
   align-items: center;
   gap: 10px;
-  min-width: 220px;
+  /* min-width: 0 lets the flex item shrink below its content width
+     on narrow viewports (was 220px which would overflow on 360px). */
+  min-width: 0;
 }
 .shape-input input[type="range"],
 .suburb-weight-input input[type="range"] {
@@ -2452,6 +2686,56 @@ body.has-banner > *:not(.deep-link-banner) {
   justify-content: space-between;
   gap: 8px;
 }
+/* Friendly Tuning chip rows — Strictness / Variety / Reward / Avoid.
+   Reuse .shape-row layout for visual consistency with the raw shape
+   sliders below. .tuning-chips wraps the tri-state and an optional
+   "custom: X.XX" badge that appears when a power user has dialled
+   the underlying values to a non-preset setting via Advanced. */
+.tuning-chips {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+.chip-custom {
+  display: inline-block;
+  font-family: var(--mono-font);
+  font-size: 0.78em;
+  font-weight: 400;
+  color: var(--faint);
+  margin-left: 6px;
+  white-space: nowrap;
+}
+
+/* Tuning > Advanced disclosure — collapsed by default; houses the
+   raw shape sliders and the relocated Show event scores toggle. */
+.tuning-advanced {
+  margin-top: 1em;
+  border-top: 1px solid var(--rule);
+  padding-top: 0.6em;
+}
+.tuning-advanced > summary {
+  cursor: pointer;
+  padding: 4px 0;
+  font-weight: 600;
+  font-size: 0.88em;
+  color: var(--muted);
+  list-style: none;
+}
+.tuning-advanced > summary::-webkit-details-marker { display: none; }
+.tuning-advanced > summary::before {
+  content: "▸";
+  display: inline-block;
+  margin-right: 6px;
+  transition: transform 0.15s;
+}
+.tuning-advanced[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* Per-tier `+` button in the section heading toggles an inline
+   typeahead under the heading. Tier is implicit (the section's own
+   tier), so picking a suburb commits straight to that tier. */
 .add-suburb-btn {
   appearance: none;
   background: transparent;
@@ -2466,22 +2750,105 @@ body.has-banner > *:not(.deep-link-banner) {
   padding: 0;
 }
 .add-suburb-btn:hover { color: var(--dark); border-color: var(--dark); }
-.add-suburb-picker {
-  margin: 6px 0 10px;
+.add-suburb-btn[aria-expanded="true"] {
+  color: var(--accent-cool);
+  border-color: var(--accent-cool);
+}
+/* + button sits adjacent to the section name in the suburb headings,
+   not at the row's right edge — matches the Topics/Vibes single-row
+   density. */
+[data-suburb-tier] > .subcat-group-heading {
+  justify-content: flex-start;
+  gap: 8px;
+}
+.suburb-section-add {
   display: flex;
   gap: 6px;
+  margin: 4px 0 8px;
 }
-.add-suburb-picker[hidden] { display: none; }
-.add-suburb-picker select {
-  font: inherit;
-  font-size: 0.92em;
-  padding: 5px 8px;
+.suburb-section-add[hidden] { display: none; }
+.suburb-typeahead {
+  /* Sized to fit the longest suburb name in the taxonomy — at 16px
+     font, "pascoe vale south" is 17 chars. 18ch gives one char of
+     breathing room without filling the whole row width. */
+  width: 18ch;
+  max-width: 100%;
+  padding: 6px 10px;
   border: 1px solid var(--rule);
   border-radius: 6px;
   background: #fff;
   color: var(--dark);
-  flex: 1;
-  min-width: 0;
+  font: inherit;
+  /* 16px (not em) so iOS Safari doesn't zoom on focus. */
+  font-size: 16px;
+}
+.suburb-typeahead:focus {
+  outline: none;
+  border-color: var(--accent-cool);
+}
+
+/* Outside section is rendered as a <details> disclosure so it sits
+   collapsed by default — typically the largest section and rarely
+   the destination for explicit re-tiering. */
+.suburb-outside-collapse {
+  margin-top: 8px;
+}
+.suburb-outside-collapse > summary {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  cursor: pointer;
+  padding: 6px 0;
+  font-weight: 600;
+  color: var(--muted);
+  list-style: none;
+}
+.suburb-outside-collapse > summary::-webkit-details-marker { display: none; }
+.suburb-outside-collapse > summary::before {
+  content: "▸";
+  display: inline-block;
+  flex: 0 0 auto;
+  transition: transform 0.15s;
+}
+.suburb-outside-collapse[open] > summary::before {
+  transform: rotate(90deg);
+}
+
+/* Mobile (≤640px) — slider rows stack vertically so the range gets
+   the full row width (a 140px-min slider on a 360px viewport with a
+   "Subcategory spread" label squeezes too tight). Chip rows already
+   fit one-line so they're left alone. The native iOS slider thumb
+   is ~16px, under WCAG's 24×24 minimum target; bump to 28px on
+   touch viewports to clear the bar. */
+@media (max-width: 640px) {
+  .shape-row {
+    display: flex;
+    flex-direction: column;
+    align-items: stretch;
+    gap: 6px;
+  }
+  .shape-input,
+  .suburb-weight-input {
+    width: 100%;
+  }
+  .shape-input input[type="range"],
+  .suburb-weight-input input[type="range"] {
+    flex: 1;
+    min-width: 0;
+  }
+  .shape-input input[type="range"]::-webkit-slider-thumb,
+  .suburb-weight-input input[type="range"]::-webkit-slider-thumb {
+    width: 28px;
+    height: 28px;
+  }
+  .shape-input input[type="range"]::-moz-range-thumb,
+  .suburb-weight-input input[type="range"]::-moz-range-thumb {
+    width: 28px;
+    height: 28px;
+  }
+  .settings-subtabs {
+    padding: 4px 8px;
+  }
 }
 
 /* ---------- Feedback modal ---------- */
@@ -2719,6 +3086,12 @@ body.has-banner > *:not(.deep-link-banner) {
   var payload = JSON.parse(dataEl.textContent);
   var events = payload.events || [];
   var defaultProfile = payload.default_profile || {};
+  // Default Strictness = Balanced (0.10). recommend.py SCORE_FLOOR ships
+  // 0.10 going forward, but pre-update menu-data.json may still carry
+  // 0.00 — coerce so the friendly Strictness chip default-matches.
+  if (defaultProfile.score_floor == null || defaultProfile.score_floor === 0) {
+    defaultProfile.score_floor = 0.10;
+  }
 
   var STORAGE_KEY = 'melbourne-menu-profile-v1';
   var VIEW_STORAGE_KEY = 'melbourne-menu-view-v1';
@@ -2728,11 +3101,12 @@ body.has-banner > *:not(.deep-link-banner) {
   // of profile keys to defaultProfile values. Single source of truth so
   // we don't grow N near-identical handler branches.
   var RESET_TARGETS = {
-    'reset-tags':    ['subcategory_tiers'],
-    'reset-vibes':   ['facet_tiers'],
-    'reset-rules':   ['rule_states', 'rule_weights', 'pinning_rules'],
-    'reset-suburbs': ['suburb_tiers', 'suburb_tier_weights'],
-    'reset-shape':   ['score_floor', 'diversity_category', 'diversity_subcategory', 'tier_bonuses'],
+    'reset-tags':       ['subcategory_tiers'],
+    'reset-vibes':      ['facet_tiers'],
+    'reset-rules':      ['rule_states', 'rule_weights', 'pinning_rules'],
+    'reset-suburbs':    ['suburb_tiers', 'suburb_tier_weights'],
+    'reset-shape':      ['score_floor', 'diversity_category', 'diversity_subcategory', 'tier_bonuses'],
+    'reset-appearance': ['theme'],
   };
 
   // View state — UI preferences that aren't part of the scoring profile.
@@ -2957,6 +3331,14 @@ body.has-banner > *:not(.deep-link-banner) {
     if (shape.love_bonus  != null) merged.tier_bonuses.love  = shape.love_bonus;
     if (shape.like_bonus  != null) merged.tier_bonuses.like  = shape.like_bonus;
     if (shape.avoid_bonus != null) merged.tier_bonuses.avoid = shape.avoid_bonus;
+    // Friendly Tuning chips set multipliers, not absolute tier_bonuses.
+    // Scoring multiplies the underlying base values by these so a user
+    // who's also dialled custom Advanced sliders gets composition: a
+    // 0.5x base × 1.5x reward = 0.75x effective love. Default 1 keeps
+    // existing scoring behaviour unchanged.
+    merged.reward_multiplier  = shape.reward_multiplier  != null ? shape.reward_multiplier  : 1;
+    merged.variety_multiplier = shape.variety_multiplier != null ? shape.variety_multiplier : 1;
+    merged.avoid_multiplier   = shape.avoid_multiplier   != null ? shape.avoid_multiplier   : 1;
 
     // Pinned event ids — list of event ids the user has pinned via the
     // per-card pin button. Stored as an array; consumed via a Set for O(1)
@@ -3019,6 +3401,9 @@ body.has-banner > *:not(.deep-link-banner) {
           love_bonus:  (profile.tier_bonuses || {}).love,
           like_bonus:  (profile.tier_bonuses || {}).like,
           avoid_bonus: (profile.tier_bonuses || {}).avoid,
+          reward_multiplier:  profile.reward_multiplier,
+          variety_multiplier: profile.variety_multiplier,
+          avoid_multiplier:   profile.avoid_multiplier,
         },
         pinned_event_ids: profile.pinned_event_ids || [],
         hidden_event_ids: profile.hidden_event_ids || [],
@@ -3297,13 +3682,21 @@ body.has-banner > *:not(.deep-link-banner) {
     var subs = event.subcategories || [];
     var tierMap = profile.subcategory_tiers || {};
     var tierBonuses = profile.tier_bonuses || {};
+    var rewardMult = profile.reward_multiplier != null ? profile.reward_multiplier : 1;
+    var avoidMult  = profile.avoid_multiplier  != null ? profile.avoid_multiplier  : 1;
     if (subs.length > 0) {
       var tbSum = 0, tbCount = 0;
       for (var j = 0; j < subs.length; j++) {
         var tier = tierMap[subs[j]] || 'neutral';
         if (tier === 'neutral') continue;
         var tb = tierBonuses[tier];
-        if (tb != null) { tbSum += tb; tbCount++; }
+        if (tb == null) continue;
+        // Scale love/like by reward_multiplier and avoid by
+        // avoid_multiplier so the friendly Tuning chips compose with
+        // any custom base set via Advanced sliders.
+        if (tier === 'love' || tier === 'like') tb *= rewardMult;
+        else if (tier === 'avoid') tb *= avoidMult;
+        tbSum += tb; tbCount++;
       }
       if (tbCount > 0) score += tbSum / tbCount;
     }
@@ -3353,6 +3746,8 @@ body.has-banner > *:not(.deep-link-banner) {
     var subs = event.subcategories || [];
     var tierMap = profile.subcategory_tiers || {};
     var tierBonuses = profile.tier_bonuses || {};
+    var rewardMultBd = profile.reward_multiplier != null ? profile.reward_multiplier : 1;
+    var avoidMultBd  = profile.avoid_multiplier  != null ? profile.avoid_multiplier  : 1;
     if (subs.length > 0) {
       var tbSum = 0, tbCount = 0;
       var tagParts = [];
@@ -3361,6 +3756,8 @@ body.has-banner > *:not(.deep-link-banner) {
         if (st === 'neutral') continue;
         var tb = tierBonuses[st];
         if (tb != null) {
+          if (st === 'love' || st === 'like') tb *= rewardMultBd;
+          else if (st === 'avoid') tb *= avoidMultBd;
           tbSum += tb;
           tbCount++;
           tagParts.push(subs[j] + ':' + st);
@@ -3435,13 +3832,16 @@ body.has-banner > *:not(.deep-link-banner) {
 
   function diversityPenaltyFor(event, priorCats, priorSubSets, profile) {
     var penalty = 0;
+    var varietyMult = profile.variety_multiplier != null ? profile.variety_multiplier : 1;
+    var dCat = (profile.diversity_category || 0) * varietyMult;
+    var dSub = (profile.diversity_subcategory || 0) * varietyMult;
     var cat = (event.category || '').toLowerCase();
     if (cat) {
       var catPairs = 0;
       for (var i = 0; i < priorCats.length; i++) {
         if (priorCats[i] === cat) catPairs++;
       }
-      penalty += (profile.diversity_category || 0) * catPairs;
+      penalty += dCat * catPairs;
     }
     var candidateSubs = penaltySubcategorySet(event);
     if (candidateSubs.size > 0) {
@@ -3449,7 +3849,7 @@ body.has-banner > *:not(.deep-link-banner) {
       for (var k = 0; k < priorSubSets.length; k++) {
         if (subsetsOverlap(candidateSubs, priorSubSets[k])) subPairs++;
       }
-      penalty += (profile.diversity_subcategory || 0) * subPairs;
+      penalty += dSub * subPairs;
     }
     return penalty;
   }
@@ -4257,6 +4657,106 @@ body.has-banner > *:not(.deep-link-banner) {
     return cur != null && cur !== def;
   }
 
+  // Per-tab modified counts — number of rows in each panel that diverge
+  // from default. Drives both the per-tab dot in the sub-tab strip and
+  // the panel-header "X modified · clear" chip.
+  function settingsTabModifiedCounts() {
+    var keys, k;
+    var out = { tags: 0, vibes: 0, rules: 0,
+      suburbs: 0, shape: 0, appearance: 0 };
+    keys = Object.keys(defaultProfile.subcategory_tiers || {});
+    var profKeys = Object.keys(profile.subcategory_tiers || {});
+    for (k = 0; k < profKeys.length; k++) {
+      if (keys.indexOf(profKeys[k]) === -1) keys.push(profKeys[k]);
+    }
+    for (k = 0; k < keys.length; k++) {
+      if (isSubcatModified(keys[k])) out.tags++;
+    }
+    keys = Object.keys(profile.facet_blurbs || {});
+    for (k = 0; k < keys.length; k++) {
+      if (isFacetModified(keys[k])) out.vibes++;
+    }
+    keys = Object.keys(defaultProfile.rule_weights || {});
+    for (k = 0; k < keys.length; k++) {
+      if (isRuleModified(keys[k])) out.rules++;
+    }
+    keys = Object.keys(defaultProfile.suburb_tiers || {});
+    var sProf = Object.keys(profile.suburb_tiers || {});
+    for (k = 0; k < sProf.length; k++) {
+      if (keys.indexOf(sProf[k]) === -1) keys.push(sProf[k]);
+    }
+    for (k = 0; k < keys.length; k++) {
+      if (isSuburbTierModified(keys[k])) out.suburbs++;
+    }
+    var weightTiers = ['home', 'local'];
+    for (k = 0; k < weightTiers.length; k++) {
+      if (isSuburbWeightModified(weightTiers[k])) out.suburbs++;
+    }
+    var shapeFields = ['score_floor', 'diversity_category',
+      'diversity_subcategory', 'love_bonus', 'like_bonus', 'avoid_bonus'];
+    for (k = 0; k < shapeFields.length; k++) {
+      if (isShapeModified(shapeFields[k])) out.shape++;
+    }
+    if ((profile.theme || 'auto') !== 'auto') out.appearance++;
+    return out;
+  }
+
+  function settingsTabModified() {
+    var c = settingsTabModifiedCounts();
+    return {
+      tags: c.tags > 0, vibes: c.vibes > 0, rules: c.rules > 0,
+      suburbs: c.suburbs > 0, shape: c.shape > 0, appearance: c.appearance > 0,
+    };
+  }
+
+  // Score-effect badge — small mono number next to the row name showing
+  // the current contribution this row makes to an event's score. Always
+  // present in DOM; CSS gates visibility on body[data-show-scores="true"]
+  // (toggled by the Show event scores switch in Tuning > Advanced) so
+  // it can flip without a settings re-render. Empty/zero weights still
+  // render an empty span so in-place handlers can refill it cheaply.
+  function renderRowScoreEffect(weight) {
+    var hasWeight = weight != null && Math.abs(weight) >= 0.001;
+    var text = '';
+    if (hasWeight) {
+      var sign = weight > 0 ? '+' : '';
+      text = sign + weight.toFixed(2);
+    }
+    return '<span class="row-score-effect" aria-hidden="true">' + text + '</span>';
+  }
+
+  function suburbScoreEffect(suburb) {
+    var tier = suburbCurrentTier(suburb);
+    return (profile.suburb_tier_weights || {})[tier];
+  }
+  function ruleScoreEffect(ruleName) {
+    return ruleDisplayBits(ruleName).weight;
+  }
+
+  // Body-level toggle drives CSS visibility of all .row-score-effect
+  // spans. Called once at init and from the Show event scores handler.
+  function applyScoreVisibility() {
+    if (typeof document !== 'undefined' && document.body) {
+      document.body.dataset.showScores = profile.show_score_chip ? 'true' : 'false';
+    }
+  }
+
+  // Inline ↺ button always present in every row; CSS hides it unless
+  // the row's data-modified flips to "true" (and then only on hover /
+  // focus on desktop, always on touch). This way the in-place chip
+  // handlers — which only toggle data-modified, they don't re-emit
+  // the row markup — get the reset affordance for free without
+  // structural patches. Click dispatches via [data-row-reset] in the
+  // document click listener.
+  function renderRowResetBtn() {
+    return (
+      '<button type="button" class="row-reset-btn" data-row-reset ' +
+        'aria-label="Reset to default" title="Reset to default">' +
+        '↺' +
+      '</button>'
+    );
+  }
+
   function renderSubcatRow(tag) {
     var tier = (profile.subcategory_tiers || {})[tag] || 'neutral';
     var chips = TIERS.map(function (t) {
@@ -4271,6 +4771,7 @@ body.has-banner > *:not(.deep-link-banner) {
       '<div class="subcat-row" data-subcat="' + escapeHtml(tag) + '" ' +
         'data-modified="' + (isSubcatModified(tag) ? 'true' : 'false') + '">' +
         '<span class="subcat-name">' + escapeHtml(tag) + '</span>' +
+        renderRowResetBtn() +
         '<div class="tri-state" role="radiogroup" aria-label="' +
           escapeHtml(tag) + ' tier">' + chips + '</div>' +
       '</div>'
@@ -4283,10 +4784,7 @@ body.has-banner > *:not(.deep-link-banner) {
 
   function renderSubcatGroups() {
     var tax = profile.subcategory_taxonomy || {};
-    var parts = [
-      '<p class="facet-intro">What kind of event this is &mdash; jazz, ' +
-      'yoga, cooking, shibari, and so on. Each event can carry a few tags.</p>'
-    ];
+    var parts = [];
     // Broad / cross-category leaves first — applies across categories,
     // shown once instead of duplicated per bucket.
     if (BROAD_SUBCATS.length) {
@@ -4335,13 +4833,23 @@ body.has-banner > *:not(.deep-link-banner) {
     var displayName = name
       .replace(/_/g, ' ')
       .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    var blurbHtml = '';
+    if (blurb) {
+      blurbHtml =
+        '<span class="facet-blurb">' + escapeHtml(blurb) + '</span>' +
+        '<button type="button" class="row-help" data-help="' +
+          escapeHtml(blurb) + '" aria-label="Help: ' +
+          escapeHtml(displayName) + '" aria-expanded="false">?</button>';
+    }
     return (
       '<div class="facet-row" data-facet="' + escapeHtml(name) + '" ' +
+        'data-hint-mode="visible" ' +
         'data-modified="' + (isFacetModified(name) ? 'true' : 'false') + '">' +
         '<div class="facet-label">' +
           '<span class="facet-name">' + escapeHtml(displayName) + '</span>' +
-          '<span class="facet-blurb">' + escapeHtml(blurb || '') + '</span>' +
+          blurbHtml +
         '</div>' +
+        renderRowResetBtn() +
         '<div class="tri-state" role="radiogroup" aria-label="' +
           escapeHtml(name) + ' tier">' + chips + '</div>' +
       '</div>'
@@ -4421,13 +4929,10 @@ body.has-banner > *:not(.deep-link-banner) {
     var meta = RULE_META[ruleName] || { label: ruleName, hint: '' };
     var bits = ruleDisplayBits(ruleName);
     var html = escapeHtml(meta.label);
-    if (bits.weight !== null && bits.weight !== 0) {
-      var sign = bits.weight > 0 ? '+' : '';
-      html += '<span class="rule-weight">' + sign + bits.weight.toFixed(2) + '</span>';
-    }
     if (bits.action) {
       html += '<span class="rule-action">' + escapeHtml(bits.action) + '</span>';
     }
+    html += renderRowScoreEffect(bits.weight);
     return html;
   }
 
@@ -4465,13 +4970,23 @@ body.has-banner > *:not(.deep-link-banner) {
         '</button>'
       );
     }
+    var hintHtml = '';
+    if (meta.hint) {
+      hintHtml =
+        '<span class="rule-hint">' + escapeHtml(meta.hint) + '</span>' +
+        '<button type="button" class="row-help" data-help="' +
+          escapeHtml(meta.hint) + '" aria-label="Help: ' +
+          escapeHtml(meta.label) + '" aria-expanded="false">?</button>';
+    }
     return (
       '<div class="rule-row" data-rule="' + escapeHtml(ruleName) + '" ' +
+        'data-hint-mode="visible" ' +
         'data-modified="' + (isRuleModified(ruleName) ? 'true' : 'false') + '">' +
         '<div class="rule-text">' +
           '<span class="rule-name">' + ruleNameInnerHtml(ruleName) + '</span>' +
-          '<span class="rule-hint">' + escapeHtml(meta.hint) + '</span>' +
+          hintHtml +
         '</div>' +
+        renderRowResetBtn() +
         control +
       '</div>'
     );
@@ -4484,14 +4999,219 @@ body.has-banner > *:not(.deep-link-banner) {
       rows.push(renderRuleRow(r, defaults[r]));
     }
     return (
-      '<p class="facet-intro">Specific situations the menu can react to ' +
-      '&mdash; events at favourite venues, events from favourite artists, ' +
-      'dating events, and so on.</p>' +
       '<div class="subcat-group">' + rows.join('\n') + '</div>'
     );
   }
 
-  // --- Shape sub-tab --------------------------------------------------
+  // --- Tuning (Shape) sub-tab ----------------------------------------
+  // Friendly chip rows surface the most-used Tuning intents at the top
+  // of the panel; the raw sliders move to an Advanced disclosure below.
+  // Each friendly chip carries a preset that overwrites a small set of
+  // the underlying Shape fields.
+  //
+  // Reward and Avoid are split into two chips (not one symmetric "tier
+  // impact" multiplier) because `config.py:1158` defaults are
+  // intentionally asymmetric — avoid is a near-veto bounded by stacked
+  // rule bonuses, so multiplying it by 1.5× is wasted while halving it
+  // silently disables the veto. Splitting matches the architectural
+  // intent in docs/SCORING.md.
+  // Per-chip `color` maps onto the topic-tier palette (love / like / meh /
+  // avoid-soft / avoid) so the Tuning rows visually echo the Topics and
+  // Vibes chip vocabulary. Leftmost chip = "show more / boost stronger";
+  // rightmost = "show less / restrict harder". Reward is therefore
+  // ordered Strong → Subtle (left to right) so its leftmost is Love-green
+  // like the Topics' Love chip.
+  // Friendly chips are now a thin map onto either an absolute field
+  // (Strictness's score_floor) or a per-group multiplier scaling the
+  // underlying topic / diversity values (Reward / Variety / Avoid).
+  // Multipliers compose with any custom Advanced-slider base, so a
+  // user who's set a custom love=0.50 and then picks Strong (1.5x)
+  // gets effective love = 0.50 × 1.5 = 0.75.
+  var TUNING_FRIENDLY = [
+    {
+      key: 'strictness',
+      label: 'Strictness',
+      hint: 'Hide events whose score falls below this floor.',
+      chips: [
+        { label: 'Very loose',  score_floor: -0.20, color: 'love' },
+        { label: 'Loose',       score_floor: -0.05, color: 'like' },
+        { label: 'Balanced',    score_floor:  0.10, color: 'meh' },
+        { label: 'Strict',      score_floor:  0.25, color: 'avoid-soft' },
+        { label: 'Very strict', score_floor:  0.40, color: 'avoid' },
+      ],
+    },
+    {
+      key: 'variety',
+      label: 'Variety',
+      hint: 'How much category &amp; subcategory mix the menu favours.',
+      chips: [
+        { label: 'Anything goes', multiplier: 0,    color: 'love' },
+        { label: 'Mixed',         multiplier: 0.5,  color: 'like' },
+        { label: 'Varied',        multiplier: 1,    color: 'meh' },
+        { label: 'Very varied',   multiplier: 1.67, color: 'avoid' },
+      ],
+    },
+    {
+      key: 'reward',
+      label: 'Reward strength',
+      hint: 'How much your Love &amp; Like topic tiers pull events up.',
+      // Colour convention: green = bigger boost, gray = default, red =
+      // smaller boost.
+      chips: [
+        { label: 'Strong',   multiplier: 1.5, color: 'love' },
+        { label: 'Standard', multiplier: 1,   color: 'meh' },
+        { label: 'Subtle',   multiplier: 0.5, color: 'avoid' },
+      ],
+    },
+    {
+      key: 'avoid',
+      label: 'Avoid strength',
+      hint: 'How hard your Avoid topic tier pushes events down.',
+      // Colour convention: green = less avoidance, gray = default, red
+      // = more avoidance.
+      chips: [
+        { label: 'Demote',        multiplier: 0.5, color: 'love' },
+        { label: 'Strong demote', multiplier: 1,   color: 'meh' },
+        { label: 'Veto',          multiplier: 2,   color: 'avoid' },
+      ],
+    },
+  ];
+
+  // Format a multiplier for display: 1.5 → "1.5x", 1 → "1x", 0.5 → "0.5x".
+  function formatMultiplier(m) {
+    return parseFloat(m.toFixed(2)) + 'x';
+  }
+
+  function tuningGroupByKey(key) {
+    for (var i = 0; i < TUNING_FRIENDLY.length; i++) {
+      if (TUNING_FRIENDLY[i].key === key) return TUNING_FRIENDLY[i];
+    }
+    return null;
+  }
+
+  function tuningCurrentValue(key) {
+    if (key === 'strictness') return profile.score_floor;
+    if (key === 'reward')     return profile.reward_multiplier;
+    if (key === 'variety')    return profile.variety_multiplier;
+    if (key === 'avoid')      return profile.avoid_multiplier;
+    return null;
+  }
+
+  function tuningChipPresetValue(key, chip) {
+    if (key === 'strictness') return chip.score_floor;
+    return chip.multiplier;
+  }
+
+  function tuningChipMatchesCurrent(key, chip, current) {
+    var preset = tuningChipPresetValue(key, chip);
+    if (current == null || preset == null) return false;
+    return Math.abs(current - preset) < (key === 'strictness' ? 0.001 : 0.01);
+  }
+
+  function applyTuningPreset(key, chip) {
+    if (key === 'strictness') profile.score_floor = chip.score_floor;
+    else if (key === 'reward')  profile.reward_multiplier  = chip.multiplier;
+    else if (key === 'variety') profile.variety_multiplier = chip.multiplier;
+    else if (key === 'avoid')   profile.avoid_multiplier   = chip.multiplier;
+  }
+
+  function isTuningFriendlyModified(key) {
+    if (key === 'strictness') return isShapeModified('score_floor');
+    if (key === 'reward')  return (profile.reward_multiplier  != null && profile.reward_multiplier  !== 1);
+    if (key === 'variety') return (profile.variety_multiplier != null && profile.variety_multiplier !== 1);
+    if (key === 'avoid')   return (profile.avoid_multiplier   != null && profile.avoid_multiplier   !== 1);
+    return false;
+  }
+
+  function renderTuningFriendlyRow(group) {
+    var current = tuningCurrentValue(group.key);
+    var matchedIdx = -1;
+    for (var i = 0; i < group.chips.length; i++) {
+      if (tuningChipMatchesCurrent(group.key, group.chips[i], current)) {
+        matchedIdx = i;
+        break;
+      }
+    }
+    var chips = group.chips.map(function (c, idx) {
+      var colorAttr = c.color
+        ? ' data-tuning-color="' + escapeHtml(c.color) + '"'
+        : '';
+      return (
+        '<button type="button" class="tri" data-tuning-chip="' + idx + '"' +
+        colorAttr +
+        ' aria-pressed="' + (idx === matchedIdx ? 'true' : 'false') + '">' +
+          escapeHtml(c.label) +
+        '</button>'
+      );
+    }).join('');
+    // Inline badge after the row title: matched preset shows the
+    // multiplier (or absolute value for Strictness), gated by
+    // show-scores via .row-score-effect. Off-preset state shows
+    // persistent "custom: <value>" regardless of show-scores so the
+    // user always knows they're off-preset.
+    var inlineBadge = '';
+    if (matchedIdx === -1) {
+      var customDisplay = group.key === 'strictness'
+        ? (current != null ? current.toFixed(2) : '—')
+        : (current != null ? formatMultiplier(current) : '—');
+      inlineBadge =
+        '<span class="chip-custom">custom: ' +
+          escapeHtml(customDisplay) +
+        '</span>';
+    } else {
+      var matchedChip = group.chips[matchedIdx];
+      var display = group.key === 'strictness'
+        ? matchedChip.score_floor.toFixed(2)
+        : formatMultiplier(matchedChip.multiplier);
+      inlineBadge =
+        '<span class="row-score-effect">' + escapeHtml(display) + '</span>';
+    }
+    var hintHtml =
+      '<span class="shape-hint">' + group.hint + '</span>' +
+      '<button type="button" class="row-help" data-help="' +
+        escapeHtml(group.hint.replace(/&amp;/g, '&')) + '" aria-label="Help: ' +
+        escapeHtml(group.label) + '" aria-expanded="false">?</button>';
+    return (
+      '<div class="shape-row tuning-friendly-row" ' +
+        'data-tuning-key="' + group.key + '" ' +
+        'data-hint-mode="visible" ' +
+        'data-modified="' + (isTuningFriendlyModified(group.key) ? 'true' : 'false') + '">' +
+        '<div class="shape-text">' +
+          '<span class="shape-name">' + escapeHtml(group.label) +
+            inlineBadge +
+          '</span>' +
+          hintHtml +
+        '</div>' +
+        renderRowResetBtn() +
+        '<div class="tuning-chips">' +
+          '<div class="tri-state" role="radiogroup" aria-label="' +
+            escapeHtml(group.label) + '">' + chips + '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  // "Show event scores" toggle relocated from Theme — lives inside the
+  // Tuning > Advanced disclosure where its destructive twin (raw shape
+  // sliders) also lives.
+  function renderShowScoreToggleHtml() {
+    var scoreOn = !!profile.show_score_chip;
+    return (
+      '<label class="setting-toggle" for="show-score-chip-toggle">' +
+        '<input type="checkbox" id="show-score-chip-toggle" ' +
+          'data-toggle-score-chip ' +
+          (scoreOn ? 'checked' : '') + '>' +
+        '<span class="setting-toggle__body">' +
+          '<span class="setting-toggle__label">Show event scores</span>' +
+          '<span class="setting-toggle__hint">Adds a small score chip ' +
+            'on each card with a breakdown of how vibes and rules ' +
+            'contributed to the ranking.</span>' +
+        '</span>' +
+      '</label>'
+    );
+  }
+
+  // --- Shape sub-tab (raw sliders, now inside Tuning > Advanced) -----
   var SHAPE_FIELDS = [
     { key: 'score_floor',        label: 'Score floor',
       hint: 'Events with a score below this are hidden entirely. Raise it to tighten.',
@@ -4509,8 +5229,8 @@ body.has-banner > *:not(.deep-link-banner) {
       hint: 'Score added for a "liked" subcategory tag (averaged across an event\'s tags).',
       min: 0, max: 0.4, step: 0.02 },
     { key: 'avoid_bonus', label: 'Avoid tier penalty',
-      hint: 'Score subtracted for an "avoided" subcategory tag (averaged across an event\'s tags; must be negative to demote).',
-      min: -1.0, max: 0, step: 0.02 },
+      hint: 'Score subtracted for an "avoided" subcategory tag (averaged across an event\'s tags).',
+      min: -2.0, max: 0, step: 0.02 },
   ];
 
   function shapeValue(field) {
@@ -4526,13 +5246,23 @@ body.has-banner > *:not(.deep-link-banner) {
   function renderShapeRow(f) {
     var v = shapeValue(f.key);
     if (v == null) v = 0;
+    var hintHtml = '';
+    if (f.hint) {
+      hintHtml =
+        '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>' +
+        '<button type="button" class="row-help" data-help="' +
+          escapeHtml(f.hint) + '" aria-label="Help: ' +
+          escapeHtml(f.label) + '" aria-expanded="false">?</button>';
+    }
     return (
       '<div class="shape-row" data-shape="' + f.key + '" ' +
+        'data-hint-mode="visible" ' +
         'data-modified="' + (isShapeModified(f.key) ? 'true' : 'false') + '">' +
         '<div class="shape-text">' +
           '<span class="shape-name">' + escapeHtml(f.label) + '</span>' +
-          '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>' +
+          hintHtml +
         '</div>' +
+        renderRowResetBtn() +
         '<div class="shape-input">' +
           '<input type="range" data-shape="' + f.key + '" ' +
             'min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" ' +
@@ -4544,12 +5274,16 @@ body.has-banner > *:not(.deep-link-banner) {
   }
 
   function renderShapePanel() {
-    var rows = SHAPE_FIELDS.map(renderShapeRow).join('\n');
+    var friendlyRows = TUNING_FRIENDLY.map(renderTuningFriendlyRow).join('\n');
+    var advancedRows = SHAPE_FIELDS.map(renderShapeRow).join('\n');
+    var weightRows = SUBURB_WEIGHT_FIELDS.map(renderSuburbWeightRow).join('\n');
     return (
-      '<p class="facet-intro">Overall dials for how the menu is shaped ' +
-      '&mdash; how strict, how varied, and how strongly your loved / ' +
-      'liked / avoided tags move events.</p>' +
-      '<div class="subcat-group">' + rows + '</div>'
+      '<div class="subcat-group">' + friendlyRows + '</div>' +
+      '<details class="tuning-advanced" data-persist-open="tuning-advanced">' +
+        '<summary>Advanced</summary>' +
+        renderShowScoreToggleHtml() +
+        '<div class="subcat-group">' + advancedRows + weightRows + '</div>' +
+      '</details>'
     );
   }
 
@@ -4577,16 +5311,23 @@ body.has-banner > *:not(.deep-link-banner) {
   function renderSuburbWeightRow(f) {
     var v = suburbWeightValue(f.tier);
     if (v == null) v = 0;
-    var hint = f.hint
-      ? '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>'
-      : '';
+    var hintHtml = '';
+    if (f.hint) {
+      hintHtml =
+        '<span class="shape-hint">' + escapeHtml(f.hint) + '</span>' +
+        '<button type="button" class="row-help" data-help="' +
+          escapeHtml(f.hint) + '" aria-label="Help: ' +
+          escapeHtml(f.label) + '" aria-expanded="false">?</button>';
+    }
     return (
       '<div class="shape-row" data-suburb-weight="' + f.tier + '" ' +
+        'data-hint-mode="visible" ' +
         'data-modified="' + (isSuburbWeightModified(f.tier) ? 'true' : 'false') + '">' +
         '<div class="shape-text">' +
           '<span class="shape-name">' + escapeHtml(f.label) + '</span>' +
-          hint +
+          hintHtml +
         '</div>' +
+        renderRowResetBtn() +
         '<div class="suburb-weight-input">' +
           '<input type="range" data-suburb-weight="' + f.tier + '" ' +
             'min="' + f.min + '" max="' + f.max + '" step="' + f.step + '" ' +
@@ -4614,41 +5355,40 @@ body.has-banner > *:not(.deep-link-banner) {
     return (
       '<div class="suburb-row" data-suburb="' + escapeHtml(suburb) + '" ' +
         'data-modified="' + (isSuburbTierModified(suburb) ? 'true' : 'false') + '">' +
-        '<span class="subcat-name">' + escapeHtml(suburb) + '</span>' +
+        '<span class="subcat-name">' + escapeHtml(suburb) +
+          renderRowScoreEffect(suburbScoreEffect(suburb)) +
+        '</span>' +
+        renderRowResetBtn() +
         '<div class="tri-state" role="radiogroup" aria-label="' +
           escapeHtml(suburb) + ' tier">' + chips + '</div>' +
       '</div>'
     );
   }
 
-  function renderAddSuburbPicker(tier) {
-    // Suburbs not currently in this tier — selecting one moves it here.
-    var inTier = {};
+  // Datalist of all suburbs — rendered once at panel root and shared
+  // by every per-tier typeahead via list="suburb-taxonomy".
+  function renderSuburbDatalist() {
     var tax = (defaultProfile.suburb_taxonomy || []).slice().sort();
-    for (var ti = 0; ti < tax.length; ti++) {
-      if (suburbCurrentTier(tax[ti]) === tier) inTier[tax[ti]] = true;
-    }
-    var opts = ['<option value="">Add a suburb…</option>'];
-    for (var j = 0; j < tax.length; j++) {
-      if (inTier[tax[j]]) continue;
-      opts.push(
-        '<option value="' + escapeHtml(tax[j]) + '">' +
-        escapeHtml(tax[j]) + '</option>'
-      );
-    }
-    // Mounts on demand via openPopover (toggleAddSuburbPicker). Returns
-    // a DOM element rather than an HTML string so it can plug into
-    // openPopover's builder contract.
-    var div = document.createElement('div');
-    div.className = 'add-suburb-picker';
-    div.dataset.addTier = tier;
-    div.innerHTML = '<select data-add-suburb-select="' + tier + '">' +
-      opts.join('') + '</select>';
-    return div;
+    var options = tax.map(function (s) {
+      return '<option value="' + escapeHtml(s) + '"></option>';
+    }).join('');
+    return '<datalist id="suburb-taxonomy">' + options + '</datalist>';
+  }
+
+  // Per-tier add affordance — `+` toggle in the section heading reveals
+  // an inline typeahead under it. Tier is implicit (the section's own
+  // tier), so commit on pick or Enter without an explicit tier toggle.
+  function renderSuburbSectionAdd(tier) {
+    return (
+      '<div class="suburb-section-add" hidden>' +
+        '<input type="text" class="suburb-typeahead" list="suburb-taxonomy" ' +
+          'placeholder="type a suburb&hellip;" autocomplete="off" ' +
+          'data-add-suburb-typeahead="' + tier + '">' +
+      '</div>'
+    );
   }
 
   function renderSuburbsPanel() {
-    var weightRows = SUBURB_WEIGHT_FIELDS.map(renderSuburbWeightRow).join('\n');
     // Group taxonomy by current tier.
     var tax = (defaultProfile.suburb_taxonomy || []).slice().sort();
     var groups = { home: [], local: [], included: [], outside: [] };
@@ -4660,23 +5400,56 @@ body.has-banner > *:not(.deep-link-banner) {
     for (var k = 0; k < SUBURB_TIERS_ORDER.length; k++) {
       var tk = SUBURB_TIERS_ORDER[k];
       var rows = groups[tk].map(renderSuburbRow).join('\n');
-      sections.push(
-        '<div class="subcat-group" data-suburb-tier="' + tk + '">' +
-          '<h4 class="subcat-group-heading">' +
-            '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '</span>' +
-            '<button type="button" class="add-suburb-btn" ' +
-              'data-add-suburb="' + tk + '" ' +
-              'aria-label="Add suburb to ' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '">+</button>' +
-          '</h4>' +
-          rows +
-        '</div>'
-      );
+      if (tk === 'outside') {
+        // Outside collapses by default — typically the largest section
+        // and rarely the destination of an explicit re-tier. Auto-opens
+        // when any suburb in it is modified from default, so the
+        // per-tab modified dot doesn't fire for invisible rows.
+        var outsideHasModified = false;
+        for (var oi = 0; oi < groups.outside.length; oi++) {
+          if (isSuburbTierModified(groups.outside[oi])) {
+            outsideHasModified = true;
+            break;
+          }
+        }
+        sections.push(
+          '<details class="suburb-outside-collapse" ' +
+            'data-persist-open="suburb-outside"' +
+            (outsideHasModified ? ' open' : '') + '>' +
+            '<summary>' +
+              '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) +
+              ' (' + groups[tk].length + ')</span>' +
+              '<button type="button" class="add-suburb-btn" ' +
+                'data-add-suburb="' + tk + '" ' +
+                'aria-expanded="false" ' +
+                'aria-label="Add suburb to ' +
+                escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '">+</button>' +
+            '</summary>' +
+            renderSuburbSectionAdd(tk) +
+            '<div class="subcat-group" data-suburb-tier="' + tk + '">' +
+              rows +
+            '</div>' +
+          '</details>'
+        );
+      } else {
+        sections.push(
+          '<div class="subcat-group" data-suburb-tier="' + tk + '">' +
+            '<h4 class="subcat-group-heading">' +
+              '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '</span>' +
+              '<button type="button" class="add-suburb-btn" ' +
+                'data-add-suburb="' + tk + '" ' +
+                'aria-expanded="false" ' +
+                'aria-label="Add suburb to ' +
+                escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '">+</button>' +
+            '</h4>' +
+            renderSuburbSectionAdd(tk) +
+            rows +
+          '</div>'
+        );
+      }
     }
     return (
-      '<p class="facet-intro">Where an event is &mdash; your home ' +
-      'patch, somewhere local, or further afield. Re-tier any suburb ' +
-      'to bring its events in or push them out.</p>' +
-      '<div class="subcat-group">' + weightRows + '</div>' +
+      renderSuburbDatalist() +
       sections.join('\n')
     );
   }
@@ -4691,9 +5464,6 @@ body.has-banner > *:not(.deep-link-banner) {
       return '<div class="settings-placeholder">No vibes in profile.</div>';
     }
     return (
-      '<p class="facet-intro">The overall <em>vibe</em> of an event ' +
-      '&mdash; meditation-y, corporate-y, avant-garde-y, and so on. ' +
-      'Tier the vibes you want more or less of.</p>' +
       '<div class="subcat-group">' +
         rows.join('\n') +
       '</div>'
@@ -4742,7 +5512,7 @@ body.has-banner > *:not(.deep-link-banner) {
       '<div class="score-chip-crumb">' +
         '<span class="score-chip-crumb__msg">' +
           'Curious why these events? Show event scores in ' +
-          '<strong>Appearance</strong>.' +
+          '<strong>Tuning &rsaquo; Advanced</strong>.' +
         '</span>' +
         '<button type="button" class="score-chip-crumb__close" ' +
           'data-score-crumb-dismiss aria-label="Dismiss">&times;</button>' +
@@ -4760,28 +5530,16 @@ body.has-banner > *:not(.deep-link-banner) {
         label + '</button>'
       );
     }
-    var scoreOn = !!profile.show_score_chip;
     return (
       '<div class="theme-picker">' +
-        '<span class="theme-picker__label">Appearance</span>' +
+        '<span class="theme-picker__label">Theme</span>' +
         '<div class="theme-picker__buttons" role="radiogroup" ' +
           'aria-label="Theme">' +
           btn('auto', 'Auto') +
           btn('light', 'Light') +
           btn('dark', 'Dark') +
         '</div>' +
-      '</div>' +
-      '<label class="setting-toggle" for="show-score-chip-toggle">' +
-        '<input type="checkbox" id="show-score-chip-toggle" ' +
-          'data-toggle-score-chip ' +
-          (scoreOn ? 'checked' : '') + '>' +
-        '<span class="setting-toggle__body">' +
-          '<span class="setting-toggle__label">Show event scores</span>' +
-          '<span class="setting-toggle__hint">Shows a small score chip ' +
-            'on each card with a breakdown of how vibes and rules ' +
-            'contributed to the ranking.</span>' +
-        '</span>' +
-      '</label>'
+      '</div>'
     );
   }
 
@@ -4831,29 +5589,35 @@ body.has-banner > *:not(.deep-link-banner) {
   function renderSettingsView() {
     var view = document.getElementById('settings-view');
     if (!view) return;
+    var tabCounts = settingsTabModifiedCounts();
+    var tabMod = {
+      tags: tabCounts.tags > 0, vibes: tabCounts.vibes > 0,
+      rules: tabCounts.rules > 0, suburbs: tabCounts.suburbs > 0,
+      shape: tabCounts.shape > 0, appearance: tabCounts.appearance > 0,
+    };
+    function tabBtn(slug, label, selected) {
+      return (
+        '<button class="settings-subtab" role="tab" data-subtab="' + slug + '" ' +
+          'aria-selected="' + (selected ? 'true' : 'false') + '">' +
+          escapeHtml(label) +
+          '<span class="settings-subtab__dot" aria-hidden="true"' +
+            (tabMod[slug] ? '' : ' hidden') + '></span>' +
+        '</button>'
+      );
+    }
     view.innerHTML = (
-      '<p class="facet-intro settings-storage-note">' +
-        'Your tweaks persist — pop back any time and the menu picks up ' +
-        'how you set it. (Safari resets after a week away.)' +
-      '</p>' +
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
-        '<button class="settings-subtab" role="tab" data-subtab="tags" ' +
-          'aria-selected="true">Tags</button>' +
-        '<button class="settings-subtab" role="tab" data-subtab="vibes" ' +
-          'aria-selected="false">Vibes</button>' +
-        '<button class="settings-subtab" role="tab" data-subtab="rules" ' +
-          'aria-selected="false">Rules</button>' +
-        '<button class="settings-subtab" role="tab" data-subtab="suburbs" ' +
-          'aria-selected="false">Suburbs</button>' +
-        '<button class="settings-subtab" role="tab" data-subtab="shape" ' +
-          'aria-selected="false">Shape</button>' +
-        '<button class="settings-subtab" role="tab" data-subtab="appearance" ' +
-          'aria-selected="false">Appearance</button>' +
+        tabBtn('tags', 'Topics', true) +
+        tabBtn('vibes', 'Vibes', false) +
+        tabBtn('rules', 'Rules', false) +
+        tabBtn('suburbs', 'Suburbs', false) +
+        tabBtn('shape', 'Tuning', false) +
+        tabBtn('appearance', 'Theme', false) +
       '</nav>' +
       renderSubPanel({
         name: 'tags',
-        desc: 'Tier categories so the menu picks more of what you want ' +
-          'and quietly drops the rest.',
+        desc: 'Boost or hide topics &mdash; jazz, yoga, cooking, and ' +
+          'so on.',
         body: renderSubcatGroups(),
         extras: renderHiddenEventsFooter() + renderScoreChipCrumb(),
         resetAction: 'reset-tags',
@@ -4862,7 +5626,8 @@ body.has-banner > *:not(.deep-link-banner) {
       renderSubPanel({
         name: 'vibes',
         hidden: true,
-        desc: 'Tune which event flavours rank higher.',
+        desc: 'Stable feels you always like or avoid &mdash; meditation-y, ' +
+          'corporate-y, avant-garde-y.',
         body: renderFacetGroups(),
         resetAction: 'reset-vibes',
         resetLabel: 'Reset all vibes',
@@ -4870,8 +5635,8 @@ body.has-banner > *:not(.deep-link-banner) {
       renderSubPanel({
         name: 'rules',
         hidden: true,
-        desc: 'Hard filters &mdash; free-only, date-night, favourite ' +
-          'venues, and so on.',
+        desc: 'Specific situations the menu reacts to &mdash; favourite ' +
+          'venues, free events, dating events, and so on.',
         body: renderRulesPanel(),
         resetAction: 'reset-rules',
         resetLabel: 'Reset all rules',
@@ -4887,7 +5652,8 @@ body.has-banner > *:not(.deep-link-banner) {
       renderSubPanel({
         name: 'shape',
         hidden: true,
-        desc: 'How strict, how varied, how much to favour the cheap.',
+        desc: 'How strict, how varied, how much your tier choices push ' +
+          'events.',
         body: renderShapePanel(),
         resetAction: 'reset-shape',
         resetLabel: 'Reset shape',
@@ -4895,10 +5661,79 @@ body.has-banner > *:not(.deep-link-banner) {
       renderSubPanel({
         name: 'appearance',
         hidden: true,
-        desc: 'Theme and on-screen extras.',
+        desc: 'Light, dark, or follow system.',
         body: renderThemePickerHtml(),
-      })
+      }) +
+      '<p class="settings-storage-note">' +
+        'Your tweaks persist &mdash; pop back any time and the menu picks ' +
+        'up how you set it. (Safari resets after a week away.)' +
+      '</p>'
     );
+    ensureSettingsResizeObserver();
+    measureSettingsHints();
+  }
+
+  // Refresh the per-tab modified dots without re-rendering settings.
+  // Used by in-place chip handlers that patch their row DOM directly.
+  function updateSettingsTabDots() {
+    var counts = settingsTabModifiedCounts();
+    var subtabs = document.querySelectorAll('.settings-subtab');
+    for (var i = 0; i < subtabs.length; i++) {
+      var dot = subtabs[i].querySelector('.settings-subtab__dot');
+      if (!dot) continue;
+      dot.hidden = !counts[subtabs[i].dataset.subtab];
+    }
+  }
+
+  // Hint visibility is fit-driven, not interaction-driven: each row
+  // renders the inline hint AND a `(?)` button at the same time. After
+  // layout, this pass measures whether the hint overflows its column;
+  // overflowing rows flip to `data-hint-mode="collapsed"` (CSS hides
+  // the hint and shows the (?) instead). Re-runs on ResizeObserver
+  // when the settings container width changes.
+  function measureSettingsHints() {
+    var view = document.getElementById('settings-view');
+    if (!view) return;
+    var rows = view.querySelectorAll(
+      '.settings-panel:not([hidden]) .rule-row[data-hint-mode], ' +
+      '.settings-panel:not([hidden]) .facet-row[data-hint-mode], ' +
+      '.settings-panel:not([hidden]) .shape-row[data-hint-mode]'
+    );
+    if (!rows.length) return;
+    // Reset to visible mode first so the hint span is laid out and we
+    // can measure its scrollWidth meaningfully (display:none in
+    // collapsed mode would zero out scrollWidth/clientWidth otherwise).
+    for (var i = 0; i < rows.length; i++) rows[i].dataset.hintMode = 'visible';
+    for (var j = 0; j < rows.length; j++) {
+      var hint = rows[j].querySelector('.rule-hint, .facet-blurb, .shape-hint');
+      if (!hint) continue;
+      // +1 tolerance for sub-pixel rounding (Chromium often reports
+      // scrollWidth one px wider than clientWidth on text that fits).
+      if (hint.scrollWidth > hint.clientWidth + 1) {
+        rows[j].dataset.hintMode = 'collapsed';
+      }
+    }
+  }
+
+  var SETTINGS_RESIZE_DEBOUNCE = 100;
+  var settingsResizeTimer = null;
+  function scheduleSettingsHintMeasure() {
+    if (settingsResizeTimer) clearTimeout(settingsResizeTimer);
+    settingsResizeTimer = setTimeout(function () {
+      settingsResizeTimer = null;
+      measureSettingsHints();
+    }, SETTINGS_RESIZE_DEBOUNCE);
+  }
+
+  // Single ResizeObserver — set up once on first renderSettingsView call.
+  var settingsResizeObserver = null;
+  function ensureSettingsResizeObserver() {
+    if (settingsResizeObserver) return;
+    if (typeof ResizeObserver === 'undefined') return;
+    var view = document.getElementById('settings-view');
+    if (!view) return;
+    settingsResizeObserver = new ResizeObserver(scheduleSettingsHintMeasure);
+    settingsResizeObserver.observe(view);
   }
 
   function rerenderSettingsPreservingSubtab() {
@@ -4906,9 +5741,29 @@ body.has-banner > *:not(.deep-link-banner) {
     // Subcategories as the hard-coded default; snapshot whichever
     // sub-tab is currently visible and re-activate it afterwards so
     // Reset-* buttons don't yank the user back to Subcategories.
+    // Close any row-help popover first — its anchor button is about
+    // to be destroyed, leaving a ghost in OPEN_POPOVERS otherwise.
+    for (var rhi = OPEN_POPOVERS.length - 1; rhi >= 0; rhi--) {
+      if (OPEN_POPOVERS[rhi]._kind === 'row-help') closePopover(OPEN_POPOVERS[rhi]);
+    }
     var current = document.querySelector('.settings-subtab[aria-selected="true"]');
     var name = (current && current.dataset.subtab) || 'tags';
+    // Snapshot any <details data-persist-open="X"> open states so a
+    // chip-driven re-render doesn't collapse Tuning > Advanced or the
+    // Outside section out from under the user.
+    var openStates = {};
+    var openEls = document.querySelectorAll(
+      '#settings-view details[data-persist-open]');
+    for (var oi = 0; oi < openEls.length; oi++) {
+      openStates[openEls[oi].dataset.persistOpen] = openEls[oi].open;
+    }
     renderSettingsView();
+    var restoredEls = document.querySelectorAll(
+      '#settings-view details[data-persist-open]');
+    for (var ri = 0; ri < restoredEls.length; ri++) {
+      var key = restoredEls[ri].dataset.persistOpen;
+      if (key in openStates) restoredEls[ri].open = openStates[key];
+    }
     switchSubtab(name);
   }
 
@@ -5292,7 +6147,7 @@ body.has-banner > *:not(.deep-link-banner) {
     box.setAttribute('role', 'status');
     box.innerHTML =
       '<span class="score-chip-moved-notice__msg">' +
-      'Score chips moved to <strong>Settings → Appearance</strong>' +
+      'Score chips moved to <strong>Settings → Tuning › Advanced</strong>' +
       ' — toggle on to see them again.' +
       '</span>' +
       '<button type="button" class="score-chip-moved-notice__close" ' +
@@ -5442,7 +6297,11 @@ body.has-banner > *:not(.deep-link-banner) {
   }
   function requestRenderAll(opts) {
     if (activeTab === 'settings') {
+      // Defer the full DOM rebuild (the day panels are hidden anyway),
+      // but recompute and patch the visible day-tab counts so the user
+      // sees Strictness / Reward / etc. effects in real time.
       settingsDirty = true;
+      updateLiveCounts();
       return;
     }
     if (!opts || !opts.preserveScores) pendingRenderAllPreserveScores = false;
@@ -5451,6 +6310,39 @@ body.has-banner > *:not(.deep-link-banner) {
       pendingRenderAllRaf = requestAnimationFrame(flushPendingRenderAll);
     } else {
       pendingRenderAllRaf = setTimeout(flushPendingRenderAll, 16);
+    }
+  }
+
+  // Surgical day-tab count refresh — only the .tab-count text inside each
+  // day pill (and the week-pill total) is updated, no full DOM rebuild.
+  // Used during Settings sessions where the day panels are hidden but
+  // their counts in the tab strip stay visible.
+  var lastDayIsos = [];
+  function updateLiveCounts() {
+    if (!lastDayIsos.length || !payload) return;
+    var ranking = buildRanking(profile);
+    lastRanking = ranking;
+    var dayCounts = computeDayCounts(ranking);
+    var tabs = document.querySelectorAll('.day-tabs .day-tab');
+    for (var i = 0; i < tabs.length && i < lastDayIsos.length; i++) {
+      var iso = lastDayIsos[i];
+      var count = dayCounts[iso] || 0;
+      var countEl = tabs[i].querySelector('.tab-count');
+      if (countEl) {
+        countEl.textContent = String(count);
+        countEl.setAttribute('aria-label', count + ' events');
+      }
+    }
+    var weekTotal = 0;
+    for (var k in dayCounts) {
+      if (Object.prototype.hasOwnProperty.call(dayCounts, k)) {
+        weekTotal += (dayCounts[k] || 0);
+      }
+    }
+    var weekCountEl = document.querySelector('[data-week-count]');
+    if (weekCountEl) {
+      weekCountEl.textContent = String(weekTotal);
+      weekCountEl.setAttribute('aria-label', weekTotal + ' events this week');
     }
   }
   function flushSettingsDirty() {
@@ -5488,6 +6380,7 @@ body.has-banner > *:not(.deep-link-banner) {
     updateSiteSubtitle(days[0] || cropIso);
 
     var dayCounts = computeDayCounts(ranking);
+    lastDayIsos = days.slice();
 
     var tabsEl = document.querySelector('.day-tabs');
     if (tabsEl) {
@@ -5933,6 +6826,7 @@ body.has-banner > *:not(.deep-link-banner) {
         rows[i].dataset.modified = isSubcatModified(tag) ? 'true' : 'false';
       }
     }
+    updateSettingsTabDots();
     requestRenderAll();
   }
 
@@ -5985,6 +6879,7 @@ body.has-banner > *:not(.deep-link-banner) {
       }
     }
     saveProfile();
+    updateSettingsTabDots();
     requestRenderAll();
   }
 
@@ -6005,6 +6900,70 @@ body.has-banner > *:not(.deep-link-banner) {
       }
     }
     saveProfile();
+    updateSettingsTabDots();
+    requestRenderAll();
+  }
+
+  // Single-row reset — reverts one row's underlying field(s) to the
+  // shipped default. Dispatches by row data attribute. Reuses the
+  // existing chip / shape / suburb handlers so the in-place DOM
+  // patches and per-tab dot updates stay consistent.
+  function resetRow(rowEl) {
+    if (!rowEl) return;
+    if (rowEl.dataset.subcat) {
+      var dSubcat = (defaultProfile.subcategory_tiers || {})[rowEl.dataset.subcat] || 'neutral';
+      handleTierChange(rowEl.dataset.subcat, dSubcat);
+    } else if (rowEl.dataset.facet) {
+      var dFacet = (defaultProfile.facet_tiers || {})[rowEl.dataset.facet] || 'neutral';
+      handleFacetTierChange(rowEl.dataset.facet, dFacet);
+    } else if (rowEl.dataset.rule) {
+      var dRule = (defaultProfile.rule_states || {})[rowEl.dataset.rule] || 'on';
+      handleRuleStateChip(rowEl.dataset.rule, dRule);
+    } else if (rowEl.dataset.suburb) {
+      var dSub = (defaultProfile.suburb_tiers || {})[rowEl.dataset.suburb] || 'outside';
+      handleSuburbTierChange(rowEl.dataset.suburb, dSub);
+    } else if (rowEl.dataset.shape) {
+      var f = rowEl.dataset.shape;
+      var dShape;
+      if (f === 'score_floor') dShape = defaultProfile.score_floor;
+      else if (f === 'diversity_category') dShape = defaultProfile.diversity_category;
+      else if (f === 'diversity_subcategory') dShape = defaultProfile.diversity_subcategory;
+      else if (f === 'love_bonus') dShape = (defaultProfile.tier_bonuses || {}).love;
+      else if (f === 'like_bonus') dShape = (defaultProfile.tier_bonuses || {}).like;
+      else if (f === 'avoid_bonus') dShape = (defaultProfile.tier_bonuses || {}).avoid;
+      if (dShape != null) handleShapeChange(f, dShape);
+    } else if (rowEl.dataset.suburbWeight) {
+      var t = rowEl.dataset.suburbWeight;
+      var dW = (defaultProfile.suburb_tier_weights || {})[t];
+      if (dW != null) handleSuburbWeightChange(t, dW);
+    } else if (rowEl.dataset.tuningKey) {
+      resetTuningGroup(rowEl.dataset.tuningKey);
+    }
+  }
+
+  function resetTuningGroup(key) {
+    if (key === 'strictness') {
+      profile.score_floor = defaultProfile.score_floor;
+    } else if (key === 'reward')  { profile.reward_multiplier  = 1; }
+    else if (key === 'variety') { profile.variety_multiplier = 1; }
+    else if (key === 'avoid')   { profile.avoid_multiplier   = 1; }
+    else { return; }
+    saveProfile();
+    rerenderSettingsPreservingSubtab();
+    requestRenderAll();
+  }
+
+  function handleTuningChipChange(key, chipIdx) {
+    var group = tuningGroupByKey(key);
+    if (!group) return;
+    var chip = group.chips[chipIdx];
+    if (!chip) return;
+    applyTuningPreset(key, chip);
+    saveProfile();
+    // Full re-render so the friendly chip's pressed state, the raw
+    // sliders inside Advanced, and the per-tab modified dot all stay
+    // consistent.
+    rerenderSettingsPreservingSubtab();
     requestRenderAll();
   }
 
@@ -6021,14 +6980,12 @@ body.has-banner > *:not(.deep-link-banner) {
       if (field === 'like_bonus')  profile.tier_bonuses.like  = v;
       if (field === 'avoid_bonus') profile.tier_bonuses.avoid = v;
     }
-    // Update value display for this row without disturbing the slider.
-    var row = document.querySelector('.shape-row[data-shape="' + field + '"]');
-    if (row) {
-      var disp = row.querySelector('.shape-value');
-      if (disp) disp.textContent = v.toFixed(2);
-      row.dataset.modified = isShapeModified(field) ? 'true' : 'false';
-    }
     saveProfile();
+    // Re-render Settings so the friendly chip rows above pick up the
+    // new value (a slider adjustment may exit/enter a preset's range).
+    // Slider change fires on release, so re-rendering doesn't fight
+    // an in-progress drag.
+    rerenderSettingsPreservingSubtab();
     requestRenderAll();
   }
 
@@ -6047,6 +7004,7 @@ body.has-banner > *:not(.deep-link-banner) {
         rows[i].dataset.modified = isFacetModified(name) ? 'true' : 'false';
       }
     }
+    updateSettingsTabDots();
     requestRenderAll();
   }
 
@@ -6062,28 +7020,6 @@ body.has-banner > *:not(.deep-link-banner) {
     requestRenderAll();
   }
 
-  function toggleAddSuburbPicker(tier) {
-    // Toggle: if the picker for this tier is already open, close it.
-    // Otherwise close any other open popover and open this one anchored
-    // to the + button. closeOnOutsideClick mirrors the cal-picker /
-    // card-overflow lifecycle.
-    var existing = findPopoverByKind('add-suburb');
-    if (existing && existing._addTier === tier) {
-      closePopover(existing);
-      return;
-    }
-    var btn = document.querySelector(
-      '.add-suburb-btn[data-add-suburb="' + tier + '"]');
-    if (!btn) return;
-    var pop = openPopover(btn, function () {
-      return renderAddSuburbPicker(tier);
-    }, { kind: 'add-suburb', closeOnOutsideClick: true });
-    if (!pop) return;
-    pop._addTier = tier;
-    var sel = pop.querySelector('select');
-    if (sel) sel.focus();
-  }
-
   function handleAddSuburbToTier(tier, suburb) {
     if (!suburb) return;
     profile.suburb_tiers = profile.suburb_tiers || {};
@@ -6091,6 +7027,31 @@ body.has-banner > *:not(.deep-link-banner) {
     saveProfile();
     rerenderSettingsPreservingSubtab();
     requestRenderAll();
+  }
+
+  // Typeahead commit: validate the typed value against the suburb
+  // taxonomy and assign it to this input's tier (carried in the
+  // data-add-suburb-typeahead attribute). iOS Safari 16+ commits the
+  // partial input string on outside-tap, so we only act on exact
+  // taxonomy matches — otherwise a stray "fitz" tap would create a
+  // profile entry for a non-suburb. Case-insensitive compare so
+  // "Fitzroy" / "fitzroy" both work.
+  function handleSuburbTypeaheadCommit(input) {
+    var raw = (input.value || '').trim();
+    if (!raw) return;
+    var tier = input.dataset.addSuburbTypeahead;
+    if (!tier) return;
+    var tax = defaultProfile.suburb_taxonomy || [];
+    var matched = null;
+    for (var i = 0; i < tax.length; i++) {
+      if (tax[i].toLowerCase() === raw.toLowerCase()) {
+        matched = tax[i];
+        break;
+      }
+    }
+    input.value = '';
+    if (!matched) return;
+    handleAddSuburbToTier(tier, matched);
   }
 
   function handleSuburbWeightChange(tier, value) {
@@ -6106,6 +7067,7 @@ body.has-banner > *:not(.deep-link-banner) {
       row.dataset.modified = isSuburbWeightModified(tier) ? 'true' : 'false';
     }
     saveProfile();
+    updateSettingsTabDots();
     requestRenderAll();
   }
 
@@ -6119,6 +7081,9 @@ body.has-banner > *:not(.deep-link-banner) {
     for (var j = 0; j < panels.length; j++) {
       panels[j].hidden = panels[j].dataset.subtab !== name;
     }
+    // Hidden panels report 0 scrollWidth/clientWidth, so re-measure
+    // once the activated panel is visible. Cheap (one O(rows) walk).
+    measureSettingsHints();
   }
 
   function toggleShowMore(btn) {
@@ -6458,8 +7423,19 @@ body.has-banner > *:not(.deep-link-banner) {
     // coords (card-overflow), the popover stays put while the page
     // scrolls beneath it. Close on first scroll so it never floats
     // detached from the button it points at.
+    //
+    // scrollThreshold (px): only dismiss after the cumulative scroll
+    // delta exceeds the threshold. Without this, iOS rubber-band and
+    // soft-keyboard-show fire scroll events that would dismiss row-help
+    // popovers before the user finishes reading.
     if (opts.closeOnScroll) {
+      var threshold = opts.scrollThreshold || 0;
+      var startY = window.pageYOffset || document.documentElement.scrollTop || 0;
       var onScroll = function () {
+        var dy = Math.abs(
+          (window.pageYOffset || document.documentElement.scrollTop || 0) - startY
+        );
+        if (dy < threshold) return;
         window.removeEventListener('scroll', onScroll, true);
         closePopover(pop);
       };
@@ -6518,6 +7494,43 @@ body.has-banner > *:not(.deep-link-banner) {
       if (OPEN_POPOVERS[i]._kind === kind) return OPEN_POPOVERS[i];
     }
     return null;
+  }
+
+  // Settings row-help popover — small bubble showing the full hint
+  // for a row whose hint has collapsed to a `(?)` button. Body-mount
+  // + fixed positioning so the bubble escapes any clipping wrapper.
+  // closeOnScroll uses a 12px delta threshold so iOS rubber-band /
+  // soft-keyboard scroll events don't dismiss it before the user
+  // finishes reading.
+  function openRowHelpPopover(btn) {
+    var hint = btn.dataset.help || '';
+    if (!hint) return null;
+    // Toggle: if a row-help popover is already open for this button,
+    // close it instead of re-opening.
+    var existing = findPopoverByKind('row-help');
+    if (existing && existing._anchor === btn) {
+      closePopover(existing);
+      return null;
+    }
+    var pop = openPopover(btn, function () {
+      var p = document.createElement('div');
+      p.className = 'row-help-popover';
+      p.setAttribute('role', 'tooltip');
+      p.textContent = hint;
+      return p;
+    }, { kind: 'row-help', parent: document.body,
+         closeOnOutsideClick: true, closeOnScroll: true,
+         scrollThreshold: 12 });
+    if (!pop) return null;
+    var btnRect = btn.getBoundingClientRect();
+    pop.style.position = 'fixed';
+    pop.style.top = Math.max(8, btnRect.bottom + 6) + 'px';
+    // Right-anchor so the bubble's right edge sits a small gap from
+    // the button's right edge — keeps it visually attached to the
+    // (?) icon and away from the chip cluster on its right.
+    pop.style.right = Math.max(8, window.innerWidth - btnRect.right - 4) + 'px';
+    pop.style.left = 'auto';
+    return pop;
   }
 
   // Cal-picker — built on top of openPopover. Anchor is the button;
@@ -8161,6 +9174,21 @@ body.has-banner > *:not(.deep-link-banner) {
     var subtab = e.target.closest && e.target.closest('.settings-subtab');
     if (subtab) { switchSubtab(subtab.dataset.subtab); return; }
 
+    var rowHelp = e.target.closest && e.target.closest('.row-help');
+    if (rowHelp) { openRowHelpPopover(rowHelp); return; }
+
+    // ↺ reset — reverts a single row to its shipped default. Dispatches
+    // by row data attribute so the same button works across every row
+    // type (subcat, facet, rule, shape, suburb, suburb-weight, tuning).
+    var resetBtn = e.target.closest && e.target.closest('[data-row-reset]');
+    if (resetBtn) {
+      var row = resetBtn.closest(
+        '.subcat-row, .facet-row, .rule-row, .shape-row, .suburb-row');
+      if (row) resetRow(row);
+      return;
+    }
+
+
     var chip = e.target.closest && e.target.closest('.tri');
     if (chip) {
       var subRow = chip.closest('.subcat-row');
@@ -8183,11 +9211,45 @@ body.has-banner > *:not(.deep-link-banner) {
         handleSuburbTierChange(suburbRowChip.dataset.suburb, chip.dataset.value);
         return;
       }
+      // Friendly Tuning chips (Strictness / Variety / Reward / Avoid) —
+      // each chip carries a preset that overwrites a small set of the
+      // underlying Shape fields.
+      var tuningRow = chip.closest('.tuning-friendly-row');
+      if (tuningRow && chip.dataset.tuningChip != null) {
+        handleTuningChipChange(tuningRow.dataset.tuningKey,
+          parseInt(chip.dataset.tuningChip, 10));
+        return;
+      }
     }
 
-    var addSuburb = e.target.closest && e.target.closest('.add-suburb-btn');
-    if (addSuburb) {
-      toggleAddSuburbPicker(addSuburb.dataset.addSuburb);
+    // Per-tier `+` toggles an inline typeahead in that section. Only
+    // one section is open at a time — opening one closes any other.
+    // Outside's + lives inside the <summary>; stopPropagation keeps
+    // the click from toggling the <details> shut.
+    var addBtn = e.target.closest && e.target.closest('.add-suburb-btn');
+    if (addBtn) {
+      e.stopPropagation();
+      e.preventDefault();
+      var section = addBtn.closest('.subcat-group, details');
+      var addRow = section && section.querySelector('.suburb-section-add');
+      if (!addRow) return;
+      var wasOpen = !addRow.hidden;
+      var allRows = document.querySelectorAll('.suburb-section-add');
+      var allBtns = document.querySelectorAll('.add-suburb-btn');
+      for (var ri = 0; ri < allRows.length; ri++) allRows[ri].hidden = true;
+      for (var bi = 0; bi < allBtns.length; bi++) {
+        allBtns[bi].setAttribute('aria-expanded', 'false');
+      }
+      if (!wasOpen) {
+        addRow.hidden = false;
+        addBtn.setAttribute('aria-expanded', 'true');
+        // If this section is the collapsed Outside <details>, expand
+        // it so the typeahead is actually visible.
+        var parentDetails = addBtn.closest('details');
+        if (parentDetails && !parentDetails.open) parentDetails.open = true;
+        var input = addRow.querySelector('input');
+        if (input) input.focus();
+      }
       return;
     }
 
@@ -8203,6 +9265,7 @@ body.has-banner > *:not(.deep-link-banner) {
     if (scoreToggle && scoreToggle.tagName === 'INPUT') {
       profile.show_score_chip = !!scoreToggle.checked;
       saveProfile();
+      applyScoreVisibility();
       renderAll({ preserveScores: true });
       return;
     }
@@ -8295,8 +9358,8 @@ body.has-banner > *:not(.deep-link-banner) {
       handleShapeChange(e.target.dataset.shape, e.target.value);
     } else if (e.target.matches('.suburb-weight-input input[type="range"]')) {
       handleSuburbWeightChange(e.target.dataset.suburbWeight, e.target.value);
-    } else if (e.target.matches('select[data-add-suburb-select]')) {
-      handleAddSuburbToTier(e.target.dataset.addSuburbSelect, e.target.value);
+    } else if (e.target.matches('input[data-add-suburb-typeahead]')) {
+      handleSuburbTypeaheadCommit(e.target);
     } else if (e.target.matches('input[data-quick-toggle]')) {
       handleQuickToggle(e.target.dataset.quickToggle, e.target.checked);
     }
@@ -8359,6 +9422,16 @@ body.has-banner > *:not(.deep-link-banner) {
   });
 
   document.addEventListener('keydown', function (e) {
+    // Suburb typeahead commits on Enter for the type-and-press case
+    // (when the user types a full suburb name without picking from
+    // the datalist suggestion list). Datalist pick commits via the
+    // change handler.
+    if (e.key === 'Enter' && e.target.matches &&
+        e.target.matches('input[data-add-suburb-typeahead]')) {
+      e.preventDefault();
+      handleSuburbTypeaheadCommit(e.target);
+      return;
+    }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       var tab = e.target.closest && e.target.closest('.day-tab');
       if (!tab) return;
@@ -8507,6 +9580,7 @@ body.has-banner > *:not(.deep-link-banner) {
   //  Boot
   // ============================================================
   applyTheme();
+  applyScoreVisibility();
   renderSettingsView();
   // Mount the search row BEFORE the first renderAll so initial state
   // (hidden categories, date-idea-only) is reflected in the first build.
