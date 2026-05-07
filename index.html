@@ -4418,8 +4418,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         'Show ' + expanded.length + ' more' +
         '</button>'
       );
+      // `hidden="until-found"` keeps the section invisible but still
+      // findable by the browser's Ctrl+F. When Find lands on a match
+      // inside, the browser fires `beforematch` (we listen below to
+      // flip the show-more button state) and then auto-removes the
+      // hidden attribute so the match scrolls into view. Chrome 102+
+      // and Edge support it; Firefox/Safari ignore the value and
+      // treat as plain hidden — they fall back to today's behaviour.
       parts.push(
-        '<div class="events events-expanded" hidden>\n' +
+        '<div class="events events-expanded" hidden="until-found">\n' +
         expanded.map(function (it) {
           return renderEventHtml(it, profile);
         }).join('\n') + '\n</div>'
@@ -6409,6 +6416,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
 
     rebuildDayPanels(ranking, days, profile);
+    wireShowMoreBeforeMatch();
     updateSettingsBadge();
 
     // Recompute search stats from the rendered ranking — counts what the
@@ -7091,9 +7099,43 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (!panel || !panel.classList.contains('events-expanded')) return;
     var expanded = btn.getAttribute('aria-expanded') === 'true';
     btn.setAttribute('aria-expanded', expanded ? 'false' : 'true');
-    panel.hidden = expanded;
+    if (expanded) {
+      // Re-hide via `until-found` (not bare `hidden`) so the section
+      // stays browser-Find-able after the user collapses it. Mirrors
+      // the initial render shape.
+      panel.setAttribute('hidden', 'until-found');
+    } else {
+      panel.removeAttribute('hidden');
+    }
     if (!btn.dataset.initialLabel) btn.dataset.initialLabel = btn.textContent;
     btn.textContent = expanded ? btn.dataset.initialLabel : 'Show fewer';
+  }
+
+  // Wired after each renderAll. When Ctrl+F lands on a match inside
+  // a collapsed Show-more panel, the browser fires `beforematch` on
+  // the panel and auto-removes its `hidden="until-found"` attribute
+  // so the match scrolls into view. We just need to flip the
+  // sibling button into its expanded visual state so the user can
+  // see "Show fewer" and the section reads as intentionally open.
+  // No-op on browsers that don't dispatch beforematch.
+  function wireShowMoreBeforeMatch() {
+    var panels = document.querySelectorAll('.events-expanded');
+    for (var i = 0; i < panels.length; i++) {
+      var panel = panels[i];
+      if (panel._beforematchWired) continue;
+      panel._beforematchWired = true;
+      panel.addEventListener('beforematch', function (ev) {
+        var p = ev.currentTarget;
+        var btn = p.previousElementSibling;
+        if (btn && btn.classList && btn.classList.contains('show-more')) {
+          btn.setAttribute('aria-expanded', 'true');
+          if (!btn.dataset.initialLabel) {
+            btn.dataset.initialLabel = btn.textContent;
+          }
+          btn.textContent = 'Show fewer';
+        }
+      });
+    }
   }
 
   // ============================================================
