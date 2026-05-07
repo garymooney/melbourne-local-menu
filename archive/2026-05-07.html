@@ -3925,7 +3925,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           bestPen = pen;
         }
       }
-      if (bestAdj < floor) break;
+      // Break when the diversity-adjusted score (effective score) goes
+      // negative — i.e. the cumulative spread penalty has eaten the
+      // raw score. `score_floor` is used elsewhere as the absolute
+      // visibility cut on RAW score (see buildRanking); using it here
+      // too would wrongly demote events whose raw score is well above
+      // floor but whose adj fell into the gap. The bar for "still
+      // worth being in curated" is "the spread hasn't cancelled it".
+      if (bestAdj < 0) break;
       var winner = rest.splice(bestIdx, 1)[0];
       winner.pickAdj = bestAdj;
       winner.pickPenalty = bestPen;
@@ -3934,8 +3941,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       bump(winner);
     }
 
-    // Empty-block fallback: nothing cleared the floor — admit the best
-    // remaining candidate provided it clears (floor - 0.2) so a thin
+    // Empty-block fallback: nothing cleared zero — admit the best
+    // remaining candidate provided it's not deeply negative so a thin
     // block doesn't silently disappear.
     if (selected.length === 0 && rest.length > 0) {
       var fIdx = -1;
@@ -3948,7 +3955,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         var adj2 = rest[k].score - pen2;
         if (adj2 > fAdj) { fAdj = adj2; fIdx = k; fPen = pen2; }
       }
-      if (fAdj >= floor - 0.2) {
+      if (fAdj >= -0.2) {
         var fbWinner = rest.splice(fIdx, 1)[0];
         fbWinner.is_fallback = true;
         fbWinner.pickAdj = fAdj;
@@ -3970,7 +3977,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       );
       rItem.pickAdj = rItem.score - rPen;
       rItem.pickPenalty = rPen;
-      rItem.pickReason = (selected.length >= cap) ? 'cap' : 'below_floor';
+      rItem.pickReason = (selected.length >= cap) ? 'cap' : 'spread_demoted';
     }
 
     selected.sort(function (a, b) { return b.score - a.score; });
@@ -4315,12 +4322,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           var adjVal = (item.pickAdj >= 0 ? '+' : '') + item.pickAdj.toFixed(2);
           var reasonText;
           switch (item.pickReason) {
-            case 'curated':     reasonText = 'effective (curated)'; break;
-            case 'forced':      reasonText = 'effective (forced)'; break;
-            case 'fallback':    reasonText = 'effective (fallback)'; break;
-            case 'below_floor': reasonText = 'effective (below floor)'; break;
-            case 'cap':         reasonText = 'effective (block cap reached)'; break;
-            default:            reasonText = 'effective';
+            case 'curated':        reasonText = 'effective (curated)'; break;
+            case 'forced':         reasonText = 'effective (forced)'; break;
+            case 'fallback':       reasonText = 'effective (fallback)'; break;
+            case 'spread_demoted': reasonText = 'effective (spread demoted)'; break;
+            case 'cap':            reasonText = 'effective (block cap reached)'; break;
+            default:               reasonText = 'effective';
           }
           rows.push(
             '<div class="score-breakdown-row score-breakdown-total">' +
