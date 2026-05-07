@@ -3898,22 +3898,38 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       bump(forced[p]);
     }
 
+    // Forced (pinned/selected) items are pre-pushed; record their pick
+    // state so the score-chip can show "forced — bypassed floor" for
+    // diagnostic clarity.
+    for (var fp = 0; fp < forced.length; fp++) {
+      forced[fp].pickAdj = forced[fp].score;
+      forced[fp].pickPenalty = 0;
+      forced[fp].pickReason = 'forced';
+    }
+
     var cap = profile.block_safety_cap || 15;
     var floor = profile.score_floor != null ? profile.score_floor : 0;
 
     while (rest.length > 0 && selected.length < cap) {
       var bestIdx = -1;
       var bestAdj = -Infinity;
+      var bestPen = 0;
       for (var j = 0; j < rest.length; j++) {
-        var adj = rest[j].score -
-          diversityPenaltyFor(rest[j].event, priorCats, priorSubs, profile);
+        var pen = diversityPenaltyFor(
+          rest[j].event, priorCats, priorSubs, profile
+        );
+        var adj = rest[j].score - pen;
         if (adj > bestAdj) {
           bestAdj = adj;
           bestIdx = j;
+          bestPen = pen;
         }
       }
       if (bestAdj < floor) break;
       var winner = rest.splice(bestIdx, 1)[0];
+      winner.pickAdj = bestAdj;
+      winner.pickPenalty = bestPen;
+      winner.pickReason = 'curated';
       selected.push(winner);
       bump(winner);
     }
@@ -3924,16 +3940,37 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (selected.length === 0 && rest.length > 0) {
       var fIdx = -1;
       var fAdj = -Infinity;
+      var fPen = 0;
       for (var k = 0; k < rest.length; k++) {
-        var adj2 = rest[k].score -
-          diversityPenaltyFor(rest[k].event, priorCats, priorSubs, profile);
-        if (adj2 > fAdj) { fAdj = adj2; fIdx = k; }
+        var pen2 = diversityPenaltyFor(
+          rest[k].event, priorCats, priorSubs, profile
+        );
+        var adj2 = rest[k].score - pen2;
+        if (adj2 > fAdj) { fAdj = adj2; fIdx = k; fPen = pen2; }
       }
       if (fAdj >= floor - 0.2) {
         var fbWinner = rest.splice(fIdx, 1)[0];
         fbWinner.is_fallback = true;
+        fbWinner.pickAdj = fAdj;
+        fbWinner.pickPenalty = fPen;
+        fbWinner.pickReason = 'fallback';
         selected.push(fbWinner);
       }
+    }
+
+    // Annotate every still-unpicked item with its FINAL adj so the
+    // score-chip tooltip on show-more cards can explain why the event
+    // didn't enter curated. Reason flag distinguishes the two ways an
+    // item lands in show-more: dropped below the floor, or the cap was
+    // reached before its turn.
+    for (var rk = 0; rk < rest.length; rk++) {
+      var rItem = rest[rk];
+      var rPen = diversityPenaltyFor(
+        rItem.event, priorCats, priorSubs, profile
+      );
+      rItem.pickAdj = rItem.score - rPen;
+      rItem.pickPenalty = rPen;
+      rItem.pickReason = (selected.length >= cap) ? 'cap' : 'below_floor';
     }
 
     selected.sort(function (a, b) { return b.score - a.score; });
@@ -4117,6 +4154,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
                 score: block[n].score,
                 pinned: block[n].pinned,
                 selected: block[n].selected,
+                // Copy through the diagnostic annotations
+                // selectWithDiversity stamped on the source item so
+                // the show-more cards can show why they didn't make
+                // curated.
+                pickAdj: block[n].pickAdj,
+                pickPenalty: block[n].pickPenalty,
+                pickReason: block[n].pickReason,
                 is_expanded: true,
               });
             }
@@ -4252,6 +4296,39 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           '<span class="score-breakdown-label">total</span>' +
           '</div>'
         );
+        // Spread / effective rows. `pickAdj` and `pickPenalty` are
+        // stamped onto the item by selectWithDiversity. They tell the
+        // user the score the algorithm actually compared to the floor —
+        // useful when an event lands in show-more and "but its score
+        // is high!" is the obvious-but-wrong intuition.
+        if (typeof item.pickPenalty === 'number' && item.pickPenalty > 0) {
+          var penVal = '-' + item.pickPenalty.toFixed(2);
+          rows.push(
+            '<div class="score-breakdown-row">' +
+            '<span class="score-breakdown-val neg">' + penVal + '</span>' +
+            '<span class="score-breakdown-label">spread penalty</span>' +
+            '</div>'
+          );
+        }
+        if (typeof item.pickAdj === 'number') {
+          var adjCls = item.pickAdj >= 0 ? 'pos' : 'neg';
+          var adjVal = (item.pickAdj >= 0 ? '+' : '') + item.pickAdj.toFixed(2);
+          var reasonText;
+          switch (item.pickReason) {
+            case 'curated':     reasonText = 'effective (curated)'; break;
+            case 'forced':      reasonText = 'effective (forced)'; break;
+            case 'fallback':    reasonText = 'effective (fallback)'; break;
+            case 'below_floor': reasonText = 'effective (below floor)'; break;
+            case 'cap':         reasonText = 'effective (block cap reached)'; break;
+            default:            reasonText = 'effective';
+          }
+          rows.push(
+            '<div class="score-breakdown-row score-breakdown-total">' +
+            '<span class="score-breakdown-val ' + adjCls + '">' + adjVal + '</span>' +
+            '<span class="score-breakdown-label">' + reasonText + '</span>' +
+            '</div>'
+          );
+        }
         chipInner +=
           '<div class="score-breakdown" role="tooltip">' + rows.join('') + '</div>';
       }
