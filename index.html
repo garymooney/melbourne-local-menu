@@ -1393,34 +1393,31 @@ body.has-banner > *:not(.deep-link-banner) {
   font-weight: 600;
 }
 
-/* Multi-day tag — small pill rendered after .price for events whose
-   datetime_start/end span more than one calendar date. Sits on its
-   own grid row (the .event grid forces all `> *` into column 1/-1)
-   so it doesn't crowd the time/price row.
+/* Multi-day tag — inline metadata rendered after .price for events
+   whose datetime_start/end span more than one calendar date. Reads
+   as quiet schedule information (like .time / .description), NOT as
+   a chunky pill — the card surface stays calm. Dotted underline on
+   the label is the affordance for the hover tooltip; matches the
+   .score-chip / .score-debug pattern so the "more info on hover"
+   cue is consistent across cards.
    Carries a hover/focus-revealed __tip popover that mirrors the
    .score-breakdown pattern — instant CSS hover, no native-title
    ~700ms delay. */
 .multi-day-tag {
   position: relative;
-  margin-top: 4px;
-  font-size: 12px;
-  font-weight: 500;
-  color: var(--muted);
   display: inline-block;
   justify-self: start;
-  padding: 2px 8px;
-  border-radius: 10px;
-  background: color-mix(in srgb, var(--accent-cool) 8%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-cool) 20%, transparent);
-  letter-spacing: 0.01em;
+  margin-top: 4px;
+  font-size: 12.5px;
+  font-weight: 400;
+  font-style: italic;
+  color: var(--muted);
   cursor: help;
 }
 .multi-day-tag__label {
-  /* Dotted underline mirrors the .score-debug affordance so the
-     "more info on hover" hint is visually consistent across cards. */
   text-decoration: underline dotted;
   text-underline-offset: 2px;
-  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--faint) 55%, transparent);
 }
 .multi-day-tag__tip {
   display: none;
