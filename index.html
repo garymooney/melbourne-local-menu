@@ -3901,6 +3901,57 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     };
   }
 
+  // Lookup of event_id → sorted unique ISO days this event appears in
+  // the loaded window. Multi-day events fan out per-day in
+  // `_event_dict` (the pipeline emits one row per day the schedule
+  // says it runs), so the count here reflects the actual schedule
+  // within the visible window — gaps in the schedule (weekdays-only,
+  // weekly recurrences, public-holiday closures) become gaps in this
+  // list. Lazy-built; reset by `resetMultiDayDayMap` on data reload.
+  var _multiDayDayMap = null;
+  function multiDayDayMap() {
+    if (_multiDayDayMap) return _multiDayDayMap;
+    var map = {};
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (!ev || ev.id == null || !ev.day) continue;
+      if (!map[ev.id]) map[ev.id] = [];
+      map[ev.id].push(ev.day);
+    }
+    for (var k in map) {
+      // Dedup + sort. Most events have ≤14 entries so the linear scan
+      // / array sort is cheaper than building a Set per id.
+      map[k] = map[k]
+        .filter(function (v, idx, a) { return a.indexOf(v) === idx; })
+        .sort();
+    }
+    _multiDayDayMap = map;
+    return map;
+  }
+  function resetMultiDayDayMap() { _multiDayDayMap = null; }
+
+  // Compose the "Also this week" tooltip line for a specific item.
+  // Returns null when the event has no OTHER appearance in the loaded
+  // window — keeps the tooltip short for events whose only data here
+  // is this single render. Lists subsequent appearances (post the
+  // card's own day) so the reader sees "next" rather than "past".
+  function multiDayAlsoLabel(ev) {
+    if (!ev || ev.id == null) return null;
+    var days = multiDayDayMap()[ev.id] || [];
+    if (days.length <= 1) return null;
+    var here = ev.day;
+    var later = days.filter(function (d) { return d > here; });
+    if (later.length === 0) return null;
+    if (later.length <= 4) {
+      return later.map(function (d) {
+        var dd = new Date(d + 'T12:00:00');
+        return WEEKDAYS_SHORT[dd.getDay()] + ' ' + dd.getDate() + ' ' +
+               MONTHS_SHORT[dd.getMonth()];
+      }).join(', ');
+    }
+    return later.length + ' more days';
+  }
+
   // Same lead-word logic but for the day-tab label. Today's pill reads
   // "Today" / "Tonight" instead of "Mon"/"Sat" so the active tab matches
   // the hero heading below it.
@@ -4665,17 +4716,34 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // calendar date (exhibitions, weekly runs, festival passes). The
     // event already appears on each day's tab; this chip is the
     // explicit "yep, also showing on other days" cue so the reader
-    // doesn't think it's a one-off. Inner __tip element mirrors the
-    // score-chip / score-breakdown CSS pattern — hover/focus toggles
-    // it instantly via CSS, sidestepping the ~700ms native title
-    // tooltip delay.
+    // doesn't think it's a one-off.
+    //
+    // Pill reads "Multi-day · ends {date}" — "ends" doesn't imply
+    // daily coverage (the run might be weekdays-only, weekly on
+    // certain days, or have public-holiday closures), it just names
+    // the closing date. The tooltip carries the schedule detail:
+    // start, end, total span, and a list of remaining appearances in
+    // the loaded window when those gaps exist.
+    //
+    // Inner __tip element mirrors the score-chip / score-breakdown
+    // CSS pattern — hover/focus toggles it instantly via CSS,
+    // sidestepping the ~700ms native title tooltip delay.
     var mdSpan = multiDaySpan(ev);
     if (mdSpan) {
       var daysWord = mdSpan.days === 1 ? 'day' : 'days';
+      var alsoLabel = multiDayAlsoLabel(ev);
+      var alsoRow = alsoLabel
+        ? ('<div class="multi-day-tag__tip-row">' +
+             '<span class="multi-day-tag__tip-key">Also</span> ' +
+             '<span class="multi-day-tag__tip-val">' +
+               escapeHtml(alsoLabel) +
+             '</span>' +
+           '</div>')
+        : '';
       parts.push(
         '<div class="multi-day-tag">' +
           '<span class="multi-day-tag__label">' +
-            'Multi-day &middot; through ' + escapeHtml(mdSpan.endShort) +
+            'Multi-day &middot; ends ' + escapeHtml(mdSpan.endShort) +
           '</span>' +
           '<div class="multi-day-tag__tip" role="tooltip">' +
             '<div class="multi-day-tag__tip-row">' +
@@ -4696,6 +4764,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
                 mdSpan.days + ' ' + daysWord +
               '</span>' +
             '</div>' +
+            alsoRow +
           '</div>' +
         '</div>'
       );
