@@ -1075,8 +1075,13 @@ body:has(#first-visit-nudge) .day {
 }
 .event > * { grid-column: 1 / -1; }
 .event > .time { grid-column: 1; align-self: baseline; }
-.event > .price { grid-column: 2; align-self: baseline; justify-self: start; }
-.event > .price::before {
+/* Row order: time · multi-day · price. Multi-day lives between
+   time and price so it reads as a schedule modifier on the time
+   rather than a price modifier. */
+.event > .multi-day-tag { grid-column: 2; align-self: baseline; justify-self: start; }
+.event > .price { grid-column: 3; align-self: baseline; justify-self: start; }
+.event > .price::before,
+.event > .multi-day-tag::before {
   content: "·";
   margin: 0 0.5em;
   color: #a89e90;
@@ -1393,33 +1398,39 @@ body.has-banner > *:not(.deep-link-banner) {
   font-weight: 600;
 }
 
-/* Multi-day tag — inline schedule meta rendered alongside .time /
-   .price (column 3 of the .event grid's time row) so it reads as a
-   third bit of card metadata rather than a separate block. Just
-   "Multi-day" — the end-date / span / weekly cadence detail lives in
-   the hover/focus __tip. The mid-dot separator before the label
-   matches .price::before so the row scans `7:30pm · $25 · Multi-day`.
+/* Multi-day tag — inline schedule meta rendered between .time and
+   .price in the .event grid's first row so it reads as a third bit
+   of card metadata rather than a separate block. Just "multi-day"
+   — the start / end / span / cadence detail lives in the
+   hover/focus __tip. The mid-dot separator before/after the label
+   (via the shared .event > rule above) makes the row scan
+   `7:30pm · multi-day · $25`.
    Carries a hover/focus-revealed __tip popover that mirrors the
    .score-breakdown pattern — instant CSS hover, no native-title
    ~700ms delay. */
-.event > .multi-day-tag {
-  grid-column: 3;
-  align-self: baseline;
-  justify-self: start;
-  margin-top: 6px;
-}
 .multi-day-tag {
   position: relative;
+  margin-top: 6px;
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: #6a6258;
   cursor: help;
 }
-.multi-day-tag::before {
-  content: "·";
-  margin: 0 0.5em;
-  color: #a89e90;
+.multi-day-tag__label {
+  /* Faint solid underline as the "more info on hover" cue —
+     subtler than the dashed style we tried (which read as rough
+     in the row) but still visually different from .time / .price
+     so it doesn't disappear into them. Slightly bolder on hover
+     to reinforce the affordance. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--faint) 28%, transparent);
+}
+.multi-day-tag:hover .multi-day-tag__label,
+.multi-day-tag:focus-within .multi-day-tag__label {
+  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event .multi-day-tag { color: #a89e90; }
@@ -3876,6 +3887,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return { lead: WEEKDAYS[d.getDay()], trail: d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] };
   }
 
+  // Collapses comma- / slash-separated tier prices into a compact
+  // range so the schedule row doesn't sprawl. Triggers only when
+  // there are 2+ distinct dollar amounts in the string; pass-through
+  // for single-amount strings, "Free", or anything without dollars.
+  // Detects an existing range (a single "$X–$Y" / "$X-$Y") and leaves
+  // it alone — we don't want to re-format what the source already
+  // wrote as a range.
+  function compactPrice(price) {
+    if (!price) return price;
+    var s = String(price).trim();
+    var low = s.toLowerCase();
+    if (low === 'free' || low === 'free event') return s;
+    var matches = s.match(/\$\s*\d+(?:\.\d+)?/g);
+    if (!matches || matches.length < 2) return s;
+    var nums = matches.map(function (m) {
+      return parseFloat(m.replace(/[^0-9.]/g, ''));
+    }).filter(function (n) { return !isNaN(n); });
+    if (nums.length < 2) return s;
+    var lo = Math.min.apply(null, nums);
+    var hi = Math.max.apply(null, nums);
+    if (lo === hi) return '$' + fmtPriceNum(lo);
+    return '$' + fmtPriceNum(lo) + '–' + fmtPriceNum(hi);
+  }
+  function fmtPriceNum(n) {
+    // Drop ".00" but keep ".50" etc. — most Melbourne ticket prices
+    // are whole dollars, the trailing zeros add noise.
+    return (n === Math.floor(n)) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
   // Returns { startLong, endLong, endShort, days } if the event spans
   // more than one calendar date, else null. `datetime_start` /
   // `datetime_end` ship as ISO date strings (sometimes ISO datetimes);
@@ -3901,6 +3941,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var endYearSuffix = String(endYear) !== nowYear ? ' ' + endYear : '';
     var days = Math.round((ed - sd) / 86400000) + 1;
     return {
+      startIso: s,
+      endIso: e,
       startLong: WEEKDAYS[sd.getDay()] + ' ' + sd.getDate() + ' ' +
                  MONTHS[sd.getMonth()] + ' ' + sd.getFullYear(),
       endLong:   WEEKDAYS[ed.getDay()] + ' ' + ed.getDate() + ' ' +
@@ -4804,27 +4846,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (blurb) {
       parts.push('<div class="description">' + escapeHtml(blurb) + '</div>');
     }
-    if (ev.price) {
-      var low = ev.price.toLowerCase();
-      var pcls = (low === 'free' || low === 'free event') ? 'price free' : 'price';
-      parts.push('<div class="' + pcls + '">' + escapeHtml(ev.price) + '</div>');
-    }
-    // Multi-day tag: surfaces when datetime_start/end span more than one
-    // calendar date (exhibitions, weekly runs, festival passes). The
-    // event already appears on each day's tab; this chip is the
-    // explicit "yep, also showing on other days" cue so the reader
-    // doesn't think it's a one-off.
+    // DOM order: multi-day BEFORE price so the screen-reader sequence
+    // (time → multi-day → price) matches the visual row order set by
+    // the .event grid (multi-day at col 2, price at col 3). The grid
+    // placement makes layout independent of DOM order, but a11y
+    // benefits from them being aligned.
     //
-    // Pill reads "Multi-day · ends {date}" — "ends" doesn't imply
-    // daily coverage (the run might be weekdays-only, weekly on
-    // certain days, or have public-holiday closures), it just names
-    // the closing date. The tooltip carries the schedule detail:
-    // start, end, total span, and a list of remaining appearances in
-    // the loaded window when those gaps exist.
+    // Multi-day tag: surfaces when datetime_start/end span more than
+    // one calendar date (exhibitions, weekly runs, festival passes).
+    // The event already appears on each day's tab; this is the
+    // explicit "yep, also showing on other days" cue.
     //
-    // Inner __tip element mirrors the score-chip / score-breakdown
-    // CSS pattern — hover/focus toggles it instantly via CSS,
-    // sidestepping the ~700ms native title tooltip delay.
+    // Pill reads just "multi-day" — the start / end / span / cadence
+    // detail lives in the hover/focus __tip. Tip mirrors the
+    // .score-breakdown CSS pattern so the two tooltips read as one
+    // design vocabulary.
     var mdSpan = multiDaySpan(ev);
     if (mdSpan) {
       var daysWord = mdSpan.days === 1 ? 'day' : 'days';
@@ -4837,12 +4873,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
              '</span>' +
            '</div>')
         : '';
+      var startKey = (mdSpan.startIso < ev.day) ? 'Started' : 'Starts';
       parts.push(
         '<div class="multi-day-tag">' +
-          '<span class="multi-day-tag__label">Multi-day</span>' +
+          '<span class="multi-day-tag__label">multi-day</span>' +
           '<div class="multi-day-tag__tip" role="tooltip">' +
             '<div class="multi-day-tag__tip-row">' +
-              '<span class="multi-day-tag__tip-key">Starts</span> ' +
+              '<span class="multi-day-tag__tip-key">' + startKey + '</span> ' +
               '<span class="multi-day-tag__tip-val">' +
                 escapeHtml(mdSpan.startLong) +
               '</span>' +
@@ -4863,6 +4900,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           '</div>' +
         '</div>'
       );
+    }
+    if (ev.price) {
+      var low = ev.price.toLowerCase();
+      var pcls = (low === 'free' || low === 'free event') ? 'price free' : 'price';
+      var priceDisplay = compactPrice(ev.price);
+      parts.push('<div class="' + pcls + '">' + escapeHtml(priceDisplay) + '</div>');
     }
     // Score chip — hidden by default; opt-in via Settings → Appearance.
     // PR-2 of the redesign moved this off the default card surface.
