@@ -2753,12 +2753,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   height: 4px;
 }
 /* Max thumb — upward-rounded semicircle sitting ABOVE the track.
-   Flat bottom edge rests on the track top. translateY(-9px) shifts
-   the thumb up from the default centered position so it doesn't
-   overlap the min thumb. Wider+taller hit target than a small dot. */
+   Flat bottom edge meets the track centerline.
+
+   WebKit positions the thumb's TOP edge at the track's top by default
+   (margin-top: 0 puts thumb_top = track_top). margin-top: -7px first
+   re-centers the thumb on the track (track_height - thumb_height) / 2
+   = (4 - 18) / 2 = -7), then translateY(-9px) shifts it up by half a
+   thumb so the flat bottom edge sits exactly on the track centerline.
+   Firefox auto-centers ::-moz-range-thumb, so no margin-top needed. */
 .age-range-thumb[data-age-bound="max"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
+  box-sizing: border-box;
   width: 26px;
   height: 18px;
   border-radius: 13px 13px 0 0;
@@ -2767,10 +2773,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   border-bottom: none;
   cursor: pointer;
   box-shadow: 0 -1px 3px rgba(0, 0, 0, 0.18);
+  margin-top: -7px;
   transform: translateY(-9px);
 }
 .age-range-thumb[data-age-bound="max"]::-moz-range-thumb {
   pointer-events: auto;
+  box-sizing: border-box;
   width: 26px;
   height: 18px;
   border-radius: 13px 13px 0 0;
@@ -2782,10 +2790,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   transform: translateY(-9px);
 }
 /* Min thumb — downward-rounded semicircle sitting BELOW the track.
-   Flat top edge sits just under the track. Mirror of the max thumb. */
+   Mirror of max: same -7px re-centering on WebKit, then translateY
+   shifts down by half a thumb so the flat top edge meets track centerline. */
 .age-range-thumb[data-age-bound="min"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
+  box-sizing: border-box;
   width: 26px;
   height: 18px;
   border-radius: 0 0 13px 13px;
@@ -2794,10 +2804,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   border-top: none;
   cursor: pointer;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.18);
+  margin-top: -7px;
   transform: translateY(9px);
 }
 .age-range-thumb[data-age-bound="min"]::-moz-range-thumb {
   pointer-events: auto;
+  box-sizing: border-box;
   width: 26px;
   height: 18px;
   border-radius: 0 0 13px 13px;
@@ -3564,6 +3576,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         hidden_categories: profile.hidden_categories || [],
         show_score_chip: !!profile.show_score_chip,
         theme: profile.theme || 'auto',
+        min_age: profile.min_age,
+        max_age: profile.max_age,
       }));
     } catch (_) {}
   }
