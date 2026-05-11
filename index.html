@@ -2704,6 +2704,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
      and the min thumb (below track) to sit fully separated, so both
      are always clickable even when their X positions coincide. */
   height: 36px;
+  /* Half the thumb width. Used by the track + fill below to align
+     with the native thumb travel range (thumb_w/2 in from each end).
+     Keep in sync with the 26px width on .age-range-thumb thumbs. */
+  --thumb-half: 13px;
 }
 .age-range-track,
 .age-range-fill {
@@ -2715,16 +2719,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   pointer-events: none;
 }
 .age-range-track {
-  left: 0;
-  right: 0;
+  /* Inset by thumb_half each side so the track edges meet the
+     thumb centres at min/max. */
+  left: var(--thumb-half);
+  right: var(--thumb-half);
   background: var(--rule, #d4cfc7);
 }
 .age-range-fill {
   background: var(--accent-cool);
-  /* Inline left/right set by updateAgeFillBar(); defaults so the bar
-     isn't full-width before JS runs. */
-  left: 0%;
-  right: 0%;
+  /* `--min-pct` / `--max-pct` are 0..100 percentages set by
+     updateAgeFillBar(). The calc() positions the fill's left/right
+     under each thumb's centre: thumb_half + pct * (full_width -
+     thumb_w) where (100% - thumb_half * 2) is the travel range. */
+  left: calc(var(--thumb-half)
+    + (var(--min-pct, 0) / 100) * (100% - var(--thumb-half) * 2));
+  right: calc(var(--thumb-half)
+    + ((100 - var(--max-pct, 100)) / 100) * (100% - var(--thumb-half) * 2));
 }
 /* Both range inputs occupy the entire slider area. Their built-in
    tracks are made transparent — only the thumbs remain interactive
@@ -5369,9 +5379,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
 
   function updateAgeFillBar(row) {
-    // Position the highlighted fill segment between the two thumbs.
-    // Reads input.value directly so the bar tracks the dragging
-    // handle live (before handleAgeBoundChange commits to profile).
+    // Position the highlighted fill segment between the two thumb
+    // CENTRES. Native range-input thumbs travel from x=thumb_w/2 to
+    // x=width-thumb_w/2 (so the thumb's edges line up with the
+    // slider edges at min/max). A naive percent-of-width fill is
+    // off by up to thumb_w/2 on each side. We set CSS variables for
+    // the live min/max percentages; the CSS uses calc() with a
+    // shared --thumb-half so the fill ends exactly under each thumb
+    // centre regardless of slider width.
     if (!row) return;
     var fill = row.querySelector('[data-age-fill]');
     if (!fill) return;
@@ -5384,34 +5399,40 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var span = AGE_RANGE_MAX - AGE_RANGE_MIN;
     var minPct = ((minV - AGE_RANGE_MIN) / span) * 100;
     var maxPct = ((maxV - AGE_RANGE_MIN) / span) * 100;
-    fill.style.left = minPct + '%';
-    fill.style.right = (100 - maxPct) + '%';
+    fill.style.setProperty('--min-pct', minPct);
+    fill.style.setProperty('--max-pct', maxPct);
   }
   function handleAgeBoundChange(bound, value) {
     var v = parseInt(value, 10);
     if (isNaN(v)) return;
     if (v < AGE_RANGE_MIN) v = AGE_RANGE_MIN;
     if (v > AGE_RANGE_MAX) v = AGE_RANGE_MAX;
+    var row = document.querySelector('.age-range-row');
+    var minInp = row && row.querySelector('[data-age-bound="min"]');
+    var maxInp = row && row.querySelector('[data-age-bound="max"]');
+    // Read the OTHER bound from the DOM, not from profile. During a
+    // live cross-snap drag (Min pushed Max up to 70, then Min dragged
+    // back down to 30 before release) the other input's value reflects
+    // the live-pushed position, but the profile still has the old value.
+    // Trusting the DOM keeps the just-pushed thumb where the user
+    // visibly left it instead of snapping it back to the pre-drag value.
+    var otherV;
     if (bound === 'min') {
+      otherV = maxInp ? parseInt(maxInp.value, 10) : NaN;
+      if (isNaN(otherV)) otherV = ageRangeProfileMax();
       profile.min_age = v;
-      // Push max up if min crossed it — keeps the range non-empty.
-      if (typeof profile.max_age === 'number' && profile.max_age < v) {
-        profile.max_age = v;
-      }
+      profile.max_age = Math.max(otherV, v);
     } else if (bound === 'max') {
+      otherV = minInp ? parseInt(minInp.value, 10) : NaN;
+      if (isNaN(otherV)) otherV = ageRangeProfileMin();
       profile.max_age = v;
-      if (typeof profile.min_age === 'number' && profile.min_age > v) {
-        profile.min_age = v;
-      }
+      profile.min_age = Math.min(otherV, v);
     } else {
       return;
     }
-    var row = document.querySelector('.age-range-row');
     if (row) {
       var minDisp = row.querySelector('[data-age-bound-val="min"]');
       var maxDisp = row.querySelector('[data-age-bound-val="max"]');
-      var minInp  = row.querySelector('[data-age-bound="min"]');
-      var maxInp  = row.querySelector('[data-age-bound="max"]');
       if (minDisp) minDisp.textContent = ageRangeProfileMin();
       if (maxDisp) maxDisp.textContent = formatAgeMax(ageRangeProfileMax());
       if (minInp) minInp.value = ageRangeProfileMin();
