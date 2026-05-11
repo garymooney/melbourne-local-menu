@@ -1539,19 +1539,25 @@ body.has-banner > *:not(.deep-link-banner) {
   cursor: help;
 }
 .score-chip .score-debug {
-  text-decoration: underline dotted;
+  /* Matches .multi-day-tag__label so the two hover-info affordances
+     read as one design vocabulary — faint 1px solid underline,
+     darker on hover/focus. Replaces the previous dotted style. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 2px;
-  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--faint) 28%, transparent);
 }
 .score-chip:focus-within .score-debug,
 .score-chip.open .score-debug {
   opacity: 1;
   color: var(--text);
+  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
 }
 @media (hover: hover) {
   .score-chip:hover:not(.hover-suppressed) .score-debug {
     opacity: 1;
     color: var(--text);
+    text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
   }
 }
 .score-breakdown {
@@ -3941,10 +3947,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var e = String(ev.datetime_end).slice(0, 10);
     if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || !/^\d{4}-\d{2}-\d{2}$/.test(e)) return null;
     if (e <= s) return null;
-    var sd = new Date(s + 'T12:00:00');
     var ed = new Date(e + 'T12:00:00');
     var endYear = ed.getFullYear();
-    var days = Math.round((ed - sd) / 86400000) + 1;
     return {
       startIso: s,
       endIso: e,
@@ -3953,7 +3957,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       // date to read and the year resolves ambiguity for long runs.
       endLong:   WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' +
                  MONTHS_SHORT[ed.getMonth()] + ' ' + endYear,
-      days: days,
     };
   }
 
@@ -4862,7 +4865,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // design vocabulary.
     var mdSpan = multiDaySpan(ev);
     if (mdSpan) {
-      var daysWord = mdSpan.days === 1 ? 'day' : 'days';
       var alsoLabel = multiDayAlsoLabel(ev);
       var alsoRow = alsoLabel
         ? ('<div class="multi-day-tag__tip-row">' +
@@ -4875,8 +4877,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       // Start date dropped from the tooltip — for long-running events
       // the scraped `datetime_start` is often the earliest date we
       // happened to see, not the true beginning of the run, so
-      // claiming "Starts X" would mislead. End + span + Also is the
-      // accurate residual.
+      // claiming "Starts X" would mislead. Span dropped too — without
+      // a trustworthy start the day count is meaningless. End + Also
+      // is the accurate residual.
       parts.push(
         '<div class="multi-day-tag">' +
           '<span class="multi-day-tag__label">multi-day</span>' +
@@ -4885,12 +4888,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
               '<span class="multi-day-tag__tip-key">Ends</span> ' +
               '<span class="multi-day-tag__tip-val">' +
                 escapeHtml(mdSpan.endLong) +
-              '</span>' +
-            '</div>' +
-            '<div class="multi-day-tag__tip-row multi-day-tag__tip-total">' +
-              '<span class="multi-day-tag__tip-key">Span</span> ' +
-              '<span class="multi-day-tag__tip-val">' +
-                mdSpan.days + ' ' + daysWord +
               '</span>' +
             '</div>' +
             alsoRow +
