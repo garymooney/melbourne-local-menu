@@ -1515,8 +1515,6 @@ body.has-banner > *:not(.deep-link-banner) {
 .add-cal-wrap {
   position: relative;
   display: inline-block;
-  align-self: flex-start;
-  margin-top: 6px;
 }
 .add-cal-btn {
   /* Asymmetric padding: the "+" SVG has ~3px of empty space on its left
@@ -1575,9 +1573,6 @@ body.has-banner > *:not(.deep-link-banner) {
 .event-actions .card-overflow-btn {
   margin-left: auto;
 }
-/* The cal-wrap inherits margin-top from its old standalone styling;
-   now redundant inside .event-actions. */
-.event-actions > .add-cal-wrap { margin-top: 0; }
 
 /* Copy-link / Share buttons. Mirror .add-cal-btn sizing so they sit
    in the same action row visually grouped with the calendar picker.
@@ -2942,6 +2937,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   display: flex;
   gap: 6px;
   margin: 4px 0 8px;
+  /* Anchor for the absolutely-positioned .suburb-typeahead-menu. */
+  position: relative;
 }
 .suburb-section-add[hidden] { display: none; }
 .suburb-typeahead {
@@ -2962,6 +2959,50 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 .suburb-typeahead:focus {
   outline: none;
   border-color: var(--accent-cool);
+}
+
+/* Custom typeahead dropdown — populated on every input event, shows
+   matching suburbs as a click/tap list under the input. The native
+   <datalist> dropdown is invisible on iOS Safari (surfaces as a thin
+   suggestions bar above the keyboard), so this is the actual
+   discoverable pick UI on touch devices and a parallel option on
+   desktop. */
+.suburb-typeahead-menu {
+  position: absolute;
+  top: 100%;
+  left: 0;
+  z-index: 50;
+  margin: 2px 0 0;
+  padding: 4px;
+  width: 18ch;
+  max-width: calc(100% - 4px);
+  list-style: none;
+  background: var(--card-bg, #fff);
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  max-height: 240px;
+  overflow-y: auto;
+}
+.suburb-typeahead-menu[hidden] { display: none; }
+.suburb-typeahead-menu li { margin: 0; padding: 0; }
+.suburb-typeahead-option {
+  appearance: none;
+  width: 100%;
+  text-align: left;
+  padding: 8px 10px;
+  font: inherit;
+  color: var(--text);
+  background: transparent;
+  border: 0;
+  border-radius: 4px;
+  cursor: pointer;
+  white-space: nowrap;
+}
+.suburb-typeahead-option:hover,
+.suburb-typeahead-option:focus-visible {
+  background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
+  outline: none;
 }
 
 /* Outside section is rendered as a <details> disclosure so it sits
@@ -5877,14 +5918,58 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // Per-tier add affordance — `+` toggle in the section heading reveals
   // an inline typeahead under it. Tier is implicit (the section's own
   // tier), so commit on pick or Enter without an explicit tier toggle.
+  //
+  // The `<datalist>` gives native typeahead on desktop browsers but
+  // iOS Safari only surfaces it as a tiny suggestion bar above the
+  // keyboard. The sibling `.suburb-typeahead-menu` is the custom
+  // dropdown that fills the gap on touch devices (and behaves
+  // identically on desktop).
   function renderSuburbSectionAdd(tier) {
     return (
       '<div class="suburb-section-add" hidden>' +
         '<input type="text" class="suburb-typeahead" list="suburb-taxonomy" ' +
           'placeholder="type a suburb&hellip;" autocomplete="off" ' +
           'data-add-suburb-typeahead="' + tier + '">' +
+        '<ul class="suburb-typeahead-menu" role="listbox" hidden ' +
+          'data-suburb-typeahead-menu="' + tier + '"></ul>' +
       '</div>'
     );
+  }
+
+  // Filter the suburb taxonomy by the input's current value (case- and
+  // substring-insensitive) and render the matches as buttons in the
+  // sibling .suburb-typeahead-menu. Hidden when empty or input is blank
+  // so the dropdown only appears when there's something to pick.
+  function refreshSuburbTypeaheadMenu(input) {
+    var addRow = input.closest && input.closest('.suburb-section-add');
+    if (!addRow) return;
+    var menu = addRow.querySelector('.suburb-typeahead-menu');
+    if (!menu) return;
+    var raw = (input.value || '').trim().toLowerCase();
+    if (!raw) {
+      menu.hidden = true;
+      menu.innerHTML = '';
+      return;
+    }
+    var tax = defaultProfile.suburb_taxonomy || [];
+    var hits = [];
+    for (var i = 0; i < tax.length && hits.length < 12; i++) {
+      if (tax[i].toLowerCase().indexOf(raw) !== -1) hits.push(tax[i]);
+    }
+    if (!hits.length) {
+      menu.hidden = true;
+      menu.innerHTML = '';
+      return;
+    }
+    var html = '';
+    for (var h = 0; h < hits.length; h++) {
+      html += '<li role="option"><button type="button" ' +
+        'class="suburb-typeahead-option" ' +
+        'data-suburb-pick="' + escapeHtml(hits[h]) + '">' +
+        escapeHtml(hits[h]) + '</button></li>';
+    }
+    menu.innerHTML = html;
+    menu.hidden = false;
   }
 
   function renderSuburbsPanel() {
@@ -6106,30 +6191,30 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     view.innerHTML = (
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
-        tabBtn('tags', 'Topics', true) +
-        tabBtn('vibes', 'Vibes', false) +
+        tabBtn('vibes', 'Vibes', true) +
+        tabBtn('tags', 'Topics', false) +
         tabBtn('rules', 'Rules', false) +
         tabBtn('suburbs', 'Suburbs', false) +
         tabBtn('shape', 'Tuning', false) +
         tabBtn('appearance', 'Theme', false) +
       '</nav>' +
       renderSubPanel({
+        name: 'vibes',
+        desc: 'Stable feels you always like or avoid &mdash; meditation-y, ' +
+          'corporate-y, avant-garde-y.',
+        body: renderFacetGroups(),
+        resetAction: 'reset-vibes',
+        resetLabel: 'Reset all vibes',
+      }) +
+      renderSubPanel({
         name: 'tags',
+        hidden: true,
         desc: 'Boost or hide topics &mdash; jazz, yoga, cooking, and ' +
           'so on.',
         body: renderSubcatGroups(),
         extras: renderHiddenEventsFooter() + renderScoreChipCrumb(),
         resetAction: 'reset-tags',
         resetLabel: 'Reset all tags',
-      }) +
-      renderSubPanel({
-        name: 'vibes',
-        hidden: true,
-        desc: 'Stable feels you always like or avoid &mdash; meditation-y, ' +
-          'corporate-y, avant-garde-y.',
-        body: renderFacetGroups(),
-        resetAction: 'reset-vibes',
-        resetLabel: 'Reset all vibes',
       }) +
       renderSubPanel({
         name: 'rules',
@@ -6250,7 +6335,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (OPEN_POPOVERS[rhi]._kind === 'row-help') closePopover(OPEN_POPOVERS[rhi]);
     }
     var current = document.querySelector('.settings-subtab[aria-selected="true"]');
-    var name = (current && current.dataset.subtab) || 'tags';
+    var name = (current && current.dataset.subtab) || 'vibes';
     // Snapshot any <details data-persist-open="X"> open states so a
     // chip-driven re-render doesn't collapse Tuning > Advanced or the
     // Outside section out from under the user.
@@ -9780,6 +9865,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       }
     }
 
+    // Dismiss any open suburb typeahead dropdown when the click lands
+    // outside the section that owns it. Doesn't return — falls through
+    // to the rest of the click handlers below.
+    var clickedAdd = e.target.closest && e.target.closest('.suburb-section-add');
+    var openMenus = document.querySelectorAll(
+      '.suburb-typeahead-menu:not([hidden])');
+    for (var omi = 0; omi < openMenus.length; omi++) {
+      if (openMenus[omi].closest('.suburb-section-add') === clickedAdd) continue;
+      openMenus[omi].hidden = true;
+      openMenus[omi].innerHTML = '';
+    }
+
+    // Pick from the custom suburb typeahead dropdown. Mirrors the
+    // datalist-pick path on desktop browsers — fills the input and
+    // commits via the same handleSuburbTypeaheadCommit flow.
+    var pickBtn = e.target.closest && e.target.closest('.suburb-typeahead-option');
+    if (pickBtn) {
+      e.preventDefault();
+      var addRow = pickBtn.closest('.suburb-section-add');
+      var input = addRow && addRow.querySelector('input[data-add-suburb-typeahead]');
+      var menu = addRow && addRow.querySelector('.suburb-typeahead-menu');
+      if (input) {
+        input.value = pickBtn.dataset.suburbPick || '';
+        handleSuburbTypeaheadCommit(input);
+      }
+      if (menu) { menu.hidden = true; menu.innerHTML = ''; }
+      return;
+    }
+
     // Per-tier `+` toggles an inline typeahead in that section. Only
     // one section is open at a time — opening one closes any other.
     // Outside's + lives inside the <summary>; stopPropagation keeps
@@ -9794,7 +9908,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var wasOpen = !addRow.hidden;
       var allRows = document.querySelectorAll('.suburb-section-add');
       var allBtns = document.querySelectorAll('.add-suburb-btn');
-      for (var ri = 0; ri < allRows.length; ri++) allRows[ri].hidden = true;
+      for (var ri = 0; ri < allRows.length; ri++) {
+        allRows[ri].hidden = true;
+        var stale = allRows[ri].querySelector('.suburb-typeahead-menu');
+        if (stale) { stale.hidden = true; stale.innerHTML = ''; }
+      }
       for (var bi = 0; bi < allBtns.length; bi++) {
         allBtns[bi].setAttribute('aria-expanded', 'false');
       }
@@ -9939,6 +10057,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (minDisp) minDisp.textContent = String(stopIdxToAge(minIdx));
       if (maxDisp) maxDisp.textContent = formatAgeMax(stopIdxToAge(maxIdx));
       updateAgeFillBar(rangeRow);
+    } else if (e.target.matches('input[data-add-suburb-typeahead]')) {
+      refreshSuburbTypeaheadMenu(e.target);
     }
   });
   document.addEventListener('change', function (e) {
