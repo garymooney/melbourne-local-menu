@@ -2674,36 +2674,108 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   accent-color: var(--accent-cool);
 }
 
-/* Age range — two stacked sliders (Min on top, Max below) so each
-   bound gets a full track with its own labeled handle. Slim and
-   inline so the row stays the same height as the other shape rows
-   on a single-handle slider. */
+/* Age range — true dual-handle slider. Two range inputs overlap a
+   single track. The track and fill (highlighted region between the
+   two thumbs) are styled DIVs underneath the inputs; the inputs
+   themselves are transparent except for the thumb. Min and max
+   readouts flank the slider. */
 .age-range-input {
   display: flex;
-  flex-direction: column;
-  gap: 6px;
-  min-width: 0;
-  flex: 1;
-}
-.age-range-handle {
-  display: flex;
   align-items: center;
-  gap: 8px;
+  gap: 10px;
+  flex: 1;
   min-width: 0;
 }
-.age-range-handle__label {
-  font-size: 0.78em;
-  color: var(--faint);
-  min-width: 2.2em;
+.age-range-readout {
+  min-width: 2.6em;
   text-align: right;
 }
-.age-range-input input[type="range"] {
+.age-range-readout[data-age-bound-val="min"] {
+  text-align: right;
+}
+.age-range-readout[data-age-bound-val="max"] {
+  text-align: left;
+}
+.age-range-slider {
+  position: relative;
   flex: 1;
   min-width: 120px;
-  accent-color: var(--accent-cool);
+  height: 24px;
 }
-.age-range-input .shape-value {
-  min-width: 2.6em;
+.age-range-track,
+.age-range-fill {
+  position: absolute;
+  top: 50%;
+  transform: translateY(-50%);
+  height: 4px;
+  border-radius: 2px;
+  pointer-events: none;
+}
+.age-range-track {
+  left: 0;
+  right: 0;
+  background: var(--rule, #d4cfc7);
+}
+.age-range-fill {
+  background: var(--accent-cool);
+  /* Inline left/right set by updateAgeFillBar(); defaults so the bar
+     isn't full-width before JS runs. */
+  left: 0%;
+  right: 0%;
+}
+/* Both range inputs occupy the entire slider area. Their built-in
+   tracks are made transparent — only the thumbs remain interactive
+   and visible. */
+.age-range-thumb {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  margin: 0;
+  background: transparent;
+  pointer-events: none;
+  -webkit-appearance: none;
+  appearance: none;
+}
+.age-range-thumb::-webkit-slider-runnable-track {
+  background: transparent;
+  border: none;
+  height: 4px;
+}
+.age-range-thumb::-moz-range-track {
+  background: transparent;
+  border: none;
+  height: 4px;
+}
+.age-range-thumb::-webkit-slider-thumb {
+  -webkit-appearance: none;
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-cool);
+  border: 2px solid var(--bg, #fff);
+  margin-top: -7px;
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.age-range-thumb::-moz-range-thumb {
+  pointer-events: auto;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  background: var(--accent-cool);
+  border: 2px solid var(--bg, #fff);
+  cursor: pointer;
+  box-shadow: 0 1px 3px rgba(0, 0, 0, 0.15);
+}
+.age-range-thumb:focus { outline: none; }
+.age-range-thumb:focus-visible::-webkit-slider-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
+}
+.age-range-thumb:focus-visible::-moz-range-thumb {
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-cool) 30%, transparent);
 }
 .shape-value {
   font-family: var(--mono-font);
@@ -5223,25 +5295,45 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         '</div>' +
         renderRowResetBtn() +
         '<div class="age-range-input">' +
-          '<label class="age-range-handle">' +
-            '<span class="age-range-handle__label">Min</span>' +
-            '<input type="range" data-age-bound="min" ' +
+          '<span class="shape-value age-range-readout" ' +
+            'data-age-bound-val="min">' + minV + '</span>' +
+          '<div class="age-range-slider">' +
+            '<div class="age-range-track" aria-hidden="true"></div>' +
+            '<div class="age-range-fill" data-age-fill aria-hidden="true"></div>' +
+            '<input type="range" class="age-range-thumb" data-age-bound="min" ' +
               'min="' + AGE_RANGE_MIN + '" max="' + AGE_RANGE_MAX + '" ' +
               'step="1" value="' + minV + '" ' +
               'aria-label="Minimum age">' +
-            '<span class="shape-value" data-age-bound-val="min">' + minV + '</span>' +
-          '</label>' +
-          '<label class="age-range-handle">' +
-            '<span class="age-range-handle__label">Max</span>' +
-            '<input type="range" data-age-bound="max" ' +
+            '<input type="range" class="age-range-thumb" data-age-bound="max" ' +
               'min="' + AGE_RANGE_MIN + '" max="' + AGE_RANGE_MAX + '" ' +
               'step="1" value="' + maxV + '" ' +
               'aria-label="Maximum age">' +
-            '<span class="shape-value" data-age-bound-val="max">' + formatAgeMax(maxV) + '</span>' +
-          '</label>' +
+          '</div>' +
+          '<span class="shape-value age-range-readout" ' +
+            'data-age-bound-val="max">' + formatAgeMax(maxV) + '</span>' +
         '</div>' +
       '</div>'
     );
+  }
+
+  function updateAgeFillBar(row) {
+    // Position the highlighted fill segment between the two thumbs.
+    // Reads input.value directly so the bar tracks the dragging
+    // handle live (before handleAgeBoundChange commits to profile).
+    if (!row) return;
+    var fill = row.querySelector('[data-age-fill]');
+    if (!fill) return;
+    var minInp = row.querySelector('[data-age-bound="min"]');
+    var maxInp = row.querySelector('[data-age-bound="max"]');
+    if (!minInp || !maxInp) return;
+    var minV = parseInt(minInp.value, 10);
+    var maxV = parseInt(maxInp.value, 10);
+    if (isNaN(minV) || isNaN(maxV)) return;
+    var span = AGE_RANGE_MAX - AGE_RANGE_MIN;
+    var minPct = ((minV - AGE_RANGE_MIN) / span) * 100;
+    var maxPct = ((maxV - AGE_RANGE_MIN) / span) * 100;
+    fill.style.left = minPct + '%';
+    fill.style.right = (100 - maxPct) + '%';
   }
   function handleAgeBoundChange(bound, value) {
     var v = parseInt(value, 10);
@@ -5273,6 +5365,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (minInp) minInp.value = ageRangeProfileMin();
       if (maxInp) maxInp.value = ageRangeProfileMax();
       row.dataset.modified = isAgeRangeModified() ? 'true' : 'false';
+      updateAgeFillBar(row);
     }
     saveProfile();
     updateSettingsTabDots();
@@ -5948,6 +6041,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
     ensureSettingsResizeObserver();
     measureSettingsHints();
+    // Position the age-range fill bar to match its initial values —
+    // CSS doesn't know the values, so we set left/right inline.
+    var ageRow = view.querySelector('.age-range-row');
+    if (ageRow) updateAgeFillBar(ageRow);
   }
 
   // Refresh the per-tab modified dots without re-rendering settings.
@@ -9683,8 +9780,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var disp = row.querySelector('.shape-value');
       if (disp) disp.textContent = parseFloat(e.target.value).toFixed(2);
     } else if (e.target.matches('.age-range-input input[type="range"]')) {
-      // Live-update the matching display span while dragging; the
-      // 'change' handler below will commit (snap + save + re-render).
+      // Live-update the matching display span and fill bar while
+      // dragging; the 'change' handler below commits (snap + save +
+      // re-render). Hand-tuned: we read the actively-dragged input's
+      // value rather than the profile so the bar follows the thumb
+      // mid-drag.
       var bound = e.target.dataset.ageBound;
       var rangeRow = e.target.closest('.age-range-row');
       if (!rangeRow || !bound) return;
@@ -9695,6 +9795,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         liveDisp.textContent = (bound === 'max')
           ? formatAgeMax(liveV) : String(liveV);
       }
+      updateAgeFillBar(rangeRow);
     }
   });
   document.addEventListener('change', function (e) {
