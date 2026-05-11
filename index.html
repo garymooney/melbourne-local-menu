@@ -2700,12 +2700,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   position: relative;
   flex: 1;
   min-width: 140px;
-  height: 26px;
+  height: 30px;
   /* Half the thumb width. Used everywhere that needs to know about
      the visual offset between a thumb's centre and its flat edge —
      fill calc, track inset, input inset, thumb translateX. Keep in
-     sync with the 16px width on .age-range-thumb. */
-  --thumb-half: 8px;
+     sync with the 20px width on .age-range-thumb. */
+  --thumb-half: 10px;
   /* Each thumb is then translateX'd by ±thumb_half (min left, max
      right) so its FLAT edge (not its centre) sits at the value
      position. At equal values, min's flat-right and max's flat-left
@@ -2788,22 +2788,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   -webkit-appearance: none;
   pointer-events: auto;
   box-sizing: border-box;
-  width: 16px;
-  height: 22px;
+  width: 20px;
+  height: 26px;
   border-radius: 50% 0 0 50%;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-right: none;
   cursor: pointer;
   box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.18);
-  margin-top: -9px;
+  margin-top: -11px;
   transform: translateX(calc(var(--thumb-half) * -1));
 }
 .age-range-thumb[data-age-bound="min"]::-moz-range-thumb {
   pointer-events: auto;
   box-sizing: border-box;
-  width: 16px;
-  height: 22px;
+  width: 20px;
+  height: 26px;
   border-radius: 50% 0 0 50%;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
@@ -2819,22 +2819,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   -webkit-appearance: none;
   pointer-events: auto;
   box-sizing: border-box;
-  width: 16px;
-  height: 22px;
+  width: 20px;
+  height: 26px;
   border-radius: 0 50% 50% 0;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-left: none;
   cursor: pointer;
   box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.18);
-  margin-top: -9px;
+  margin-top: -11px;
   transform: translateX(var(--thumb-half));
 }
 .age-range-thumb[data-age-bound="max"]::-moz-range-thumb {
   pointer-events: auto;
   box-sizing: border-box;
-  width: 16px;
-  height: 22px;
+  width: 20px;
+  height: 26px;
   border-radius: 0 50% 50% 0;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
@@ -5386,7 +5386,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var minIdx = ageToStopIdx(minV);
     var maxIdx = ageToStopIdx(maxV);
     var hint = 'Hide events whose advertised age band falls outside ' +
-      'this range. Pinned events are always shown.';
+      'this range.';
     return (
       '<div class="shape-row age-range-row" data-age-range="true" ' +
         'data-hint-mode="visible" ' +
