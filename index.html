@@ -3990,21 +3990,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // null when the event has no OTHER appearance in the loaded window
   // — keeps the tooltip short for events whose only data here is
   // this single render. Lists every other day this event runs in the
-  // loaded data, past or future relative to the viewed card — the
-  // reader gets the whole schedule, not just what's still to come.
+  // loaded data, past or future relative to the viewed card.
   //
-  // Formatting tiers, applied in order:
-  //   1. Contiguous run (every day from first to last)
-  //      → "Mon 18 – Fri 22 May"   (same month)
-  //      → "Fri 30 May – Mon 2 Jun" (cross month)
-  //   2. Same-weekday weekly (diffs all = 7 days, ≥3 occurrences)
-  //      → "Weds 14, 21, 28 May"   (drop weekday + month on inner)
-  //   3. ≤4 items, same month
-  //      → "Wed 14, Fri 16, Sat 17 May" (month only at end)
-  //   4. ≤4 items, cross month
-  //      → "Wed 30 May, Sat 2 Jun"
-  //   5. >4 items (after the above didn't fire)
-  //      → "5 more days"
+  // Strategy: group the dates into runs of consecutive calendar days,
+  // then render each run either as a single date or a range. Detects
+  // a same-weekday weekly cadence first so "Wed 14, 21, 28 May" beats
+  // three single-day runs. Month suffix only appears on the trailing
+  // run when every date shares the same month (collapses repetition).
+  //
+  // Examples:
+  //   - Contiguous Mon-Fri        → "Mon 18 – Fri 22 May"
+  //   - Contiguous cross month    → "Fri 30 May – Mon 2 Jun"
+  //   - Weekly Wed × 3            → "Wed 14, 21, 28 May"
+  //   - Mon lone + Wed-Sun run    → "Mon 11, Wed 13 – Sun 17 May"
+  //   - 3 lone same-month dates   → "Wed 14, Fri 16, Sat 17 May"
+  //   - 2 lone cross-month dates  → "Wed 30 May, Sat 2 Jun"
   function multiDayAlsoLabel(ev) {
     if (!ev || ev.id == null) return null;
     var days = multiDayDayMap()[ev.id] || [];
@@ -4017,38 +4017,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return { iso: iso, d: new Date(iso + 'T12:00:00') };
     });
     var DAY_MS = 86400000;
-    var first = parsed[0].d;
-    var last = parsed[parsed.length - 1].d;
-    var sameMonth = first.getMonth() === last.getMonth() &&
-                    first.getFullYear() === last.getFullYear();
+    var allSameMonth = parsed.every(function (p) {
+      return p.d.getMonth() === parsed[0].d.getMonth() &&
+             p.d.getFullYear() === parsed[0].d.getFullYear();
+    });
 
-    // (1) Contiguous run — every consecutive pair exactly +1 day apart.
-    if (parsed.length >= 2) {
-      var contiguous = true;
-      for (var i = 1; i < parsed.length; i++) {
-        if ((parsed[i].d - parsed[i - 1].d) !== DAY_MS) {
-          contiguous = false; break;
-        }
-      }
-      if (contiguous) {
-        if (sameMonth) {
-          return WEEKDAYS_SHORT[first.getDay()] + ' ' + first.getDate() +
-                 ' – ' +
-                 WEEKDAYS_SHORT[last.getDay()] + ' ' + last.getDate() +
-                 ' ' + MONTHS_SHORT[last.getMonth()];
-        }
-        return WEEKDAYS_SHORT[first.getDay()] + ' ' + first.getDate() + ' ' +
-                 MONTHS_SHORT[first.getMonth()] +
-               ' – ' +
-               WEEKDAYS_SHORT[last.getDay()] + ' ' + last.getDate() + ' ' +
-                 MONTHS_SHORT[last.getMonth()];
-      }
-    }
-
-    // (2) Weekly recurrence on the same weekday — 3+ occurrences spaced
-    // exactly 7 days apart. Reads naturally as "Weds 14, 21, 28 May"
-    // (or "Tues 14 May, 4 Jun" if it straddles a month). Threshold of
-    // 3 avoids treating any random "next week" as weekly.
+    // Weekly recurrence — same weekday, all gaps = 7 days, ≥3
+    // occurrences. Beats the run-grouping below since each weekly
+    // hit would otherwise be its own single-day run.
     if (parsed.length >= 3) {
       var weekly = true;
       for (var j = 1; j < parsed.length; j++) {
@@ -4057,11 +4033,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         }
       }
       if (weekly) {
-        // 3-char weekday, no trailing "s" — the comma-separated dates
-        // already imply the recurrence pattern. Reads "Wed 14, 21,
-        // 28 May" rather than "Weds ...".
+        var first = parsed[0].d;
+        var last = parsed[parsed.length - 1].d;
         var weekday = WEEKDAYS_SHORT[first.getDay()];
-        if (sameMonth) {
+        if (allSameMonth) {
           var inner = parsed.slice(0, -1).map(function (p) {
             return p.d.getDate();
           }).join(', ');
@@ -4075,28 +4050,43 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       }
     }
 
-    // (3, 4) Short list — same-month items collapse to a shared
-    // trailing month; cross-month items carry their own month suffix.
-    if (parsed.length <= 4) {
-      if (sameMonth) {
-        var listInner = parsed.slice(0, -1).map(function (p) {
-          return WEEKDAYS_SHORT[p.d.getDay()] + ' ' + p.d.getDate();
-        });
-        listInner.push(
-          WEEKDAYS_SHORT[last.getDay()] + ' ' + last.getDate() + ' ' +
-          MONTHS_SHORT[last.getMonth()]
-        );
-        return listInner.join(', ');
+    // Group into runs of consecutive +1-day dates. A run becomes
+    // either a single-date entry or a "X – Y" range.
+    var runs = [[parsed[0]]];
+    for (var i = 1; i < parsed.length; i++) {
+      if ((parsed[i].d - parsed[i - 1].d) === DAY_MS) {
+        runs[runs.length - 1].push(parsed[i]);
+      } else {
+        runs.push([parsed[i]]);
       }
-      return parsed.map(function (p) {
-        return WEEKDAYS_SHORT[p.d.getDay()] + ' ' + p.d.getDate() + ' ' +
-               MONTHS_SHORT[p.d.getMonth()];
-      }).join(', ');
     }
 
-    // (5) Long, irregular run — fall back to a count rather than a
-    // sprawling list.
-    return parsed.length + ' more days';
+    function fmtDate(d, withMonth) {
+      var base = WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate();
+      return withMonth ? base + ' ' + MONTHS_SHORT[d.getMonth()] : base;
+    }
+    function fmtRun(run, isLast) {
+      var a = run[0].d;
+      var b = run[run.length - 1].d;
+      // Same-month all-runs case: trailing month appears only on the
+      // last entry of the last run. Otherwise every run end carries
+      // its month so the read isn't ambiguous across month boundaries.
+      if (run.length === 1) {
+        return fmtDate(a, !allSameMonth || isLast);
+      }
+      // Range entry. The first endpoint only needs a month suffix
+      // when crossing months within the run; the second always
+      // carries it (unless we're in same-month-all and this isn't
+      // the last run).
+      var firstCrossesMonth = a.getMonth() !== b.getMonth() ||
+                              a.getFullYear() !== b.getFullYear();
+      var firstStr = fmtDate(a, firstCrossesMonth);
+      var lastStr = fmtDate(b, !allSameMonth || isLast);
+      return firstStr + ' – ' + lastStr;
+    }
+    return runs.map(function (run, idx) {
+      return fmtRun(run, idx === runs.length - 1);
+    }).join(', ');
   }
 
   // Same lead-word logic but for the day-tab label. Today's pill reads
