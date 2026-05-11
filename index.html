@@ -3927,11 +3927,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
   function resetMultiDayDayMap() { _multiDayDayMap = null; }
 
-  // Compose the "Also this week" tooltip line for a specific item.
-  // Returns null when the event has no OTHER appearance in the loaded
-  // window — keeps the tooltip short for events whose only data here
-  // is this single render. Lists subsequent appearances (post the
-  // card's own day) so the reader sees "next" rather than "past".
+  // Compose the "Also" tooltip line for a specific item. Returns
+  // null when the event has no OTHER appearance in the loaded window
+  // — keeps the tooltip short for events whose only data here is this
+  // single render. Lists subsequent appearances (post the card's own
+  // day) so the reader sees "next" rather than "past".
+  //
+  // Formatting tiers, applied in order:
+  //   1. Contiguous run (every day from first to last)
+  //      → "Mon 18 – Fri 22 May"   (same month)
+  //      → "Fri 30 May – Mon 2 Jun" (cross month)
+  //   2. Same-weekday weekly (diffs all = 7 days, ≥3 occurrences)
+  //      → "Weds 14, 21, 28 May"   (drop weekday + month on inner)
+  //   3. ≤4 items, same month
+  //      → "Wed 14, Fri 16, Sat 17 May" (month only at end)
+  //   4. ≤4 items, cross month
+  //      → "Wed 30 May, Sat 2 Jun"
+  //   5. >4 items (after the above didn't fire)
+  //      → "5 more days"
   function multiDayAlsoLabel(ev) {
     if (!ev || ev.id == null) return null;
     var days = multiDayDayMap()[ev.id] || [];
@@ -3939,14 +3952,88 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var here = ev.day;
     var later = days.filter(function (d) { return d > here; });
     if (later.length === 0) return null;
-    if (later.length <= 4) {
-      return later.map(function (d) {
-        var dd = new Date(d + 'T12:00:00');
-        return WEEKDAYS_SHORT[dd.getDay()] + ' ' + dd.getDate() + ' ' +
-               MONTHS_SHORT[dd.getMonth()];
+
+    var parsed = later.map(function (iso) {
+      return { iso: iso, d: new Date(iso + 'T12:00:00') };
+    });
+    var DAY_MS = 86400000;
+    var first = parsed[0].d;
+    var last = parsed[parsed.length - 1].d;
+    var sameMonth = first.getMonth() === last.getMonth() &&
+                    first.getFullYear() === last.getFullYear();
+
+    // (1) Contiguous run — every consecutive pair exactly +1 day apart.
+    if (parsed.length >= 2) {
+      var contiguous = true;
+      for (var i = 1; i < parsed.length; i++) {
+        if ((parsed[i].d - parsed[i - 1].d) !== DAY_MS) {
+          contiguous = false; break;
+        }
+      }
+      if (contiguous) {
+        if (sameMonth) {
+          return WEEKDAYS_SHORT[first.getDay()] + ' ' + first.getDate() +
+                 ' – ' +
+                 WEEKDAYS_SHORT[last.getDay()] + ' ' + last.getDate() +
+                 ' ' + MONTHS_SHORT[last.getMonth()];
+        }
+        return WEEKDAYS_SHORT[first.getDay()] + ' ' + first.getDate() + ' ' +
+                 MONTHS_SHORT[first.getMonth()] +
+               ' – ' +
+               WEEKDAYS_SHORT[last.getDay()] + ' ' + last.getDate() + ' ' +
+                 MONTHS_SHORT[last.getMonth()];
+      }
+    }
+
+    // (2) Weekly recurrence on the same weekday — 3+ occurrences spaced
+    // exactly 7 days apart. Reads naturally as "Weds 14, 21, 28 May"
+    // (or "Tues 14 May, 4 Jun" if it straddles a month). Threshold of
+    // 3 avoids treating any random "next week" as weekly.
+    if (parsed.length >= 3) {
+      var weekly = true;
+      for (var j = 1; j < parsed.length; j++) {
+        if ((parsed[j].d - parsed[j - 1].d) !== 7 * DAY_MS) {
+          weekly = false; break;
+        }
+      }
+      if (weekly) {
+        var weekdayPlural = WEEKDAYS_SHORT[first.getDay()] + 's';
+        if (sameMonth) {
+          var inner = parsed.slice(0, -1).map(function (p) {
+            return p.d.getDate();
+          }).join(', ');
+          return weekdayPlural + ' ' + inner + ', ' + last.getDate() +
+                 ' ' + MONTHS_SHORT[last.getMonth()];
+        }
+        var items = parsed.map(function (p) {
+          return p.d.getDate() + ' ' + MONTHS_SHORT[p.d.getMonth()];
+        });
+        return weekdayPlural + ' ' + items.join(', ');
+      }
+    }
+
+    // (3, 4) Short list — same-month items collapse to a shared
+    // trailing month; cross-month items carry their own month suffix.
+    if (parsed.length <= 4) {
+      if (sameMonth) {
+        var listInner = parsed.slice(0, -1).map(function (p) {
+          return WEEKDAYS_SHORT[p.d.getDay()] + ' ' + p.d.getDate();
+        });
+        listInner.push(
+          WEEKDAYS_SHORT[last.getDay()] + ' ' + last.getDate() + ' ' +
+          MONTHS_SHORT[last.getMonth()]
+        );
+        return listInner.join(', ');
+      }
+      return parsed.map(function (p) {
+        return WEEKDAYS_SHORT[p.d.getDay()] + ' ' + p.d.getDate() + ' ' +
+               MONTHS_SHORT[p.d.getMonth()];
       }).join(', ');
     }
-    return later.length + ' more days';
+
+    // (5) Long, irregular run — fall back to a count rather than a
+    // sprawling list.
+    return parsed.length + ' more days';
   }
 
   // Same lead-word logic but for the day-tab label. Today's pill reads
