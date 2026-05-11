@@ -1496,6 +1496,13 @@ body.has-banner > *:not(.deep-link-banner) {
 .multi-day-tag__tip-total .multi-day-tag__tip-key {
   color: var(--text);
 }
+/* Days list — one row per day this event runs in the loaded window.
+   The viewed card's own day gets the .--here modifier and is bolded
+   so the reader can pick it out at a glance. */
+.multi-day-tag__days-row--here .multi-day-tag__tip-val {
+  font-weight: 600;
+  color: var(--text);
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event .time,
   :root:not([data-theme="light"]) .event .price { color: #a89e90; }
@@ -1530,11 +1537,16 @@ body.has-banner > *:not(.deep-link-banner) {
 .score-chip {
   position: relative;
   display: inline-block;
-  /* Parent .event is a flex column; without align-self the chip
-     stretches across the cross-axis so its hover area extends to
-     the card's right edge. flex-start collapses it to its content
-     width so only the text triggers the tooltip. */
-  align-self: flex-start;
+  /* Parent .event is a CSS grid. `justify-self: start` is what
+     actually collapses the chip's box along the inline axis so the
+     hover area only covers the score text — without it, grid items
+     default to `justify-self: stretch` and the box spans the column
+     (whole card width) so any mouseover in that row triggers the
+     tooltip. `align-self: start` is the block-axis counterpart and
+     stays for completeness; the legacy `flex-start` comment dated
+     from the pre-grid layout. */
+  justify-self: start;
+  align-self: start;
   margin-top: 4px;
   cursor: help;
 }
@@ -3989,107 +4001,25 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
   function resetMultiDayDayMap() { _multiDayDayMap = null; }
 
-  // Compose the "Also" tooltip line for a specific item. Returns
-  // null when the event has no OTHER appearance in the loaded window
-  // — keeps the tooltip short for events whose only data here is
-  // this single render. Lists every other day this event runs in the
-  // loaded data, past or future relative to the viewed card.
-  //
-  // Strategy: group the dates into runs of consecutive calendar days,
-  // then render each run either as a single date or a range. Detects
-  // a same-weekday weekly cadence first so "Wed 14, 21, 28 May" beats
-  // three single-day runs. Month suffix only appears on the trailing
-  // run when every date shares the same month (collapses repetition).
-  //
-  // Examples:
-  //   - Contiguous Mon-Fri        → "Mon 18 – Fri 22 May"
-  //   - Contiguous cross month    → "Fri 30 May – Mon 2 Jun"
-  //   - Weekly Wed × 3            → "Wed 14, 21, 28 May"
-  //   - Mon lone + Wed-Sun run    → "Mon 11, Wed 13 – Sun 17 May"
-  //   - 3 lone same-month dates   → "Wed 14, Fri 16, Sat 17 May"
-  //   - 2 lone cross-month dates  → "Wed 30 May, Sat 2 Jun"
-  function multiDayAlsoLabel(ev) {
-    if (!ev || ev.id == null) return null;
+  // Build the per-day list shown in the multi-day tooltip's "Days"
+  // section. Returns an array of {iso, label, isHere} where `isHere`
+  // is true for the day matching the viewed card — the renderer
+  // bolds that row so the reader can pick out "where am I in the
+  // run" at a glance. Includes the viewed day itself (the user
+  // asked for the full schedule, not just other days).
+  function multiDayDaysList(ev) {
+    if (!ev || ev.id == null) return [];
     var days = multiDayDayMap()[ev.id] || [];
-    if (days.length <= 1) return null;
-    var here = ev.day;
-    var others = days.filter(function (d) { return d !== here; });
-    if (others.length === 0) return null;
-
-    var parsed = others.map(function (iso) {
-      return { iso: iso, d: new Date(iso + 'T12:00:00') };
+    if (days.length <= 1) return [];
+    return days.map(function (iso) {
+      var d = new Date(iso + 'T12:00:00');
+      return {
+        iso: iso,
+        label: WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' +
+               MONTHS_SHORT[d.getMonth()],
+        isHere: iso === ev.day,
+      };
     });
-    var DAY_MS = 86400000;
-    var allSameMonth = parsed.every(function (p) {
-      return p.d.getMonth() === parsed[0].d.getMonth() &&
-             p.d.getFullYear() === parsed[0].d.getFullYear();
-    });
-
-    // Weekly recurrence — same weekday, all gaps = 7 days, ≥3
-    // occurrences. Beats the run-grouping below since each weekly
-    // hit would otherwise be its own single-day run.
-    if (parsed.length >= 3) {
-      var weekly = true;
-      for (var j = 1; j < parsed.length; j++) {
-        if ((parsed[j].d - parsed[j - 1].d) !== 7 * DAY_MS) {
-          weekly = false; break;
-        }
-      }
-      if (weekly) {
-        var first = parsed[0].d;
-        var last = parsed[parsed.length - 1].d;
-        var weekday = WEEKDAYS_SHORT[first.getDay()];
-        if (allSameMonth) {
-          var inner = parsed.slice(0, -1).map(function (p) {
-            return p.d.getDate();
-          }).join(', ');
-          return weekday + ' ' + inner + ', ' + last.getDate() +
-                 ' ' + MONTHS_SHORT[last.getMonth()];
-        }
-        var items = parsed.map(function (p) {
-          return p.d.getDate() + ' ' + MONTHS_SHORT[p.d.getMonth()];
-        });
-        return weekday + ' ' + items.join(', ');
-      }
-    }
-
-    // Group into runs of consecutive +1-day dates. A run becomes
-    // either a single-date entry or a "X – Y" range.
-    var runs = [[parsed[0]]];
-    for (var i = 1; i < parsed.length; i++) {
-      if ((parsed[i].d - parsed[i - 1].d) === DAY_MS) {
-        runs[runs.length - 1].push(parsed[i]);
-      } else {
-        runs.push([parsed[i]]);
-      }
-    }
-
-    function fmtDate(d, withMonth) {
-      var base = WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate();
-      return withMonth ? base + ' ' + MONTHS_SHORT[d.getMonth()] : base;
-    }
-    function fmtRun(run, isLast) {
-      var a = run[0].d;
-      var b = run[run.length - 1].d;
-      // Same-month all-runs case: trailing month appears only on the
-      // last entry of the last run. Otherwise every run end carries
-      // its month so the read isn't ambiguous across month boundaries.
-      if (run.length === 1) {
-        return fmtDate(a, !allSameMonth || isLast);
-      }
-      // Range entry. The first endpoint only needs a month suffix
-      // when crossing months within the run; the second always
-      // carries it (unless we're in same-month-all and this isn't
-      // the last run).
-      var firstCrossesMonth = a.getMonth() !== b.getMonth() ||
-                              a.getFullYear() !== b.getFullYear();
-      var firstStr = fmtDate(a, firstCrossesMonth);
-      var lastStr = fmtDate(b, !allSameMonth || isLast);
-      return firstStr + ' – ' + lastStr;
-    }
-    return runs.map(function (run, idx) {
-      return fmtRun(run, idx === runs.length - 1);
-    }).join(', ');
   }
 
   // Same lead-word logic but for the day-tab label. Today's pill reads
@@ -4865,21 +4795,33 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // design vocabulary.
     var mdSpan = multiDaySpan(ev);
     if (mdSpan) {
-      var alsoLabel = multiDayAlsoLabel(ev);
-      var alsoRow = alsoLabel
-        ? ('<div class="multi-day-tag__tip-row">' +
-             '<span class="multi-day-tag__tip-key">Also</span> ' +
-             '<span class="multi-day-tag__tip-val">' +
-               escapeHtml(alsoLabel) +
-             '</span>' +
-           '</div>')
-        : '';
-      // Start date dropped from the tooltip — for long-running events
-      // the scraped `datetime_start` is often the earliest date we
-      // happened to see, not the true beginning of the run, so
-      // claiming "Starts X" would mislead. Span dropped too — without
-      // a trustworthy start the day count is meaningless. End + Also
-      // is the accurate residual.
+      // Days list rendered as a vertical column, one row per
+      // appearance in the loaded window. The viewed card's own day
+      // is bolded via .multi-day-tag__days-row--here so the reader
+      // can spot "where am I" inside the run at a glance. First row
+      // carries the "Days" key + dashed top border for the section
+      // break; subsequent rows leave the key empty so the val column
+      // stays aligned under the first.
+      // Start date dropped from the tooltip — for long-running
+      // events the scraped `datetime_start` is often the earliest
+      // date we happened to see, not the true start. End + per-day
+      // list is the accurate residual.
+      var daysList = multiDayDaysList(ev);
+      var daysRowsHtml = '';
+      if (daysList.length > 0) {
+        daysRowsHtml = daysList.map(function (d, idx) {
+          var cls = 'multi-day-tag__tip-row multi-day-tag__days-row';
+          if (idx === 0) cls += ' multi-day-tag__tip-total';
+          if (d.isHere) cls += ' multi-day-tag__days-row--here';
+          var key = idx === 0 ? 'Days' : '';
+          return '<div class="' + cls + '">' +
+            '<span class="multi-day-tag__tip-key">' + key + '</span> ' +
+            '<span class="multi-day-tag__tip-val">' +
+              escapeHtml(d.label) +
+            '</span>' +
+          '</div>';
+        }).join('');
+      }
       parts.push(
         '<div class="multi-day-tag">' +
           '<span class="multi-day-tag__label">multi-day</span>' +
@@ -4890,7 +4832,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
                 escapeHtml(mdSpan.endLong) +
               '</span>' +
             '</div>' +
-            alsoRow +
+            daysRowsHtml +
           '</div>' +
         '</div>'
       );
