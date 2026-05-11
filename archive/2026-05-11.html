@@ -1392,6 +1392,24 @@ body.has-banner > *:not(.deep-link-banner) {
   color: var(--free-green);
   font-weight: 600;
 }
+
+/* Multi-day tag — small pill rendered after .price for events whose
+   datetime_start/end span more than one calendar date. Sits on its
+   own grid row (the .event grid forces all `> *` into column 1/-1)
+   so it doesn't crowd the time/price row. */
+.multi-day-tag {
+  margin-top: 4px;
+  font-size: 12px;
+  font-weight: 500;
+  color: var(--muted);
+  display: inline-block;
+  justify-self: start;
+  padding: 2px 8px;
+  border-radius: 10px;
+  background: color-mix(in srgb, var(--accent-cool) 8%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-cool) 20%, transparent);
+  letter-spacing: 0.01em;
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event .time,
   :root:not([data-theme="light"]) .event .price { color: #a89e90; }
@@ -2462,12 +2480,18 @@ body.has-banner > *:not(.deep-link-banner) {
   border-radius: 6px;
   border-left: 3px solid var(--accent-cool);
 }
+/* Subtab-level explainer at the top of each Settings panel. Visually
+   distinct from per-row option blurbs (.facet-blurb, .subcat-blurb)
+   so the reader can tell "what is this panel for" apart from "what
+   does this single row do". */
 .settings-panel-desc {
-  font-size: 0.88em;
+  font-size: 0.85em;
+  font-style: italic;
   color: var(--muted);
-  line-height: 1.4;
-  margin: 0 0 0.75em;
-  padding: 0 2px;
+  line-height: 1.45;
+  margin: 0 0 0.9em;
+  padding: 0 0 0.6em;
+  border-bottom: 1px dashed color-mix(in srgb, var(--rule) 70%, transparent);
 }
 .settings-storage-note {
   font-size: 0.78em;
@@ -2880,11 +2904,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 }
 
 /* Tuning > Advanced disclosure — collapsed by default; houses the
-   raw shape sliders and the relocated Show event scores toggle. */
+   raw shape sliders and the relocated Show event scores toggle.
+   The divider was a single hairline that vanished once expanded;
+   bumped to 2px + a brighter mix so the section break is obvious
+   even when the disclosure is open. */
 .tuning-advanced {
-  margin-top: 1em;
-  border-top: 1px solid var(--rule);
-  padding-top: 0.6em;
+  margin-top: 1.2em;
+  border-top: 2px solid color-mix(in srgb, var(--rule) 75%, var(--text) 25%);
+  padding-top: 0.8em;
 }
 .tuning-advanced > summary {
   cursor: pointer;
@@ -3774,6 +3801,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return { lead: WEEKDAYS[d.getDay()], trail: d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] };
   }
 
+  // Returns { startLong, endLong, endShort } if the event spans more
+  // than one calendar date, else null. `datetime_start` /
+  // `datetime_end` ship as ISO date strings (sometimes ISO datetimes);
+  // we slice to the date portion before comparing so a same-day event
+  // with different times doesn't get tagged. Open-ended (missing end)
+  // counts as not multi-day — we don't know.
+  function multiDaySpan(ev) {
+    if (!ev || !ev.datetime_start || !ev.datetime_end) return null;
+    var s = String(ev.datetime_start).slice(0, 10);
+    var e = String(ev.datetime_end).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || !/^\d{4}-\d{2}-\d{2}$/.test(e)) return null;
+    if (e <= s) return null;
+    var sd = new Date(s + 'T12:00:00');
+    var ed = new Date(e + 'T12:00:00');
+    return {
+      startLong: WEEKDAYS[sd.getDay()] + ' ' + sd.getDate() + ' ' + MONTHS[sd.getMonth()],
+      endLong:   WEEKDAYS[ed.getDay()] + ' ' + ed.getDate() + ' ' + MONTHS[ed.getMonth()],
+      endShort:  WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' + MONTHS_SHORT[ed.getMonth()],
+    };
+  }
+
   // Same lead-word logic but for the day-tab label. Today's pill reads
   // "Today" / "Tonight" instead of "Mon"/"Sat" so the active tab matches
   // the hero heading below it.
@@ -4074,7 +4122,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return false;
   }
 
-  function diversityPenaltyFor(event, priorCats, priorSubSets, profile) {
+  function diversityPenaltyFor(event, priorCats, priorSubSets, profile, opts) {
     var penalty = 0;
     var varietyMult = profile.variety_multiplier != null ? profile.variety_multiplier : 1;
     // Subcategory penalty drives within-category variety. Scaled by
@@ -4090,8 +4138,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // floor 0.1, one sub-overlap to clear adj=floor.
     //   cat_pen = (0.4 − floor/2 − eff_sub_pen) / 5
     // Capped at 0 — a negative penalty would reward redundancy.
+    // `opts.catPenaltyScale` (default 1.0) lets the all-week view halve
+    // the category penalty so combining all categories into one
+    // per-day block doesn't double-punish events that share a
+    // category — the cross-category mix is the point of that view.
     var floor = profile.score_floor != null ? profile.score_floor : 0;
-    var dCat = Math.max(0, (0.4 - floor / 2 - dSub) / 5);
+    var catScale = (opts && opts.catPenaltyScale != null) ? opts.catPenaltyScale : 1;
+    var dCat = Math.max(0, (0.4 - floor / 2 - dSub) / 5) * catScale;
     var cat = (event.category || '').toLowerCase();
     if (cat) {
       var catPairs = 0;
@@ -4111,7 +4164,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return penalty;
   }
 
-  function selectWithDiversity(block, profile) {
+  function selectWithDiversity(block, profile, opts) {
     // block: array of {event, score, pinned, selected}.
     // Pinned + user-selected items are pre-pushed (force-included
     // regardless of score floor); the remainder are picked greedily by
@@ -4120,6 +4173,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // pinning — both bypass the floor, but selection doesn't reorder
     // the card to the top of the block (it inherits its natural score
     // position via the final sort).
+    //
+    // `opts.catPenaltyScale` (optional) is forwarded to
+    // diversityPenaltyFor — the all-week view uses 0.5 so category
+    // overlap doesn't dominate the cross-category mix.
+    opts = opts || {};
     var forced = [];
     var rest = [];
     for (var i = 0; i < block.length; i++) {
@@ -4160,7 +4218,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var bestPen = 0;
       for (var j = 0; j < rest.length; j++) {
         var pen = diversityPenaltyFor(
-          rest[j].event, priorCats, priorSubs, profile
+          rest[j].event, priorCats, priorSubs, profile, opts
         );
         var adj = rest[j].score - pen;
         if (adj > bestAdj) {
@@ -4194,7 +4252,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var fPen = 0;
       for (var k = 0; k < rest.length; k++) {
         var pen2 = diversityPenaltyFor(
-          rest[k].event, priorCats, priorSubs, profile
+          rest[k].event, priorCats, priorSubs, profile, opts
         );
         var adj2 = rest[k].score - pen2;
         if (adj2 > fAdj) { fAdj = adj2; fIdx = k; fPen = pen2; }
@@ -4217,7 +4275,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var rk = 0; rk < rest.length; rk++) {
       var rItem = rest[rk];
       var rPen = diversityPenaltyFor(
-        rItem.event, priorCats, priorSubs, profile
+        rItem.event, priorCats, priorSubs, profile, opts
       );
       rItem.pickAdj = rItem.score - rPen;
       rItem.pickPenalty = rPen;
@@ -4523,6 +4581,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var low = ev.price.toLowerCase();
       var pcls = (low === 'free' || low === 'free event') ? 'price free' : 'price';
       parts.push('<div class="' + pcls + '">' + escapeHtml(ev.price) + '</div>');
+    }
+    // Multi-day tag: surfaces when datetime_start/end span more than one
+    // calendar date (exhibitions, weekly runs, festival passes). The
+    // event already appears on each day's tab; this chip is the
+    // explicit "yep, also showing on other days" cue so the reader
+    // doesn't think it's a one-off.
+    var mdSpan = multiDaySpan(ev);
+    if (mdSpan) {
+      parts.push(
+        '<div class="multi-day-tag" title="Runs ' +
+          escapeHtml(mdSpan.startLong) + ' to ' +
+          escapeHtml(mdSpan.endLong) + '">' +
+          'Multi-day &middot; through ' + escapeHtml(mdSpan.endShort) +
+        '</div>'
+      );
     }
     // Score chip — hidden by default; opt-in via Settings → Appearance.
     // PR-2 of the redesign moved this off the default card surface.
@@ -4836,6 +4909,198 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       }
     }
     return best;
+  }
+
+  // ============================================================
+  //  All-week view: flatten one day's per-category blocks into a
+  //  single pool and re-run selection with the category penalty
+  //  halved (so the cross-category mix isn't double-punished).
+  //  Returns null if the day has nothing visible.
+  //
+  //  Hidden items keep their per-category provenance (used by the
+  //  inline restore action) but are concatenated into one disclosure
+  //  in this view — the categorical separation is the whole thing
+  //  the all-week pane drops.
+  // ============================================================
+  function buildAllWeekDayBlock(byCatMap, profile) {
+    if (!byCatMap) return null;
+    var pool = [];
+    var hiddenAll = [];
+    var seenIds = {};
+    for (var ck in byCatMap) {
+      var block = byCatMap[ck];
+      if (!block) continue;
+      for (var i = 0; i < block.length; i++) {
+        var src = block[i];
+        var eid = src.event && src.event.id;
+        if (eid && seenIds[eid]) continue;
+        if (eid) seenIds[eid] = true;
+        pool.push({
+          event: src.event,
+          score: src.score,
+          pinned: src.pinned,
+          selected: src.selected,
+          // is_expanded gets recomputed by the fresh selection pass
+          // below — the categorical split's curated/extras call is no
+          // longer authoritative in this view.
+          is_expanded: false,
+        });
+      }
+      var hl = block.hidden || [];
+      for (var hi = 0; hi < hl.length; hi++) hiddenAll.push(hl[hi]);
+    }
+    if (pool.length === 0 && hiddenAll.length === 0) return null;
+    // Halve the auto-derived category penalty so events from the same
+    // category aren't aggressively spread out — the mix across
+    // categories is already happening, the within-category bunching is
+    // the only thing the cat penalty has to push back on here.
+    var curated = pool.length
+      ? selectWithDiversity(pool, profile, { catPenaltyScale: 0.5 })
+      : [];
+    var curatedIds = {};
+    for (var ci = 0; ci < curated.length; ci++) {
+      curatedIds[curated[ci].event.id] = true;
+    }
+    var floor = profile.score_floor != null ? profile.score_floor : 0;
+    var extras = [];
+    for (var pi = 0; pi < pool.length; pi++) {
+      var it = pool[pi];
+      if (curatedIds[it.event.id]) continue;
+      if (it.score > floor || it.selected) {
+        extras.push({
+          event: it.event,
+          score: it.score,
+          pinned: it.pinned,
+          selected: it.selected,
+          pickAdj: it.pickAdj,
+          pickPenalty: it.pickPenalty,
+          pickReason: it.pickReason,
+          is_expanded: true,
+        });
+      }
+    }
+    extras.sort(function (a, b) { return b.score - a.score; });
+    var combined = curated.concat(extras);
+    combined.hidden = hiddenAll;
+    return combined;
+  }
+
+  // Render one day's section for the all-week (stacked) view —
+  // a single events block per day, no per-category headers.
+  // Mirrors renderDayHtml's outer shell (day-heading, quiet hint,
+  // empty fallback) so day-tab activate / scroll-into-view code keeps
+  // working unchanged.
+  function renderAllWeekDayHtml(dayIso, byCatMap, profile, nextDayTop) {
+    var heading = formatDayHeading(dayIso);
+    var daySlug = slugify(heading);
+    var hero = formatDayHeroParts(dayIso);
+    var combined = buildAllWeekDayBlock(byCatMap, profile);
+    if (!combined) {
+      return (
+        '<section class="day day--empty" id="day-' + daySlug + '" ' +
+        'data-day-iso="' + escapeHtml(dayIso) + '" ' +
+        'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
+        '<h2 class="day-heading">' +
+          '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
+          ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
+          '<span class="day-heading__trail">' + escapeHtml(hero.trail) + '</span>' +
+        '</h2>\n' +
+        '<p class="empty-day-msg">Nothing curated for this day yet.</p>\n' +
+        '</section>'
+      );
+    }
+    var curated = [];
+    var expanded = [];
+    for (var i = 0; i < combined.length; i++) {
+      var it = combined[i];
+      var forceCurated = isUserPinned(it.event) || isUserSelected(it.event);
+      if (it.is_expanded && !forceCurated) expanded.push(it);
+      else curated.push(it);
+    }
+    curated = sortForDisplay(curated);
+    expanded = sortForDisplay(expanded);
+    var curatedCount = curated.length;
+    var hiddenItems = combined.hidden || [];
+    if (searchQueryRaw) {
+      hiddenItems = hiddenItems.filter(function (it) {
+        return !!it.matches_search;
+      });
+    }
+    var inner = [];
+    if (curated.length > 0) {
+      inner.push(
+        '<div class="events">\n' + curated.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>'
+      );
+    }
+    if (expanded.length > 0) {
+      inner.push(
+        '<button class="show-more" type="button" aria-expanded="false">' +
+        'Show ' + expanded.length + ' more' +
+        '</button>' +
+        '<div class="events events-expanded" hidden="until-found">\n' +
+        expanded.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>'
+      );
+    }
+    if (hiddenItems.length > 0) {
+      var nHidden = hiddenItems.length;
+      var summaryText = searchQueryRaw
+        ? nHidden + ' hidden matching your search'
+        : nHidden + ' hidden';
+      inner.push(
+        '<details class="hidden-disclosure">' +
+        '<summary>' + summaryText + '</summary>' +
+        '<div class="events events-hidden">\n' +
+        hiddenItems.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>' +
+        '</details>'
+      );
+    }
+    var sections = [];
+    if (inner.length > 0) {
+      sections.push(
+        '<section class="category category--all-week" data-cat="all">' +
+        inner.join('\n') +
+        '</section>'
+      );
+    }
+    var quietHint = '';
+    if (!searchQueryRaw && curatedCount > 0 && curatedCount <= 2) {
+      if (nextDayTop && nextDayTop.event && nextDayTop.event.title) {
+        var nextTitle = String(nextDayTop.event.title);
+        var nextId = String(nextDayTop.event.id);
+        quietHint =
+          '<button class="empty-evening-hint" type="button" ' +
+          'data-advance-day="next" ' +
+          'data-advance-focus-event-id="' + escapeHtml(nextId) + '" ' +
+          'aria-label="Also worth a look tomorrow: ' +
+              escapeHtml(nextTitle) + '">' +
+          '<span class="empty-evening-hint__lead">' +
+              'Quieter night &mdash; also worth a look:' +
+          '</span> ' +
+          '<span class="empty-evening-hint__title">' +
+              escapeHtml(nextTitle) +
+          '</span> <span aria-hidden="true">&rarr;</span>' +
+          '</button>\n';
+      }
+    }
+    return (
+      '<section class="day" id="day-' + daySlug + '" ' +
+      'data-day-iso="' + escapeHtml(dayIso) + '" ' +
+      'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
+      '<h2 class="day-heading">' +
+        '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
+        ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
+        '<span class="day-heading__trail">' + escapeHtml(hero.trail) + '</span>' +
+      '</h2>\n' +
+      quietHint +
+      sections.join('\n') + '\n' +
+      '</section>'
+    );
   }
 
   function renderDayHtml(dayIso, byCatMap, profile, nextDayTop) {
@@ -6764,7 +7029,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var j = 0; j < days.length; j++) {
       var nextDay = j + 1 < days.length ? days[j + 1] : null;
       var nextTop = nextDay ? pickDayTopEvent(ranking[nextDay]) : null;
-      var h = renderDayHtml(days[j], ranking[days[j]], profile, nextTop);
+      // Stacked (all-week) view drops the per-category split and renders
+      // a single combined section per day; per-day-tab view keeps the
+      // existing categorical render.
+      var h = stacked
+        ? renderAllWeekDayHtml(days[j], ranking[days[j]], profile, nextTop)
+        : renderDayHtml(days[j], ranking[days[j]], profile, nextTop);
       if (!h) continue;
       tpl.innerHTML = h;
       var dayEl = tpl.firstElementChild;
