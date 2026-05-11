@@ -2700,18 +2700,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   position: relative;
   flex: 1;
   min-width: 140px;
-  /* Slightly taller container to fit the bigger thumbs. Both thumbs
-     sit on the track centerline (no vertical offset). Each thumb is
-     a horizontal half-circle with its FLAT side facing the other
-     thumb (inward) and its CURVED side on the OUTER. When the two
-     thumbs meet at the same value their centres coincide and the
-     two halves overlap visually — forming a complete pill shape. */
   height: 26px;
-  /* Half the thumb width. Used in the fill calc to extend the fill
-     out to each thumb's FLAT inner edge (one thumb_half OUTSIDE the
-     thumb centre, toward the other thumb). Keep in sync with the
-     16px width on .age-range-thumb. */
+  /* Half the thumb width. Used everywhere that needs to know about
+     the visual offset between a thumb's centre and its flat edge —
+     fill calc, track inset, input inset, thumb translateX. Keep in
+     sync with the 16px width on .age-range-thumb. */
   --thumb-half: 8px;
+  /* Each thumb is then translateX'd by ±thumb_half (min left, max
+     right) so its FLAT edge (not its centre) sits at the value
+     position. At equal values, min's flat-right and max's flat-left
+     land on the same X — the two semicircles meet flat-to-flat,
+     forming a complete pill. One stop apart leaves a small fill
+     gap; multiple stops apart shows the connecting fill bar. */
 }
 .age-range-track,
 .age-range-fill {
@@ -2723,38 +2723,43 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   pointer-events: none;
 }
 .age-range-track {
-  /* Inset by thumb_half each side so the track edges meet the
-     thumb centres at min/max. */
-  left: var(--thumb-half);
-  right: var(--thumb-half);
+  /* Inset by 2*thumb_half each side — that's where the thumb flat
+     edges (= value positions after the ±thumb_half translateX) can
+     reach at the extremes. The grey track shows the full travel
+     range for the flat edges. */
+  left: calc(var(--thumb-half) * 2);
+  right: calc(var(--thumb-half) * 2);
   background: var(--rule, #d4cfc7);
 }
 .age-range-fill {
   background: var(--accent-cool);
   /* `--min-pct` / `--max-pct` are 0..100 percentages set by
-     updateAgeFillBar(). The fill extends OUT to each thumb's flat
-     edge (inner edge facing the other thumb), not just to the thumb
-     centre. So we add an extra `thumb_half` to the calc's offset:
-       thumb_centre = thumb_half + pct * (width - 2*thumb_half)
-       flat_edge    = thumb_centre + thumb_half   (for min, faces right)
-                    = thumb_half * 2 + pct * (width - 2*thumb_half)
-     At min==max the calc produces a negative width which the
-     browser clamps to 0, so two thumbs forming a pill have no
-     visible fill between them. */
+     updateAgeFillBar(). The inputs are inset by thumb_half on each
+     side; the thumbs are then shifted ±thumb_half so each thumb's
+     FLAT edge lands at its value position. The fill spans from
+     min's flat-right to max's flat-left:
+       flat_x = 2*thumb_half + pct * (100% - 4*thumb_half)
+     At min == max the calc produces zero width (the two flat edges
+     coincide); at min > max it goes negative and the browser
+     clamps to 0. */
   left: calc(var(--thumb-half) * 2
-    + (var(--min-pct, 0) / 100) * (100% - var(--thumb-half) * 2));
+    + (var(--min-pct, 0) / 100) * (100% - var(--thumb-half) * 4));
   right: calc(var(--thumb-half) * 2
-    + ((100 - var(--max-pct, 100)) / 100) * (100% - var(--thumb-half) * 2));
+    + ((100 - var(--max-pct, 100)) / 100) * (100% - var(--thumb-half) * 4));
 }
-/* Both range inputs occupy the entire slider area. Their built-in
-   tracks are made transparent — only the thumbs remain interactive
-   and visible. Thumb pointer-events: auto so clicks land on each
-   half regardless of stacking order. */
+/* Both range inputs are inset by thumb_half on each side. That
+   shrinks the native thumb-centre travel range to (container_width
+   - 4*thumb_half), so when we then shift each thumb by ±thumb_half
+   (via translateX on the thumb pseudos below) the thumbs' visible
+   extents stay flush to the container's edges at the extremes
+   instead of overflowing. Built-in tracks are made transparent —
+   only the thumbs remain visible and interactive. */
 .age-range-thumb {
   position: absolute;
   top: 0;
-  left: 0;
-  width: 100%;
+  left: var(--thumb-half);
+  right: var(--thumb-half);
+  width: auto;
   height: 100%;
   margin: 0;
   background: transparent;
@@ -2773,12 +2778,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   height: 4px;
 }
 /* Min thumb — CURVED LEFT side (outer), FLAT RIGHT side facing
-   the max thumb (inward). At equal values the two halves overlap
-   visually: min's curved-left + max's curved-right = a complete
-   pill shape at the meeting point. 16×22, tall-and-narrow so each
-   half reads as a semicircle. WebKit needs margin-top: -9px to
-   re-centre the 22px thumb on the 4px runnable-track
-   ((4 - 22) / 2 = -9). Firefox auto-centres. */
+   the max thumb (inward). translateX(-thumb_half) shifts the thumb
+   so its flat-right edge sits AT the value position (rather than
+   thumb_half OUTSIDE it). At equal values min's flat-right and
+   max's flat-left coincide — the two halves meet flat-to-flat
+   forming a complete pill. WebKit needs margin-top: -9px to
+   re-centre the 22px thumb on the 4px runnable-track. */
 .age-range-thumb[data-age-bound="min"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
@@ -2792,6 +2797,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   cursor: pointer;
   box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.18);
   margin-top: -9px;
+  transform: translateX(calc(var(--thumb-half) * -1));
 }
 .age-range-thumb[data-age-bound="min"]::-moz-range-thumb {
   pointer-events: auto;
@@ -2804,9 +2810,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   border-right: none;
   cursor: pointer;
   box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.18);
+  transform: translateX(calc(var(--thumb-half) * -1));
 }
 /* Max thumb — FLAT LEFT side facing min (inward), CURVED RIGHT
-   side (outer). Mirror of min. */
+   side (outer). Mirror of min: translateX(+thumb_half) puts its
+   flat-left edge AT the value position. */
 .age-range-thumb[data-age-bound="max"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
@@ -2820,6 +2828,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   cursor: pointer;
   box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.18);
   margin-top: -9px;
+  transform: translateX(var(--thumb-half));
 }
 .age-range-thumb[data-age-bound="max"]::-moz-range-thumb {
   pointer-events: auto;
@@ -2832,6 +2841,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   border-left: none;
   cursor: pointer;
   box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.18);
+  transform: translateX(var(--thumb-half));
 }
 .age-range-thumb:focus { outline: none; }
 .age-range-thumb:focus-visible::-webkit-slider-thumb {
