@@ -2705,11 +2705,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
      facing each other so clicks at the same X position route
      correctly to whichever side is closer. */
   height: 24px;
-  /* Half the thumb width. Track + fill ends are inset by this so
-     they align with the native thumb travel range
-     (thumb_w/2 in from each slider edge). Keep in sync with the
-     20px width on .age-range-thumb thumbs. */
-  --thumb-half: 10px;
+  /* Half the thumb width. Used twice in the fill calc — once for
+     the native travel inset (thumb centre stops thumb_half from each
+     edge), once for the extension out to the thumb's FLAT edge
+     (which is one thumb_half OUTSIDE the thumb centre, toward the
+     other thumb). Keep in sync with the 12px width on .age-range-thumb. */
+  --thumb-half: 6px;
 }
 .age-range-track,
 .age-range-fill {
@@ -2730,12 +2731,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 .age-range-fill {
   background: var(--accent-cool);
   /* `--min-pct` / `--max-pct` are 0..100 percentages set by
-     updateAgeFillBar(). The calc() positions the fill's left/right
-     under each thumb's centre: thumb_half + pct * (full_width -
-     thumb_w) where (100% - thumb_half * 2) is the travel range. */
-  left: calc(var(--thumb-half)
+     updateAgeFillBar(). The fill extends OUT to each thumb's flat
+     edge (inner edge facing the other thumb), not just to the thumb
+     centre. So we add an extra `thumb_half` to the calc's offset:
+       thumb_centre = thumb_half + pct * (width - 2*thumb_half)
+       flat_edge    = thumb_centre + thumb_half   (for min, faces right)
+                    = thumb_half * 2 + pct * (width - 2*thumb_half)
+     At min==max the calc produces a negative width which the
+     browser clamps to 0, so two thumbs forming a pill have no
+     visible fill between them. */
+  left: calc(var(--thumb-half) * 2
     + (var(--min-pct, 0) / 100) * (100% - var(--thumb-half) * 2));
-  right: calc(var(--thumb-half)
+  right: calc(var(--thumb-half) * 2
     + ((100 - var(--max-pct, 100)) / 100) * (100% - var(--thumb-half) * 2));
 }
 /* Both range inputs occupy the entire slider area. Their built-in
@@ -2765,28 +2772,29 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   height: 4px;
 }
 /* Min thumb — left half-circle, rounded LEFT side, FLAT RIGHT side
-   facing the max thumb. WebKit needs margin-top: -8px to re-centre
-   the 20px thumb on the 4px runnable-track ((4 - 20) / 2 = -8).
-   Firefox auto-centres so no margin-top needed there. */
+   facing the max thumb. Narrower than tall (12×18) so the shape
+   reads as a semicircle rather than a rounded square. WebKit needs
+   margin-top: -7px to re-centre the 18px-tall thumb on the 4px
+   runnable-track ((4 - 18) / 2 = -7). Firefox auto-centres. */
 .age-range-thumb[data-age-bound="min"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
   box-sizing: border-box;
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 18px;
   border-radius: 50% 0 0 50%;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-right: none;
   cursor: pointer;
   box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.18);
-  margin-top: -8px;
+  margin-top: -7px;
 }
 .age-range-thumb[data-age-bound="min"]::-moz-range-thumb {
   pointer-events: auto;
   box-sizing: border-box;
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 18px;
   border-radius: 50% 0 0 50%;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
@@ -2794,27 +2802,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   cursor: pointer;
   box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.18);
 }
-/* Max thumb — right half-circle, FLAT LEFT side facing the min thumb,
+/* Max thumb — right half-circle, FLAT LEFT side facing min,
    rounded RIGHT side. Mirror of min. */
 .age-range-thumb[data-age-bound="max"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
   box-sizing: border-box;
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 18px;
   border-radius: 0 50% 50% 0;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-left: none;
   cursor: pointer;
   box-shadow: 1px 1px 3px rgba(0, 0, 0, 0.18);
-  margin-top: -8px;
+  margin-top: -7px;
 }
 .age-range-thumb[data-age-bound="max"]::-moz-range-thumb {
   pointer-events: auto;
   box-sizing: border-box;
-  width: 20px;
-  height: 20px;
+  width: 12px;
+  height: 18px;
   border-radius: 0 50% 50% 0;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
