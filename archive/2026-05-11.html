@@ -1396,8 +1396,12 @@ body.has-banner > *:not(.deep-link-banner) {
 /* Multi-day tag — small pill rendered after .price for events whose
    datetime_start/end span more than one calendar date. Sits on its
    own grid row (the .event grid forces all `> *` into column 1/-1)
-   so it doesn't crowd the time/price row. */
+   so it doesn't crowd the time/price row.
+   Carries a hover/focus-revealed __tip popover that mirrors the
+   .score-breakdown pattern — instant CSS hover, no native-title
+   ~700ms delay. */
 .multi-day-tag {
+  position: relative;
   margin-top: 4px;
   font-size: 12px;
   font-weight: 500;
@@ -1409,6 +1413,67 @@ body.has-banner > *:not(.deep-link-banner) {
   background: color-mix(in srgb, var(--accent-cool) 8%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-cool) 20%, transparent);
   letter-spacing: 0.01em;
+  cursor: help;
+}
+.multi-day-tag__label {
+  /* Dotted underline mirrors the .score-debug affordance so the
+     "more info on hover" hint is visually consistent across cards. */
+  text-decoration: underline dotted;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
+}
+.multi-day-tag__tip {
+  display: none;
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 180px;
+  max-width: 280px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  font-size: 0.75em;
+  font-family: var(--mono-font);
+  color: var(--text);
+  line-height: 1.5;
+  white-space: normal;
+  letter-spacing: normal;
+  /* Reset the pill's font-weight so the tooltip body reads neutral. */
+  font-weight: 400;
+}
+.multi-day-tag:focus-within .multi-day-tag__tip {
+  display: block;
+}
+@media (hover: hover) {
+  .multi-day-tag:hover .multi-day-tag__tip {
+    display: block;
+  }
+}
+.multi-day-tag__tip-row {
+  display: flex;
+  gap: 8px;
+}
+.multi-day-tag__tip-key {
+  min-width: 3.6em;
+  text-align: right;
+  font-weight: 600;
+  color: var(--faint);
+  flex-shrink: 0;
+}
+.multi-day-tag__tip-val {
+  flex: 1;
+  word-break: break-word;
+}
+.multi-day-tag__tip-total {
+  border-top: 1px dashed color-mix(in srgb, var(--faint) 40%, transparent);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.multi-day-tag__tip-total .multi-day-tag__tip-key {
+  color: var(--text);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event .time,
@@ -3801,12 +3866,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return { lead: WEEKDAYS[d.getDay()], trail: d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] };
   }
 
-  // Returns { startLong, endLong, endShort } if the event spans more
-  // than one calendar date, else null. `datetime_start` /
+  // Returns { startLong, endLong, endShort, days } if the event spans
+  // more than one calendar date, else null. `datetime_start` /
   // `datetime_end` ship as ISO date strings (sometimes ISO datetimes);
   // we slice to the date portion before comparing so a same-day event
   // with different times doesn't get tagged. Open-ended (missing end)
   // counts as not multi-day — we don't know.
+  //
+  // Year is appended to `endShort` when the end date isn't in the
+  // current Melbourne year — long-running exhibitions (e.g. start
+  // 2024, end 2026) would otherwise read as ambiguous "Sat 1 Nov".
+  // `startLong` / `endLong` always include year — used in the tooltip
+  // where space isn't tight.
   function multiDaySpan(ev) {
     if (!ev || !ev.datetime_start || !ev.datetime_end) return null;
     var s = String(ev.datetime_start).slice(0, 10);
@@ -3815,10 +3886,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (e <= s) return null;
     var sd = new Date(s + 'T12:00:00');
     var ed = new Date(e + 'T12:00:00');
+    var nowYear = melbourneNowParts().iso.slice(0, 4);
+    var endYear = ed.getFullYear();
+    var endYearSuffix = String(endYear) !== nowYear ? ' ' + endYear : '';
+    var days = Math.round((ed - sd) / 86400000) + 1;
     return {
-      startLong: WEEKDAYS[sd.getDay()] + ' ' + sd.getDate() + ' ' + MONTHS[sd.getMonth()],
-      endLong:   WEEKDAYS[ed.getDay()] + ' ' + ed.getDate() + ' ' + MONTHS[ed.getMonth()],
-      endShort:  WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' + MONTHS_SHORT[ed.getMonth()],
+      startLong: WEEKDAYS[sd.getDay()] + ' ' + sd.getDate() + ' ' +
+                 MONTHS[sd.getMonth()] + ' ' + sd.getFullYear(),
+      endLong:   WEEKDAYS[ed.getDay()] + ' ' + ed.getDate() + ' ' +
+                 MONTHS[ed.getMonth()] + ' ' + endYear,
+      endShort:  WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' +
+                 MONTHS_SHORT[ed.getMonth()] + endYearSuffix,
+      days: days,
     };
   }
 
@@ -4586,14 +4665,38 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // calendar date (exhibitions, weekly runs, festival passes). The
     // event already appears on each day's tab; this chip is the
     // explicit "yep, also showing on other days" cue so the reader
-    // doesn't think it's a one-off.
+    // doesn't think it's a one-off. Inner __tip element mirrors the
+    // score-chip / score-breakdown CSS pattern — hover/focus toggles
+    // it instantly via CSS, sidestepping the ~700ms native title
+    // tooltip delay.
     var mdSpan = multiDaySpan(ev);
     if (mdSpan) {
+      var daysWord = mdSpan.days === 1 ? 'day' : 'days';
       parts.push(
-        '<div class="multi-day-tag" title="Runs ' +
-          escapeHtml(mdSpan.startLong) + ' to ' +
-          escapeHtml(mdSpan.endLong) + '">' +
-          'Multi-day &middot; through ' + escapeHtml(mdSpan.endShort) +
+        '<div class="multi-day-tag">' +
+          '<span class="multi-day-tag__label">' +
+            'Multi-day &middot; through ' + escapeHtml(mdSpan.endShort) +
+          '</span>' +
+          '<div class="multi-day-tag__tip" role="tooltip">' +
+            '<div class="multi-day-tag__tip-row">' +
+              '<span class="multi-day-tag__tip-key">Starts</span> ' +
+              '<span class="multi-day-tag__tip-val">' +
+                escapeHtml(mdSpan.startLong) +
+              '</span>' +
+            '</div>' +
+            '<div class="multi-day-tag__tip-row">' +
+              '<span class="multi-day-tag__tip-key">Ends</span> ' +
+              '<span class="multi-day-tag__tip-val">' +
+                escapeHtml(mdSpan.endLong) +
+              '</span>' +
+            '</div>' +
+            '<div class="multi-day-tag__tip-row multi-day-tag__tip-total">' +
+              '<span class="multi-day-tag__tip-key">Span</span> ' +
+              '<span class="multi-day-tag__tip-val">' +
+                mdSpan.days + ' ' + daysWord +
+              '</span>' +
+            '</div>' +
+          '</div>' +
         '</div>'
       );
     }
