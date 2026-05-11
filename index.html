@@ -6404,8 +6404,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (activeTab === 'settings') {
       // Defer the full DOM rebuild (the day panels are hidden anyway),
       // but recompute and patch the visible day-tab counts so the user
-      // sees Strictness / Reward / etc. effects in real time.
+      // sees Strictness / Reward / Vibes / etc. effects in real time.
       settingsDirty = true;
+      // Bump the per-event score cache version so updateLiveCounts'
+      // buildRanking re-evaluates with the new profile. Without this,
+      // changes to score-affecting fields (facet_tiers, suburb_tiers,
+      // tier bonuses, rule weights) silently use stale cached scores
+      // and the day-tab counts stop updating. preserveScores=true is
+      // only set by pin/select handlers where scores genuinely don't
+      // change; everything else must invalidate.
+      if (!opts || !opts.preserveScores) {
+        scoreVersion++;
+        // Also flag the deferred-render side so the eventual flush
+        // when the user navigates back to a day tab also rescore.
+        pendingRenderAllPreserveScores = false;
+      }
       updateLiveCounts();
       return;
     }
