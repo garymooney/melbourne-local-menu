@@ -4005,13 +4005,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // section. Returns an array of {iso, label, isHere} where `isHere`
   // is true for the day matching the viewed card — the renderer
   // bolds that row so the reader can pick out "where am I in the
-  // run" at a glance. Includes the viewed day itself (the user
-  // asked for the full schedule, not just other days).
+  // run" at a glance.
+  //
+  // Filtered to the days currently visible in the day-tab strip
+  // (`lastDayIsos`, set by renderAll). The loaded data window can be
+  // longer than the visible window — a long-running exhibit might
+  // appear on 10+ days in the data but the user can only navigate to
+  // 7 of them, so listing the others is noise. Returns [] when the
+  // event would only show itself in the visible window (no other
+  // days to surface).
   function multiDayDaysList(ev) {
     if (!ev || ev.id == null) return [];
     var days = multiDayDayMap()[ev.id] || [];
     if (days.length <= 1) return [];
-    return days.map(function (iso) {
+    var visible = (lastDayIsos && lastDayIsos.length)
+      ? new Set(lastDayIsos)
+      : null;
+    var filtered = visible
+      ? days.filter(function (d) { return visible.has(d); })
+      : days;
+    if (filtered.length <= 1) return [];
+    return filtered.map(function (iso) {
       var d = new Date(iso + 'T12:00:00');
       return {
         iso: iso,
