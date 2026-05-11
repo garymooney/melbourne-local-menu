@@ -2702,13 +2702,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   min-width: 140px;
   /* Slightly taller container to fit the bigger thumbs. Both thumbs
      sit on the track centerline (no vertical offset). Each thumb is
-     a horizontal half-circle with its CURVED side facing the fill
-     (inward) and its FLAT side facing the slider edge (outward), so
-     the accent-coloured region is contained between the two flat
-     outer edges and doesn't visually leak past them. */
+     a horizontal half-circle with its FLAT side facing the other
+     thumb (inward) and its CURVED side on the OUTER. When the two
+     thumbs meet at the same value their centres coincide and the
+     two halves overlap visually — forming a complete pill shape. */
   height: 26px;
   /* Half the thumb width. Used in the fill calc to extend the fill
-     to each thumb's curved inner tip (one thumb_half OUTSIDE the
+     out to each thumb's FLAT inner edge (one thumb_half OUTSIDE the
      thumb centre, toward the other thumb). Keep in sync with the
      16px width on .age-range-thumb. */
   --thumb-half: 8px;
@@ -2772,12 +2772,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   border: none;
   height: 4px;
 }
-/* Min thumb — FLAT LEFT side (outer), CURVED RIGHT side facing the
-   fill / the max thumb. The accent-coloured curve forms the rounded
-   left end of the fill region. 16×22 — bigger hit target than the
-   previous 12×18, still tall-and-narrow so the shape reads as a
-   semicircle rather than a rounded square. WebKit needs margin-top:
-   -9px to re-centre the 22px thumb on the 4px runnable-track
+/* Min thumb — CURVED LEFT side (outer), FLAT RIGHT side facing
+   the max thumb (inward). At equal values the two halves overlap
+   visually: min's curved-left + max's curved-right = a complete
+   pill shape at the meeting point. 16×22, tall-and-narrow so each
+   half reads as a semicircle. WebKit needs margin-top: -9px to
+   re-centre the 22px thumb on the 4px runnable-track
    ((4 - 22) / 2 = -9). Firefox auto-centres. */
 .age-range-thumb[data-age-bound="min"]::-webkit-slider-thumb {
   -webkit-appearance: none;
@@ -2785,7 +2785,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   box-sizing: border-box;
   width: 16px;
   height: 22px;
-  border-radius: 0 50% 50% 0;
+  border-radius: 50% 0 0 50%;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-right: none;
@@ -2798,23 +2798,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   box-sizing: border-box;
   width: 16px;
   height: 22px;
-  border-radius: 0 50% 50% 0;
+  border-radius: 50% 0 0 50%;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-right: none;
   cursor: pointer;
   box-shadow: -1px 1px 3px rgba(0, 0, 0, 0.18);
 }
-/* Max thumb — CURVED LEFT side facing the fill, FLAT RIGHT side
-   (outer). Mirror of min: the accent-coloured curve forms the
-   rounded right end of the fill region. */
+/* Max thumb — FLAT LEFT side facing min (inward), CURVED RIGHT
+   side (outer). Mirror of min. */
 .age-range-thumb[data-age-bound="max"]::-webkit-slider-thumb {
   -webkit-appearance: none;
   pointer-events: auto;
   box-sizing: border-box;
   width: 16px;
   height: 22px;
-  border-radius: 50% 0 0 50%;
+  border-radius: 0 50% 50% 0;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-left: none;
@@ -2827,7 +2826,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   box-sizing: border-box;
   width: 16px;
   height: 22px;
-  border-radius: 50% 0 0 50%;
+  border-radius: 0 50% 50% 0;
   background: var(--accent-cool);
   border: 2px solid var(--bg, #fff);
   border-left: none;
