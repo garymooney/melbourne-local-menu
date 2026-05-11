@@ -3887,6 +3887,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return { lead: WEEKDAYS[d.getDay()], trail: d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] };
   }
 
+  // Compresses verbose time_display strings emitted by recommend.py
+  // for events without a concrete time (continuous exhibitions, etc.).
+  // "open during venue hours" is the most common offender — it crowds
+  // the schedule row out next to the multi-day pill and price. The
+  // multi-day pill already signals "this isn't a one-off", so "venue
+  // hours" alone reads cleanly.
+  function shortenTimeDisplay(td) {
+    if (!td) return td;
+    var low = String(td).trim().toLowerCase();
+    if (low === 'open during venue hours') return 'venue hours';
+    return td;
+  }
+
   // Collapses comma- / slash-separated tier prices into a compact
   // range so the schedule row doesn't sprawl. Triggers only when
   // there are 2+ distinct dollar amounts in the string; pass-through
@@ -3916,18 +3929,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return (n === Math.floor(n)) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
   }
 
-  // Returns { startLong, endLong, endShort, days } if the event spans
+  // Returns { startIso, endIso, endLong, days } if the event spans
   // more than one calendar date, else null. `datetime_start` /
   // `datetime_end` ship as ISO date strings (sometimes ISO datetimes);
   // we slice to the date portion before comparing so a same-day event
   // with different times doesn't get tagged. Open-ended (missing end)
   // counts as not multi-day — we don't know.
-  //
-  // Year is appended to `endShort` when the end date isn't in the
-  // current Melbourne year — long-running exhibitions (e.g. start
-  // 2024, end 2026) would otherwise read as ambiguous "Sat 1 Nov".
-  // `startLong` / `endLong` always include year — used in the tooltip
-  // where space isn't tight.
   function multiDaySpan(ev) {
     if (!ev || !ev.datetime_start || !ev.datetime_end) return null;
     var s = String(ev.datetime_start).slice(0, 10);
@@ -3936,19 +3943,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (e <= s) return null;
     var sd = new Date(s + 'T12:00:00');
     var ed = new Date(e + 'T12:00:00');
-    var nowYear = melbourneNowParts().iso.slice(0, 4);
     var endYear = ed.getFullYear();
-    var endYearSuffix = String(endYear) !== nowYear ? ' ' + endYear : '';
     var days = Math.round((ed - sd) / 86400000) + 1;
     return {
       startIso: s,
       endIso: e,
-      startLong: WEEKDAYS[sd.getDay()] + ' ' + sd.getDate() + ' ' +
-                 MONTHS[sd.getMonth()] + ' ' + sd.getFullYear(),
-      endLong:   WEEKDAYS[ed.getDay()] + ' ' + ed.getDate() + ' ' +
-                 MONTHS[ed.getMonth()] + ' ' + endYear,
-      endShort:  WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' +
-                 MONTHS_SHORT[ed.getMonth()] + endYearSuffix,
+      // 3-char weekday + day + 3-char month + year. Used in the tooltip
+      // "Ends" row — the short form is plenty when there's only one
+      // date to read and the year resolves ambiguity for long runs.
+      endLong:   WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' +
+                 MONTHS_SHORT[ed.getMonth()] + ' ' + endYear,
       days: days,
     };
   }
@@ -3984,9 +3988,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   // Compose the "Also" tooltip line for a specific item. Returns
   // null when the event has no OTHER appearance in the loaded window
-  // — keeps the tooltip short for events whose only data here is this
-  // single render. Lists subsequent appearances (post the card's own
-  // day) so the reader sees "next" rather than "past".
+  // — keeps the tooltip short for events whose only data here is
+  // this single render. Lists every other day this event runs in the
+  // loaded data, past or future relative to the viewed card — the
+  // reader gets the whole schedule, not just what's still to come.
   //
   // Formatting tiers, applied in order:
   //   1. Contiguous run (every day from first to last)
@@ -4005,10 +4010,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var days = multiDayDayMap()[ev.id] || [];
     if (days.length <= 1) return null;
     var here = ev.day;
-    var later = days.filter(function (d) { return d > here; });
-    if (later.length === 0) return null;
+    var others = days.filter(function (d) { return d !== here; });
+    if (others.length === 0) return null;
 
-    var parsed = later.map(function (iso) {
+    var parsed = others.map(function (iso) {
       return { iso: iso, d: new Date(iso + 'T12:00:00') };
     });
     var DAY_MS = 86400000;
@@ -4052,18 +4057,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         }
       }
       if (weekly) {
-        var weekdayPlural = WEEKDAYS_SHORT[first.getDay()] + 's';
+        // 3-char weekday, no trailing "s" — the comma-separated dates
+        // already imply the recurrence pattern. Reads "Wed 14, 21,
+        // 28 May" rather than "Weds ...".
+        var weekday = WEEKDAYS_SHORT[first.getDay()];
         if (sameMonth) {
           var inner = parsed.slice(0, -1).map(function (p) {
             return p.d.getDate();
           }).join(', ');
-          return weekdayPlural + ' ' + inner + ', ' + last.getDate() +
+          return weekday + ' ' + inner + ', ' + last.getDate() +
                  ' ' + MONTHS_SHORT[last.getMonth()];
         }
         var items = parsed.map(function (p) {
           return p.d.getDate() + ' ' + MONTHS_SHORT[p.d.getMonth()];
         });
-        return weekdayPlural + ' ' + items.join(', ');
+        return weekday + ' ' + items.join(', ');
       }
     }
 
@@ -4840,7 +4848,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       'target="_blank" rel="noopener">' + escapeHtml(ev.title) + '</a>'
     );
     if (ev.time_display) {
-      parts.push('<div class="time">' + escapeHtml(ev.time_display) + '</div>');
+      parts.push('<div class="time">' +
+        escapeHtml(shortenTimeDisplay(ev.time_display)) + '</div>');
     }
     var blurb = ev.context_line || ev.description_summary;
     if (blurb) {
@@ -4873,17 +4882,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
              '</span>' +
            '</div>')
         : '';
-      var startKey = (mdSpan.startIso < ev.day) ? 'Started' : 'Starts';
+      // Start date dropped from the tooltip — for long-running events
+      // the scraped `datetime_start` is often the earliest date we
+      // happened to see, not the true beginning of the run, so
+      // claiming "Starts X" would mislead. End + span + Also is the
+      // accurate residual.
       parts.push(
         '<div class="multi-day-tag">' +
           '<span class="multi-day-tag__label">multi-day</span>' +
           '<div class="multi-day-tag__tip" role="tooltip">' +
-            '<div class="multi-day-tag__tip-row">' +
-              '<span class="multi-day-tag__tip-key">' + startKey + '</span> ' +
-              '<span class="multi-day-tag__tip-val">' +
-                escapeHtml(mdSpan.startLong) +
-              '</span>' +
-            '</div>' +
             '<div class="multi-day-tag__tip-row">' +
               '<span class="multi-day-tag__tip-key">Ends</span> ' +
               '<span class="multi-day-tag__tip-val">' +
