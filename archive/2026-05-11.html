@@ -7191,8 +7191,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         'aria-label="Remove">&times;</button>';
     var input = chip.querySelector('input.watch-chip__edit');
     if (input) {
-      try { input.focus({ preventScroll: true }); }
-      catch (_) { input.focus(); }
+      // Plain focus — iOS Safari's auto-scroll-to-keyboard is
+      // actually wanted here so the chip stays visible above the
+      // soft keyboard. We just rely on the savedScrollY restore on
+      // commit to undo the scroll so the page lands where the user
+      // started instead of stranded "further down".
+      input.focus();
       input.select();
     }
   }
