@@ -121,6 +121,23 @@ body {
   background: var(--bg);
   padding-top: 0.8em;
 }
+/* Extend the header's solid background full-viewport-width via an
+   absolutely-positioned pseudo-element. The .container's padding
+   leaves a strip on each side of the header otherwise — during a
+   swipe, the translated day panel's edges peek through those strips.
+   This pseudo backs the header edge-to-edge regardless of container
+   width and sits BELOW the header content (z-index: -1). */
+.site-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  background: var(--bg);
+  z-index: -1;
+}
 /* 1px gradient hairline replacing the flat border-bottom. Echoes the
    brand-mark stripe so the header reads as one composed surface even
    when the day-tabs row scrolls horizontally. */
@@ -1075,12 +1092,14 @@ body:has(#first-visit-nudge) .day {
   scroll-margin-top: calc(var(--header-offset, 120px) + 56px);
 }
 /* Swipe scopes — .day section (per day) + #settings-view (settings
-   panel body). touch-action: pan-y lets the browser handle native
-   vertical scroll while horizontal pans are intercepted by our
-   pointermove handler. Without this, fighting the browser scroll
-   with preventDefault inside touchmove is unreliable on iOS Safari
-   (and warned about by Chrome). */
-.day, #settings-view { touch-action: pan-y; }
+   panel body) + #all-week-heading (banner). touch-action: pan-y
+   lets the browser handle native vertical scroll while horizontal
+   pans are intercepted by our pointermove handler. */
+.day, #settings-view, #all-week-heading { touch-action: pan-y; }
+/* Clip the swipe area to the viewport so a translated panel never
+   spills out the right/left side past the .container padding strips.
+   #main holds every day panel + settings + all-week banner. */
+#main { overflow-x: clip; }
 /* Subtab strip + day-tab strip opt out of swipe entirely via
    [data-no-swipe] (JS check); they keep their own overflow-x scroll
    so the active pill stays scrollable into view. */
@@ -1434,11 +1453,23 @@ body.has-banner > *:not(.deep-link-banner) {
 .multi-day-tag {
   position: relative;
   margin-top: 6px;
+  /* Slightly larger hit area + raise above the title link's z-stack
+     so a finger landing on the pill always hits the pill rather
+     than spilling onto the title anchor underneath it. */
+  z-index: 2;
+  padding: 4px 0;
   font-size: 13px;
   font-weight: 500;
   font-variant-numeric: tabular-nums;
   color: #6a6258;
   cursor: help;
+}
+/* Give the label a hover/active surface that visibly extends the
+   hit target so the user senses the larger tappable zone. */
+.multi-day-tag__label {
+  display: inline-block;
+  padding: 2px 4px;
+  margin: -2px -4px;
 }
 .multi-day-tag__label {
   /* Faint solid underline as the "more info on hover" cue —
@@ -3250,7 +3281,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   display: inline-flex;
   align-items: center;
   gap: 2px;
-  padding: 3px 4px 3px 4px;
+  padding: 4px 4px 4px 10px;
   background: color-mix(in srgb, var(--accent-cool) 6%, transparent);
   border: 1px solid color-mix(in srgb, var(--accent-cool) 22%, transparent);
   border-radius: 999px;
@@ -3258,14 +3289,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   font-size: 0.9em;
   line-height: 1.3;
   max-width: 100%;
-  /* iOS Safari: long-press on text inside the chip would otherwise
-     pop the selection magnifier + system context menu, fighting the
-     drag gesture and stealing the affordance. Disable selection +
-     callout so the grip handle is the unambiguous interaction. */
+  cursor: grab;
+  /* iOS / Chrome: kill native scroll AND swipe while finger is on a
+     chip — entire chip is the drag target. The user can scroll the
+     watchlist panel by touching whitespace between chips, but not
+     by touching a chip itself. Selection + callout disabled too so
+     long-press doesn't pop the system magnifier. */
+  touch-action: none;
   -webkit-user-select: none;
   user-select: none;
   -webkit-touch-callout: none;
 }
+.watch-chip:active { cursor: grabbing; }
 .watch-chip--priority {
   background: color-mix(in srgb, var(--accent-cool) 18%, transparent);
   border-color: color-mix(in srgb, var(--accent-cool) 45%, transparent);
@@ -3280,40 +3315,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   background: color-mix(in srgb, var(--accent-cool) 22%, var(--card-bg, #fff));
   border-color: var(--accent-cool);
 }
-.watch-chip__grip {
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
-  width: 18px;
-  height: 22px;
-  margin-right: 2px;
-  color: var(--faint);
-  cursor: grab;
-  touch-action: none; /* prevent browser from scrolling while
-                         the user is starting a drag here */
-}
-.watch-chip__grip:hover { color: var(--text); }
-.watch-chip__grip svg { display: block; fill: currentColor; }
 .watchlist-dragging * { cursor: grabbing !important; }
 .watch-chip__label {
-  appearance: none;
-  border: 0;
-  background: transparent;
-  color: inherit;
-  font: inherit;
   /* Full text visible — no ellipsis. Long names just make the chip
-     wider; the flex-wrap on .watch-list handles wrapping. Clicking
-     the label enters edit mode (see handleWatchlistEditStart). */
+     wider; flex-wrap on .watch-list handles wrapping. Cursor
+     stays grab from the parent chip (whole chip is now the drag
+     handle). Edit opens on dblclick (see dblclick handler in JS). */
   white-space: normal;
   word-break: break-word;
   text-align: left;
-  cursor: text;
-  padding: 0;
-}
-.watch-chip__label:hover {
-  text-decoration: underline;
-  text-decoration-color: color-mix(in srgb, var(--accent-cool) 40%, transparent);
-  text-underline-offset: 2px;
+  padding: 0 4px;
+  cursor: inherit;
 }
 .watch-chip__edit {
   appearance: none;
@@ -6766,32 +6778,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderWatchlistChips(kind, bin, items) {
     var label = bin === 'priority' ? 'Priority' : 'Saved';
     var html = items.map(function (item, idx) {
-      // Grip is a dedicated drag handle; label is the edit affordance;
-      // × is delete. user-select/touch-callout are killed on the
-      // outer chip (CSS) so iOS doesn't pop a text-selection magnifier
-      // when the user long-presses to drag.
+      // Whole chip is the drag target — long-press anywhere on it
+      // (or 8px movement) starts the drag. CSS sets touch-action:
+      // none so dragging on a chip never starts a vertical scroll
+      // or a page swipe. Single tap does nothing; double-tap on the
+      // label opens inline edit. × stays as the delete affordance.
+      // data-watch-grip stays on the chip itself (rather than a
+      // separate sub-element) so anywhere-on-chip = drag handle.
       return (
         '<span class="watch-chip watch-chip--' + bin + '" ' +
           'data-watch-kind="' + kind + '" ' +
           'data-watch-bin="' + bin + '" ' +
-          'data-watch-idx="' + idx + '">' +
-          '<span class="watch-chip__grip" aria-hidden="true" ' +
-            'data-watch-grip="' + kind + ':' + bin + ':' + idx + '">' +
-            // Two-column dot grip — universally recognised as "drag
-            // handle" and small enough to stay inside the chip.
-            '<svg viewBox="0 0 16 16" width="10" height="14" ' +
-              'aria-hidden="true">' +
-              '<circle cx="6" cy="3"  r="1.4"/>' +
-              '<circle cx="10" cy="3"  r="1.4"/>' +
-              '<circle cx="6" cy="8"  r="1.4"/>' +
-              '<circle cx="10" cy="8"  r="1.4"/>' +
-              '<circle cx="6" cy="13" r="1.4"/>' +
-              '<circle cx="10" cy="13" r="1.4"/>' +
-            '</svg>' +
+          'data-watch-idx="' + idx + '" ' +
+          'data-watch-grip="' + kind + ':' + bin + ':' + idx + '" ' +
+          'title="Double-click to edit · drag to move">' +
+          '<span class="watch-chip__label" ' +
+            'data-watch-edit="' + kind + ':' + bin + ':' + idx + '">' +
+            escapeHtml(item) +
           '</span>' +
-          '<button type="button" class="watch-chip__label" ' +
-            'data-watch-edit="' + kind + ':' + bin + ':' + idx + '" ' +
-            'title="Edit">' + escapeHtml(item) + '</button>' +
           '<button type="button" class="watch-chip__remove" ' +
             'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
             'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
@@ -6898,6 +6902,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var key = watchlistKey(kind, bin);
     var cur = (profile[key] || []).slice();
     if (idx < 0 || idx >= cur.length) return;
+    var removed = cur[idx];
+    // Stash the auto-pin state so Undo can fully restore — both the
+    // term AND the events that were auto-pinned via it.
+    var beforeAuto    = (profile.auto_pinned_watch_ids || []).slice();
+    var beforePinned  = (profile.pinned_event_ids || []).slice();
     cur.splice(idx, 1);
     profile[key] = cur;
     if (bin === 'priority') {
@@ -6927,6 +6936,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     saveProfile();
     requestRenderAll();
     rerenderWatchlistKind(kind);
+    // Fire an Undo toast — the user can restore the term + any
+    // events that were auto-pinned via it. Reuses the existing
+    // showToast/dismissToast machinery; rapid consecutive deletes
+    // replace the toast and only the most recent is undoable
+    // (acceptable v1 trade-off; a queue would be a nice-to-have).
+    var kindWord = kind === 'venues' ? 'venue' : 'artist';
+    showToast(
+      'Removed ' + kindWord + ': ' + (removed || ''),
+      {
+        onUndo: function () {
+          // Restore at the original position so chip order stays
+          // stable. If the user already added new chips, the
+          // restored item lands at the splice index — close enough.
+          var restoreList = (profile[key] || []).slice();
+          var insertAt = Math.min(idx, restoreList.length);
+          restoreList.splice(insertAt, 0, removed);
+          profile[key] = restoreList;
+          if (bin === 'priority') {
+            profile.auto_pinned_watch_ids = beforeAuto;
+            profile.pinned_event_ids = beforePinned;
+            bumpWatchlistRevision();
+            refreshPinnedSet();
+          }
+          saveProfile();
+          requestRenderAll();
+          rerenderWatchlistKind(kind);
+        },
+      }
+    );
   }
 
   function handleWatchlistMove(kind, fromBin, fromIdx, toBin) {
@@ -11364,16 +11402,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return;
     }
 
-    var watchEdit = e.target.closest && e.target.closest('[data-watch-edit]');
-    if (watchEdit) {
-      e.preventDefault();
-      var eTrip = (watchEdit.dataset.watchEdit || '').split(':');
-      var eKind = eTrip[0], eBin = eTrip[1], eIdx = parseInt(eTrip[2], 10);
-      if (eKind && eBin && !isNaN(eIdx)) {
-        handleWatchlistEditStart(eKind, eBin, eIdx);
-      }
-      return;
-    }
+    // Single-click on chip label does nothing — edit requires
+    // double-click so accidental taps during drag-grab don't
+    // accidentally enter edit mode. The double-click handler is
+    // wired in its own dblclick listener below.
 
     // Pick from the custom suburb typeahead dropdown. Mirrors the
     // datalist-pick path on desktop browsers — fills the input and
@@ -11731,12 +11763,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (_watchDragState) return; // watchlist chip drag wins
     if (e.clientX < SWIPE_EDGE_EXCLUDE) return; // iOS back-swipe
     if (e.target.closest && e.target.closest('[data-no-swipe]')) return;
-    // Determine swipe scope by where the pointer lands.
+    // Determine swipe scope by where the pointer lands. Day-content
+    // (any .day panel) AND the all-week banner both count as the
+    // top-level day scope so swiping on the banner navigates too.
     var inSettings = e.target.closest && e.target.closest('#settings-view');
     var inDayPanel = e.target.closest && e.target.closest('.day');
-    if (!inSettings && !inDayPanel) return;
+    var inAllWeek  = e.target.closest && e.target.closest('#all-week-heading');
+    if (!inSettings && !inDayPanel && !inAllWeek) return;
     var scope = inSettings ? 'subtab' : 'day';
-    var panel = inSettings || inDayPanel;
+    // In stacked all-week mode every .day panel is visible at once;
+    // translating just one looks broken. Translate #main so the
+    // whole feed moves together. Same when pointerdown is on the
+    // banner itself (no single day panel to attach to).
+    var stackedOrBanner = !!inAllWeek || (scope === 'day' && viewState.showAllDays);
+    var panel = inSettings ||
+      (stackedOrBanner ? document.getElementById('main') : inDayPanel);
     _swipeState = {
       scope: scope,
       panel: panel,
@@ -11859,24 +11900,40 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     window.addEventListener('blur', _swipeCancel);
   }
 
+  // Double-click on a watchlist chip label opens inline edit.
+  // Touch devices fire `dblclick` on a quick double-tap; single
+  // taps deliberately do nothing so the drag affordance doesn't
+  // accidentally pop the input.
+  document.addEventListener('dblclick', function (e) {
+    var edit = e.target.closest && e.target.closest('[data-watch-edit]');
+    if (!edit) return;
+    e.preventDefault();
+    var trip = (edit.dataset.watchEdit || '').split(':');
+    var k = trip[0], b = trip[1], i = parseInt(trip[2], 10);
+    if (k && b && !isNaN(i)) handleWatchlistEditStart(k, b, i);
+  });
+
   // Pointer-event delegated handlers for watchlist chip drag. The
-  // pointerdown lands on the grip span (.watch-chip__grip) which
+  // pointerdown lands on the chip itself (whole chip is the drag
+  // handle now — was just a grip icon before).
   // carries data-watch-grip="kind:bin:idx". Once a drag starts the
   // grip captures the pointer so subsequent move/up land here even
   // if the user's finger drifts off the chip.
   if (window.PointerEvent) {
     document.addEventListener('pointerdown', function (e) {
       if (e.button !== undefined && e.button !== 0) return;
-      var grip = e.target.closest && e.target.closest('[data-watch-grip]');
-      if (!grip) return;
-      var chip = grip.closest('.watch-chip');
+      // × button is delete, NOT drag — let its own click handler run.
+      if (e.target.closest && e.target.closest('[data-watch-remove]')) return;
+      // Editing-input chip-state: don't start a drag on the input.
+      if (e.target.closest && e.target.closest('input[data-watch-editing]')) return;
+      var chip = e.target.closest && e.target.closest('[data-watch-grip]');
       if (!chip) return;
-      var trip = (grip.dataset.watchGrip || '').split(':');
+      var trip = (chip.dataset.watchGrip || '').split(':');
       var k = trip[0], b = trip[1], i = parseInt(trip[2], 10);
       if (!k || !b || isNaN(i)) return;
       // Suppress text selection / iOS callout pre-emptively.
       e.preventDefault();
-      try { grip.setPointerCapture(e.pointerId); } catch (_) {}
+      try { chip.setPointerCapture(e.pointerId); } catch (_) {}
       _watchDragArm(chip, k, b, i, e.clientX, e.clientY, e.pointerId);
     });
     document.addEventListener('pointermove', function (e) {
