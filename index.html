@@ -7171,17 +7171,30 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       '.watch-chip[data-watch-idx="' + idx + '"]');
     if (!chip) return;
     var current = cur[idx] || '';
+    // iOS Safari auto-scrolls the focused input into view above the
+    // soft keyboard and leaves the page at the new scroll position
+    // when the keyboard dismisses — feels like the page "moves
+    // downwards". We snapshot scrollY here and restore it on
+    // commit. preventScroll on focus suppresses the initial jump
+    // too (Safari 16+ honours the option).
+    var savedScrollY = (typeof window.scrollY === 'number')
+      ? window.scrollY : (window.pageYOffset || 0);
     chip.classList.add('watch-chip--editing');
     chip.innerHTML =
       '<input type="text" class="watch-chip__edit" ' +
         'data-watch-editing="' + kind + ':' + bin + ':' + idx + '" ' +
+        'data-watch-saved-scroll="' + savedScrollY + '" ' +
         'value="' + escapeHtml(current) + '" autocomplete="off" ' +
         'spellcheck="false" autocapitalize="words">' +
       '<button type="button" class="watch-chip__remove" ' +
         'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
         'aria-label="Remove">&times;</button>';
     var input = chip.querySelector('input.watch-chip__edit');
-    if (input) { input.focus(); input.select(); }
+    if (input) {
+      try { input.focus({ preventScroll: true }); }
+      catch (_) { input.focus(); }
+      input.select();
+    }
   }
 
   function handleWatchlistEditCommit(kind, bin, idx, raw) {
@@ -7189,7 +7202,23 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var key = watchlistKey(kind, bin);
     var cur = (profile[key] || []).slice();
     if (idx < 0 || idx >= cur.length) return;
-    if (!val) { handleWatchlistRemove(kind, bin, idx); return; }
+    // Restore the scroll position that was active when edit began —
+    // iOS Safari scrolled the page up to fit the keyboard, and
+    // leaving that scroll in place after blur looks like a "page
+    // moved down" jump. Scroll target is read from the input's
+    // dataset so the value survives the re-render.
+    var inputEl = document.querySelector(
+      'input[data-watch-editing="' + kind + ':' + bin + ':' + idx + '"]');
+    var savedScrollY = inputEl
+      ? parseFloat(inputEl.dataset.watchSavedScroll || '0')
+      : null;
+    if (!val) {
+      handleWatchlistRemove(kind, bin, idx);
+      if (!isNaN(savedScrollY) && savedScrollY != null) {
+        _restoreScroll(savedScrollY);
+      }
+      return;
+    }
     var norm = _normalizeForWatch(val);
     // Dedup against this bin and the other bin alike — promotes
     // "edit duplicate" into "delete this chip" cleanly.
@@ -7205,6 +7234,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var j = 0; j < otherCur.length; j++) {
       if (_normalizeForWatch(otherCur[j]) === norm) {
         handleWatchlistRemove(kind, bin, idx);
+        if (!isNaN(savedScrollY) && savedScrollY != null) {
+          _restoreScroll(savedScrollY);
+        }
         return;
       }
     }
@@ -7217,6 +7249,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     saveProfile();
     requestRenderAll();
     rerenderWatchlistKind(kind);
+    if (!isNaN(savedScrollY) && savedScrollY != null) {
+      _restoreScroll(savedScrollY);
+    }
+  }
+
+  // Restore the page scroll to a snapshotted Y position after iOS
+  // Safari has finished its keyboard-dismiss animation. Two attempts
+  // — one immediate, one after a short delay — so we beat both the
+  // synchronous re-render and the asynchronous viewport restore.
+  function _restoreScroll(targetY) {
+    if (typeof targetY !== 'number' || isNaN(targetY)) return;
+    window.scrollTo(0, targetY);
+    setTimeout(function () { window.scrollTo(0, targetY); }, 60);
+    setTimeout(function () { window.scrollTo(0, targetY); }, 220);
   }
 
   // "Show event scores" toggle relocated from Theme — lives inside the
