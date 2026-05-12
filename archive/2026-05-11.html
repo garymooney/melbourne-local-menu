@@ -3341,6 +3341,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   min-width: 6ch;
   width: auto;
   padding: 0;
+  /* While editing, the screen must NOT swipe in any direction —
+     touch on the input is for typing/selecting text, never page
+     navigation. touch-action: none kills native scroll; the chip's
+     data-no-swipe (in markup) kills the JS swipe handler. */
+  touch-action: none;
 }
 .watch-chip--editing {
   background: color-mix(in srgb, var(--accent-cool) 24%, transparent);
@@ -6791,6 +6796,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           'data-watch-bin="' + bin + '" ' +
           'data-watch-idx="' + idx + '" ' +
           'data-watch-grip="' + kind + ':' + bin + ':' + idx + '" ' +
+          // data-no-swipe so the page-swipe pointer handler bails
+          // before arming — chip drag owns this gesture entirely.
+          'data-no-swipe ' +
           'title="Double-click to edit · drag to move">' +
           '<span class="watch-chip__label" ' +
             'data-watch-edit="' + kind + ':' + bin + ':' + idx + '">' +
