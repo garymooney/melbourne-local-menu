@@ -6765,7 +6765,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // row: name (clickable to edit) + Move-to-other-bin button + ×.
   function renderWatchlistRow(kind, bin, item, idx) {
     var otherBin = bin === 'priority' ? 'saved' : 'priority';
-    var moveLabel = bin === 'priority' ? 'Move to Saved' : 'Move to Priority';
+    var moveLabel = bin === 'priority' ? 'Move to Saved' : 'Move to Watch';
     var moveIcon  = bin === 'priority' ? '↓' : '↑';
     return (
       '<div class="watch-row" ' +
@@ -6802,7 +6802,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderWatchlistSection(kind, bin) {
     var items = watchlistList(kind, bin);
     var noun = kind === 'venues' ? 'venues' : 'artists';
-    var title = (bin === 'priority' ? 'Priority ' : 'Saved ') + noun;
+    var title = (bin === 'priority' ? 'Watch ' : 'Saved ') + noun;
     var iconHtml = bin === 'priority'
       ? '<span class="watch-section__icon" aria-hidden="true">&#9733;</span> '
       : '';
@@ -6841,10 +6841,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderWatchlistPanel() {
     return (
       '<div class="watchlist-section">' +
-        '<p class="watchlist-hint">Add venues and artists you always ' +
-          'want surfaced. Priority items get pinned to the top of ' +
-          'their section with a &ldquo;watching&rdquo; tag; Saved is ' +
-          'a parking spot.</p>' +
         renderWatchlistKindBlock('venues') +
       '</div>' +
       '<div class="watchlist-section">' +
