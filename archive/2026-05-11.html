@@ -1476,11 +1476,12 @@ body.has-banner > *:not(.deep-link-banner) {
   letter-spacing: normal;
   font-variant-numeric: tabular-nums;
 }
-.multi-day-tag:focus-within .multi-day-tag__tip {
+.multi-day-tag:focus-within .multi-day-tag__tip,
+.multi-day-tag.open .multi-day-tag__tip {
   display: block;
 }
 @media (hover: hover) {
-  .multi-day-tag:hover .multi-day-tag__tip {
+  .multi-day-tag:hover:not(.hover-suppressed) .multi-day-tag__tip {
     display: block;
   }
 }
@@ -2360,7 +2361,11 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .subcat-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Always 3-col so the row layout doesn't reflow when a row toggles
+     into the modified state — chips/sliders stay put, the reset slot
+     just becomes visible. Without this the slider visually shifts
+     when the reset button appears (jittery on mobile especially). */
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 6px 2px;
@@ -2446,7 +2451,7 @@ body.has-banner > *:not(.deep-link-banner) {
 
 .suburb-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 6px 2px;
@@ -2479,7 +2484,8 @@ body.has-banner > *:not(.deep-link-banner) {
    unless the row is modified. Modified rows reveal the button on
    hover / focus-within (desktop), or always on touch (no hover). */
 .row-reset-btn {
-  display: none;
+  display: inline-flex;
+  visibility: hidden;
   align-items: center;
   justify-content: center;
   width: 22px;
@@ -2496,12 +2502,13 @@ body.has-banner > *:not(.deep-link-banner) {
   opacity: 0;
   transition: opacity 0.12s, color 0.12s, border-color 0.12s;
   flex-shrink: 0;
-  /* Sits in column 2, between the label and chips. The chip cluster
-     stays anchored to the row's right edge — label (1fr) absorbs the
-     reset's width so chips don't shift on toggle. */
+  /* Always rendered to reserve column 2 in the row grid. Chips and
+     sliders stay anchored to their column regardless of modified
+     state — toggling a row no longer shifts neighbouring controls.
+     visibility: hidden hides the chrome but keeps the cell width. */
 }
 [data-modified="true"] .row-reset-btn {
-  display: inline-flex;
+  visibility: visible;
 }
 .subcat-row[data-modified="true"]:hover .row-reset-btn,
 .suburb-row[data-modified="true"]:hover .row-reset-btn,
@@ -2577,7 +2584,7 @@ body.has-banner > *:not(.deep-link-banner) {
  * to a 4-tier picker. Same .tri-state control as subcategory rows. */
 .facet-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 12px;
   padding: 10px 2px;
@@ -2634,7 +2641,7 @@ body.has-banner > *:not(.deep-link-banner) {
  * the shape-input is a range slider + value display. */
 .rule-row, .shape-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 12px;
   padding: 10px 2px;
@@ -3158,11 +3165,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   outline: none;
 }
 
-/* Watchlist sub-tab — two free-text lists (venues, artists) the user
-   types into. One entry per line; matches are pinned + tagged with a
-   star pill. Mono font on the textareas keeps copy/paste of artist
-   names clean (proper spaces, no smart-quote substitution) and lines
-   up multi-line entries vertically. */
+/* Watchlist sub-tab — two chip lists (venues, artists). Each entry
+   is a capsule with an × remove button. An inline text input lives
+   at the end of the list and commits new entries on Enter or blur.
+   Matching events get pinned to the top with a "watching" tag. */
 .watchlist-section { margin: 0 0 1.2em; }
 .watchlist-section + .watchlist-section { margin-top: 1.4em; }
 .watchlist-label {
@@ -3177,26 +3183,78 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   line-height: 1.45;
   margin: 0 0 8px;
 }
-.watchlist-textarea {
-  display: block;
-  width: 100%;
-  box-sizing: border-box;
-  padding: 8px 10px;
+.watch-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 6px;
+  padding: 8px 8px 6px;
   border: 1px solid var(--rule);
-  border-radius: 6px;
-  background: #fff;
-  color: var(--dark);
-  font-family: var(--mono-font);
-  /* 16px (not em) so iOS Safari doesn't zoom on focus, mirroring
-     the suburb typeahead input rule. */
-  font-size: 16px;
-  line-height: 1.45;
-  resize: vertical;
-  min-height: 5em;
+  border-radius: 8px;
+  background: var(--card-bg, #fff);
+  min-height: 44px;
 }
-.watchlist-textarea:focus {
-  outline: none;
+.watch-list:focus-within {
   border-color: var(--accent-cool);
+}
+.watch-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 3px 4px 3px 10px;
+  background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
+  border: 1px solid color-mix(in srgb, var(--accent-cool) 30%, transparent);
+  border-radius: 999px;
+  color: var(--text);
+  font-size: 0.9em;
+  line-height: 1.3;
+  max-width: 100%;
+}
+.watch-chip__label {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  max-width: 18ch;
+}
+.watch-chip__remove {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.2em;
+  line-height: 1;
+  padding: 0;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.watch-chip__remove:hover,
+.watch-chip__remove:focus-visible {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent-cool) 70%, transparent);
+  outline: none;
+}
+.watch-input {
+  flex: 1 1 12ch;
+  min-width: 12ch;
+  padding: 4px 4px;
+  border: 0;
+  outline: none;
+  background: transparent;
+  color: var(--text);
+  font: inherit;
+  /* 16px (not em) so iOS Safari doesn't zoom on focus. */
+  font-size: 16px;
+  line-height: 1.4;
+}
+.watch-input::placeholder {
+  color: var(--faint);
+  opacity: 0.8;
 }
 
 /* Outside section is rendered as a <details> disclosure so it sits
@@ -4000,13 +4058,26 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function _escapeRegex(s) {
     return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
   }
+  // Punctuation-stripped, whitespace-collapsed lowercase form used for
+  // watchlist matching so "Bar 303" matches "Bar-303", "Tim's Bar"
+  // matches "Tims Bar", "Kamasi, Washington" matches "Kamasi
+  // Washington", etc. Drops apostrophes, hyphens, commas, periods,
+  // ampersands; collapses runs of whitespace.
+  function _normalizeForWatch(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/['’`]/g, '')
+      .replace(/[-–—,.&/]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
   function eventMatchesWatchVenue(ev, profile) {
     if (!ev || !ev.venue) return false;
     var list = (profile && profile.user_priority_venues) || [];
     if (!list.length) return false;
-    var hay = ev.venue.toLowerCase();
+    var hay = _normalizeForWatch(ev.venue);
     for (var i = 0; i < list.length; i++) {
-      var t = (list[i] || '').toLowerCase().trim();
+      var t = _normalizeForWatch(list[i]);
       if (t && hay.indexOf(t) !== -1) return true;
     }
     return false;
@@ -4015,15 +4086,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (!ev) return false;
     var list = (profile && profile.user_priority_artists) || [];
     if (!list.length) return false;
-    // Match against title + context_line. Word-boundary regex so
-    // "kamasi" hits "Kamasi Washington" but not random in-word
-    // matches. description_summary is intentionally excluded — it's
-    // long and produces spurious matches on incidental name mentions.
-    var hay = ((ev.title || '') + ' ' + (ev.context_line || '')).toLowerCase();
+    // Match against title + context_line. Word-boundary regex on the
+    // normalised forms so "kamasi" hits "Kamasi Washington" /
+    // "Kamasi-Washington" / "Kamasi, Washington" alike. Description
+    // is excluded — too long, too many incidental name mentions.
+    var hay = _normalizeForWatch(
+      (ev.title || '') + ' ' + (ev.context_line || ''));
     for (var i = 0; i < list.length; i++) {
-      var t = (list[i] || '').toLowerCase().trim();
+      var t = _normalizeForWatch(list[i]);
       if (!t) continue;
-      var pat = new RegExp('\\b' + _escapeRegex(t) + '\\b', 'i');
+      var pat = new RegExp('\\b' + _escapeRegex(t) + '\\b');
       if (pat.test(hay)) return true;
     }
     return false;
@@ -4921,6 +4993,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       item.breakdown = scoreBreakdown(ev, profile);
     }
     var pinned = isUserPinned(ev);
+    // Visual pinned treatment fires for ANY pin source (user pin,
+    // rule pin via priority_venue/artist, or watchlist match) so
+    // auto-pinned events read as pinned at a glance — not just the
+    // ones the user explicitly tapped. The Pin BUTTON state still
+    // reflects only the user-pin (clicking toggles user pin).
+    var pinnedVisual = pinned || !!item.pinned;
     var selected = isUserSelected(ev);
     var hidden = !!item.is_user_hidden;
     // Hidden cards reuse the existing dashed .event.extra treatment
@@ -4930,7 +5008,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (hidden) cls = 'event extra user-hidden';
     else cls = item.is_expanded ? 'event extra' : 'event';
     if (item.is_fallback) cls += ' fallback';
-    if (pinned) cls += ' pinned';
+    if (pinnedVisual) cls += ' pinned';
     if (selected) cls += ' selected';
     var parts = [
       '<article class="' + cls + '" ' +
@@ -5970,7 +6048,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (ruleName === 'date_idea' && state === 'off') action = 'hide tag';
     } else if (PIN_CAPABLE_SET[ruleName]) {
       weight = (state === 'off') ? 0 : defaultWeight;
-      if (state === 'pin') action = 'always shown';
+      // No action label — the "Pin" / "On" / "Off" chip already
+      // tells the user what state is active. Adding "always shown"
+      // here was pushing the ? help button past the action text in
+      // collapsed-hint mode, making it look detached from its
+      // label.
     } else if (ruleName === 'free') {
       // Filter-only — events are excluded, no bonus involved.
       return { weight: null, action: state === 'on' ? 'hide paid events' : '' };
@@ -6282,10 +6364,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       label: 'Variety',
       hint: 'How much category &amp; subcategory mix the menu favours.',
       chips: [
-        { label: 'Anything goes', multiplier: 0,    color: 'love' },
-        { label: 'Mixed',         multiplier: 0.5,  color: 'like' },
-        { label: 'Varied',        multiplier: 1,    color: 'meh' },
-        { label: 'Very varied',   multiplier: 1.67, color: 'avoid' },
+        { label: 'Top scores',  multiplier: 0,    color: 'love' },
+        { label: 'Loose mix',   multiplier: 0.5,  color: 'like' },
+        { label: 'Varied',      multiplier: 1,    color: 'meh' },
+        { label: 'Wide spread', multiplier: 1.67, color: 'avoid' },
       ],
     },
     {
@@ -6428,61 +6510,99 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
   }
 
-  // Watchlist sub-tab — two free-text lists (one per line) that mark
+  // Watchlist sub-tab — two chip lists (venues, artists) that mark
   // events for pin-to-top treatment when their venue / title match.
+  // Each entry is a removable capsule; an inline input at the end
+  // takes new entries on Enter (or commit-on-blur if non-empty).
+  function renderWatchlistChips(kind, items) {
+    var html = items.map(function (item, idx) {
+      return (
+        '<span class="watch-chip" data-watch-kind="' + kind + '" ' +
+          'data-watch-idx="' + idx + '">' +
+          '<span class="watch-chip__label">' + escapeHtml(item) + '</span>' +
+          '<button type="button" class="watch-chip__remove" ' +
+            'data-watch-remove="' + kind + ':' + idx + '" ' +
+            'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
+        '</span>'
+      );
+    }).join('');
+    var placeholder = kind === 'venues'
+      ? 'Add a venue…'
+      : 'Add an artist…';
+    html += (
+      '<input type="text" class="watch-input" ' +
+        'data-watch-add="' + kind + '" ' +
+        'placeholder="' + placeholder + '" ' +
+        'autocomplete="off" autocapitalize="words">'
+    );
+    return html;
+  }
+
   function renderWatchlistPanel() {
-    var venues = (profile.user_priority_venues || []).join('\n');
-    var artists = (profile.user_priority_artists || []).join('\n');
+    var venues = profile.user_priority_venues || [];
+    var artists = profile.user_priority_artists || [];
     return (
       '<div class="watchlist-section">' +
-        '<label class="watchlist-label" for="watchlist-venues">' +
-          'Priority venues' +
-        '</label>' +
-        '<p class="watchlist-hint">One per line. Matches anywhere in ' +
-          'the event\'s venue name (case-insensitive substring).</p>' +
-        '<textarea class="watchlist-textarea" id="watchlist-venues" ' +
-          'data-watchlist="venues" rows="5" ' +
-          'placeholder="Bar Oussou\nThe Tote\nMelbourne Recital Centre">' +
-          escapeHtml(venues) +
-        '</textarea>' +
+        '<div class="watchlist-label">Priority venues</div>' +
+        '<p class="watchlist-hint">Events at these venues get pinned ' +
+          'to the top with a &ldquo;watching&rdquo; tag.</p>' +
+        '<div class="watch-list" data-watch-list="venues">' +
+          renderWatchlistChips('venues', venues) +
+        '</div>' +
       '</div>' +
       '<div class="watchlist-section">' +
-        '<label class="watchlist-label" for="watchlist-artists">' +
-          'Priority artists' +
-        '</label>' +
-        '<p class="watchlist-hint">One per line. Matches whole-word in ' +
-          'the event title (e.g. &ldquo;kamasi&rdquo; hits &ldquo;Kamasi ' +
-          'Washington&rdquo; but not random in-word matches).</p>' +
-        '<textarea class="watchlist-textarea" id="watchlist-artists" ' +
-          'data-watchlist="artists" rows="5" ' +
-          'placeholder="Kamasi Washington\nHiatus Kaiyote\nKing Stingray">' +
-          escapeHtml(artists) +
-        '</textarea>' +
+        '<div class="watchlist-label">Priority artists</div>' +
+        '<p class="watchlist-hint">Events featuring these artists get ' +
+          'pinned to the top with a &ldquo;watching&rdquo; tag.</p>' +
+        '<div class="watch-list" data-watch-list="artists">' +
+          renderWatchlistChips('artists', artists) +
+        '</div>' +
       '</div>'
     );
   }
 
-  function handleWatchlistChange(kind, value) {
-    var lines = String(value || '').split('\n')
-      .map(function (s) { return s.trim(); })
-      .filter(function (s) { return s.length > 0; });
-    // Dedup (case-insensitive) while preserving the user's casing for
-    // display; later occurrences of the same token drop.
-    var seen = {};
-    var out = [];
-    for (var i = 0; i < lines.length; i++) {
-      var k = lines[i].toLowerCase();
-      if (seen[k]) continue;
-      seen[k] = true;
-      out.push(lines[i]);
+  function watchlistListFor(kind) {
+    return kind === 'venues' ? 'user_priority_venues' : 'user_priority_artists';
+  }
+
+  function handleWatchlistAdd(kind, raw) {
+    var v = String(raw || '').trim();
+    if (!v) return;
+    var key = watchlistListFor(kind);
+    var cur = (profile[key] || []).slice();
+    var norm = _normalizeForWatch(v);
+    for (var i = 0; i < cur.length; i++) {
+      if (_normalizeForWatch(cur[i]) === norm) return; // dedup
     }
-    if (kind === 'venues') profile.user_priority_venues = out;
-    else if (kind === 'artists') profile.user_priority_artists = out;
-    // requestRenderAll() with no opts bumps the per-event score
-    // cache version (see its preserveScores branch), so watchlist
-    // edits re-rank correctly without a stale-cache hit.
+    cur.push(v);
+    profile[key] = cur;
     saveProfile();
     requestRenderAll();
+    rerenderWatchlistSection(kind, { focusInput: true });
+  }
+
+  function handleWatchlistRemove(kind, idx) {
+    var key = watchlistListFor(kind);
+    var cur = (profile[key] || []).slice();
+    if (idx < 0 || idx >= cur.length) return;
+    cur.splice(idx, 1);
+    profile[key] = cur;
+    saveProfile();
+    requestRenderAll();
+    rerenderWatchlistSection(kind);
+  }
+
+  function rerenderWatchlistSection(kind, opts) {
+    var container = document.querySelector(
+      '.watch-list[data-watch-list="' + kind + '"]');
+    if (!container) return;
+    var items = (profile[watchlistListFor(kind)] || []);
+    container.innerHTML = renderWatchlistChips(kind, items);
+    if (opts && opts.focusInput) {
+      var input = container.querySelector('.watch-input');
+      if (input) input.focus();
+    }
+    updateSettingsTabDots();
   }
 
   // "Show event scores" toggle relocated from Theme — lives inside the
@@ -6947,16 +7067,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     view.innerHTML = (
       '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
-        tabBtn('vibes', 'Vibes', true) +
+        tabBtn('watchlist', 'Watchlist', true) +
+        tabBtn('vibes', 'Vibes', false) +
         tabBtn('tags', 'Topics', false) +
         tabBtn('rules', 'Rules', false) +
         tabBtn('suburbs', 'Suburbs', false) +
-        tabBtn('watchlist', 'Watchlist', false) +
         tabBtn('shape', 'Tuning', false) +
         tabBtn('appearance', 'Theme', false) +
       '</nav>' +
       renderSubPanel({
         name: 'vibes',
+        hidden: true,
         desc: 'Stable feels you always like or avoid &mdash; meditation-y, ' +
           'corporate-y, avant-garde-y.',
         body: renderFacetGroups(),
@@ -6992,9 +7113,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       }) +
       renderSubPanel({
         name: 'watchlist',
-        hidden: true,
         desc: 'Venues and artists you always want surfaced. Matching ' +
-          'events get pinned to the top of their section with a ' +
+          'events get pinned to the top with a ' +
           '&ldquo;watching&rdquo; tag.',
         body: renderWatchlistPanel(),
         resetAction: 'reset-watchlist',
@@ -7102,7 +7222,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (OPEN_POPOVERS[rhi]._kind === 'row-help') closePopover(OPEN_POPOVERS[rhi]);
     }
     var current = document.querySelector('.settings-subtab[aria-selected="true"]');
-    var name = (current && current.dataset.subtab) || 'vibes';
+    var name = (current && current.dataset.subtab) || 'watchlist';
     // Snapshot any <details data-persist-open="X"> open states so a
     // chip-driven re-render doesn't collapse Tuning > Advanced or the
     // Outside section out from under the user.
@@ -7317,6 +7437,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (opts.updateHash) {
       var hash = tabName === 'settings' ? '#settings' : '#day-' + tabName;
       if (location.hash !== hash) history.replaceState(null, '', hash);
+    }
+    // Settings activation lands the user at the top of the panel.
+    // Without this, opening Settings after scrolling halfway down a
+    // day panel leaves the Settings view scrolled too — the subtab
+    // strip ends up off-screen and the user has to scroll back up.
+    // skipScroll: true is passed by deep-link / back-button restores
+    // where the URL's intent is "preserve scroll".
+    if (tabName === 'settings' && !opts.skipScroll) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
     }
     // Expanding the header (no resize event) would otherwise leave
     // --header-offset stale; recompute after any activation in case
@@ -10649,6 +10778,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       openMenus[omi].innerHTML = '';
     }
 
+    // Watchlist chip × button — remove the entry at the encoded
+    // (kind, idx) position.
+    var watchRemove = e.target.closest && e.target.closest('[data-watch-remove]');
+    if (watchRemove) {
+      e.preventDefault();
+      var pair = (watchRemove.dataset.watchRemove || '').split(':');
+      var rKind = pair[0];
+      var rIdx = parseInt(pair[1], 10);
+      if (rKind && !isNaN(rIdx)) handleWatchlistRemove(rKind, rIdx);
+      return;
+    }
+
     // Pick from the custom suburb typeahead dropdown. Mirrors the
     // datalist-pick path on desktop browsers — fills the input and
     // commits via the same handleSuburbTypeaheadCommit flow.
@@ -10727,6 +10868,28 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
     var showMore = e.target.closest && e.target.closest('.show-more');
     if (showMore) { toggleShowMore(showMore); return; }
+
+    // Multi-day tag tooltip: same tap-to-toggle pattern as the
+    // score-chip so the tooltip is reachable on touch where :hover
+    // never fires. Click outside closes any open multi-day tooltip.
+    var mdEl = e.target.closest && e.target.closest('.multi-day-tag');
+    var openMds = document.querySelectorAll('.multi-day-tag.open');
+    for (var omd = 0; omd < openMds.length; omd++) {
+      if (openMds[omd] !== mdEl) {
+        openMds[omd].classList.remove('open');
+        openMds[omd].classList.remove('hover-suppressed');
+      }
+    }
+    if (mdEl) {
+      var wasOpenMd = mdEl.classList.contains('open');
+      mdEl.classList.toggle('open');
+      if (wasOpenMd) {
+        mdEl.classList.add('hover-suppressed');
+      } else {
+        mdEl.classList.remove('hover-suppressed');
+      }
+      return;
+    }
 
     // Score breakdown chip: tap toggles .open on mobile; mouse users
     // get :hover automatically. Clicking outside any chip closes them.
@@ -10845,8 +11008,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       handleSuburbTypeaheadCommit(e.target);
     } else if (e.target.matches('input[data-quick-toggle]')) {
       handleQuickToggle(e.target.dataset.quickToggle, e.target.checked);
-    } else if (e.target.matches('textarea[data-watchlist]')) {
-      handleWatchlistChange(e.target.dataset.watchlist, e.target.value);
+    } else if (e.target.matches('input[data-watch-add]')) {
+      // Commit-on-blur: typed-but-uncommitted value lands too.
+      var kind = e.target.dataset.watchAdd;
+      var v = e.target.value;
+      if (v && v.trim()) {
+        e.target.value = '';
+        handleWatchlistAdd(kind, v);
+      }
     }
   });
 
@@ -10915,6 +11084,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         e.target.matches('input[data-add-suburb-typeahead]')) {
       e.preventDefault();
       handleSuburbTypeaheadCommit(e.target);
+      return;
+    }
+    if (e.key === 'Enter' && e.target.matches &&
+        e.target.matches('input[data-watch-add]')) {
+      e.preventDefault();
+      var wkind = e.target.dataset.watchAdd;
+      var wv = e.target.value;
+      if (wv && wv.trim()) {
+        e.target.value = '';
+        handleWatchlistAdd(wkind, wv);
+      }
       return;
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
