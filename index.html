@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no, address=no, email=no, date=no">
 <title>Melbourne Local Menu - Week of 11th May 2026</title>
 <style>
 :root {
@@ -11213,11 +11214,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         e.target.value = '';
         handleWatchlistAdd(kind, v);
       }
-    } else if (e.target.matches('input[data-watch-editing]')) {
-      // Commit-on-blur for chip edit. If the user clicked the chip's
-      // × button to abandon the edit, handleWatchlistRemove already
-      // re-renders so this commit call lands on a missing index and
-      // safely no-ops.
+    }
+    // Watchlist-editing commit moved to the focusout handler below
+    // because `change` only fires when the value actually changed —
+    // tapping away from an unchanged input left the chip stuck in
+    // edit mode. focusout fires on every blur regardless.
+  });
+  document.addEventListener('focusout', function (e) {
+    if (!e.target.matches) return;
+    if (e.target.matches('input[data-watch-editing]')) {
       var ePair = (e.target.dataset.watchEditing || '').split(':');
       var eKind = ePair[0];
       var eIdx = parseInt(ePair[1], 10);
