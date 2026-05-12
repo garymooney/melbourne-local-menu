@@ -3227,24 +3227,31 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   flex-direction: column;
   gap: 8px;
 }
-.watch-section { margin: 0; }
+.watch-section { margin: 0 0 1em; }
+/* Heading inherits the .subcat-group-heading look set globally
+   (small uppercase warm-accent + 2px bottom rule). Override layout
+   so the + button sits inline next to the title rather than at the
+   row's right edge. Priority keeps the full treatment; Saved steps
+   back to a muted variant so the visual hierarchy reads
+   "Priority first, Saved is the parking lot". */
 .watch-section__heading {
-  /* Mirrors .subcat-group-heading layout — title on left, +
-     button on right. */
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  margin: 6px 0 4px;
-  font-size: 0.85em;
-  font-weight: 600;
-  color: var(--text);
+  justify-content: flex-start;
+  gap: 8px;
 }
-.watch-section--priority .watch-section__heading {
-  color: var(--text);
+.watch-section--saved .watch-section__heading {
+  color: var(--muted);
+  border-bottom-color: color-mix(in srgb, var(--rule) 80%, transparent);
+  border-bottom-width: 1px;
+  font-weight: 600;
+  /* Slightly tighter top margin so Saved tucks under Priority's
+     visual block rather than reading as a peer section. */
+  margin-top: 0.6em;
 }
 .watch-section__icon {
-  color: var(--accent-cool);
-  margin-right: 2px;
+  color: var(--accent-warm);
+  font-size: 1.05em;
 }
 .watch-section-add {
   margin: 4px 0 6px;
