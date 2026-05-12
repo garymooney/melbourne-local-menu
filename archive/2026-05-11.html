@@ -6799,7 +6799,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           // data-no-swipe so the page-swipe pointer handler bails
           // before arming — chip drag owns this gesture entirely.
           'data-no-swipe ' +
-          'title="Double-click to edit · drag to move">' +
+          'title="Tap to edit · drag to move">' +
           '<span class="watch-chip__label" ' +
             'data-watch-edit="' + kind + ':' + bin + ':' + idx + '">' +
             escapeHtml(item) +
@@ -11769,6 +11769,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function _swipeStart(e) {
     if (e.button !== undefined && e.button !== 0) return;
     if (_watchDragState) return; // watchlist chip drag wins
+    // If any watchlist chip is currently in edit mode, the whole page
+    // is swipe-locked regardless of where the touch landed — the user
+    // is mid-typing and a swipe-out would dump the input.
+    if (document.querySelector('input[data-watch-editing]')) return;
     if (e.clientX < SWIPE_EDGE_EXCLUDE) return; // iOS back-swipe
     if (e.target.closest && e.target.closest('[data-no-swipe]')) return;
     // Determine swipe scope by where the pointer lands. Day-content
@@ -11908,19 +11912,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     window.addEventListener('blur', _swipeCancel);
   }
 
-  // Double-click on a watchlist chip label opens inline edit.
-  // Touch devices fire `dblclick` on a quick double-tap; single
-  // taps deliberately do nothing so the drag affordance doesn't
-  // accidentally pop the input.
-  document.addEventListener('dblclick', function (e) {
-    var edit = e.target.closest && e.target.closest('[data-watch-edit]');
-    if (!edit) return;
-    e.preventDefault();
-    var trip = (edit.dataset.watchEdit || '').split(':');
-    var k = trip[0], b = trip[1], i = parseInt(trip[2], 10);
-    if (k && b && !isNaN(i)) handleWatchlistEditStart(k, b, i);
-  });
-
   // Pointer-event delegated handlers for watchlist chip drag. The
   // pointerdown lands on the chip itself (whole chip is the drag
   // handle now — was just a grip icon before).
@@ -11952,8 +11943,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     document.addEventListener('pointerup', function (e) {
       if (!_watchDragState) return;
       if (_watchDragState.pointerId !== e.pointerId) return;
-      if (_watchDragState.armed) _watchDragDrop();
-      else _watchDragCancel();
+      if (_watchDragState.armed) {
+        // Drag committed (long-press or movement past threshold).
+        _watchDragDrop();
+        return;
+      }
+      // Tap-no-drag: pointerdown→pointerup with no movement and no
+      // long-press. Treat as a tap → open inline edit. No 300ms
+      // dblclick wait — single deliberate tap is the edit gesture.
+      var k = _watchDragState.kind;
+      var b = _watchDragState.fromBin;
+      var i = _watchDragState.idx;
+      _watchDragCancel();
+      if (k && b && !isNaN(i)) handleWatchlistEditStart(k, b, i);
     });
     document.addEventListener('pointercancel', _watchDragCancel);
     document.addEventListener('visibilitychange', function () {
