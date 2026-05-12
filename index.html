@@ -3211,10 +3211,43 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   max-width: 100%;
 }
 .watch-chip__label {
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-  max-width: 18ch;
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* Full text visible — no ellipsis. Long names just make the chip
+     wider; the flex-wrap on .watch-list handles wrapping. Clicking
+     the label enters edit mode (see handleWatchlistEditStart). */
+  white-space: normal;
+  word-break: break-word;
+  text-align: left;
+  cursor: text;
+  padding: 0;
+}
+.watch-chip__label:hover {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-cool) 40%, transparent);
+  text-underline-offset: 2px;
+}
+.watch-chip__edit {
+  appearance: none;
+  border: 0;
+  background: transparent;
+  color: inherit;
+  font: inherit;
+  /* 16px so iOS Safari doesn't zoom on focus when the chip is the
+     entry point for edits. */
+  font-size: 16px;
+  line-height: 1.3;
+  outline: none;
+  min-width: 6ch;
+  width: auto;
+  padding: 0;
+}
+.watch-chip--editing {
+  background: color-mix(in srgb, var(--accent-cool) 24%, transparent);
+  border-color: var(--accent-cool);
 }
 .watch-chip__remove {
   appearance: none;
@@ -4010,6 +4043,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       .replace(/^-|-$/g, '') || 'day';
   }
 
+  // Per-match score bonus for user watchlist hits — mirrors the
+  // server-side W_PRIORITY_VENUE / W_PRIORITY_ARTIST. Venue + artist
+  // award independently so an event matching both stacks. Applied in
+  // addition to the auto-pin from applyWatchlistAutoPin(), since the
+  // user wants matches to also rank higher among curated picks.
+  var W_USER_WATCH = 0.30;
+
   var WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var MONTHS = ['January','February','March','April','May','June','July','August',
                 'September','October','November','December'];
@@ -4423,16 +4463,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       else if (fw < 0 && fc < 0) score += fc;
     }
     // Rule bonuses: sum weight for each rule that fired.
-    // Watchlist matches do NOT add a separate score bonus — the
-    // auto-pin (user_pins) already promotes them to the top of the
-    // section and bypasses the score floor, so an extra bonus would
-    // be double-counting against the visible behaviour.
     var rules = event.rules_fired || [];
     var ruleW = profile.rule_weights || {};
     for (var i = 0; i < rules.length; i++) {
       var rw = ruleW[rules[i]];
       if (rw != null) score += rw;
     }
+    // Watchlist bonus: venue/artist matches each award W_USER_WATCH
+    // on top of the auto-pin. The score lift shows in the breakdown
+    // and influences sort ORDER within the pinned cluster (where
+    // multiple pinned events compete for spots near the top).
+    if (eventMatchesWatchVenue(event, profile)) score += W_USER_WATCH;
+    if (eventMatchesWatchArtist(event, profile)) score += W_USER_WATCH;
     // Suburb tier bonus: look up tier from profile.suburb_tiers (keyed
     // by lowercased canonical suburb), then weight from suburb_tier_weights.
     // Anything not in suburb_tiers is "outside" with implicit 0.
@@ -4500,8 +4542,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         total += rw;
       }
     }
-    // Watchlist matches don't contribute a score line — they steer
-    // ranking via auto-pin (user_pins), not score bonus.
+    if (eventMatchesWatchVenue(event, profile)) {
+      parts.push({ label: 'watchlist venue', value: W_USER_WATCH });
+      total += W_USER_WATCH;
+    }
+    if (eventMatchesWatchArtist(event, profile)) {
+      parts.push({ label: 'watchlist artist', value: W_USER_WATCH });
+      total += W_USER_WATCH;
+    }
     var sn2 = event.suburb_normalized;
     var stier2 = sn2 ? ((profile.suburb_tiers || {})[sn2] || 'outside') : 'outside';
     var stierW2 = (profile.suburb_tier_weights || {})[stier2];
@@ -6400,14 +6448,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       label: 'Variety',
       hint: 'How much category &amp; subcategory mix the menu favours.',
       chips: [
-        // Labels run concentrated → diversified left to right.
-        // "Top stack" = score-first, repeats fine; "Forced mix" =
-        // strict per-pick subcategory spread, low repetition even
-        // if a higher-scored event gets demoted.
-        { label: 'Top stack',  multiplier: 0,    color: 'love' },
-        { label: 'Light mix',  multiplier: 0.5,  color: 'like' },
-        { label: 'Varied',     multiplier: 1,    color: 'meh' },
-        { label: 'Forced mix', multiplier: 1.67, color: 'avoid' },
+        // Monotonic less→more variety. Plain wording so the dial's
+        // direction is obvious without context: lower = more
+        // repeats allowed (score-first), higher = more spread
+        // enforced (variety-first, even if it demotes a higher-
+        // scored event).
+        { label: 'Less variety', multiplier: 0,    color: 'love' },
+        { label: 'Some variety', multiplier: 0.5,  color: 'like' },
+        { label: 'Varied',       multiplier: 1,    color: 'meh' },
+        { label: 'More variety', multiplier: 1.67, color: 'avoid' },
       ],
     },
     {
@@ -6556,10 +6605,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // takes new entries on Enter (or commit-on-blur if non-empty).
   function renderWatchlistChips(kind, items) {
     var html = items.map(function (item, idx) {
+      // Label is a button so it gets keyboard focus + Enter-to-edit
+      // for free. Tap/click anywhere on the label swaps it for an
+      // inline input via handleWatchlistEditStart.
       return (
         '<span class="watch-chip" data-watch-kind="' + kind + '" ' +
           'data-watch-idx="' + idx + '">' +
-          '<span class="watch-chip__label">' + escapeHtml(item) + '</span>' +
+          '<button type="button" class="watch-chip__label" ' +
+            'data-watch-edit="' + kind + ':' + idx + '" ' +
+            'title="Edit">' + escapeHtml(item) + '</button>' +
           '<button type="button" class="watch-chip__remove" ' +
             'data-watch-remove="' + kind + ':' + idx + '" ' +
             'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
@@ -6673,6 +6727,68 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     updateSettingsTabDots();
   }
 
+  // Click-to-edit on a chip — swap the label button for an inline
+  // input pre-populated with the current value. Commit on Enter or
+  // blur; cancel on Escape; empty value deletes the chip. Keeps the
+  // remove × in place so the user can still hit "delete" once the
+  // edit mode is active.
+  function handleWatchlistEditStart(kind, idx) {
+    var key = watchlistListFor(kind);
+    var cur = profile[key] || [];
+    if (idx < 0 || idx >= cur.length) return;
+    var container = document.querySelector(
+      '.watch-list[data-watch-list="' + kind + '"]');
+    if (!container) return;
+    var chip = container.querySelector(
+      '.watch-chip[data-watch-idx="' + idx + '"]');
+    if (!chip) return;
+    var current = cur[idx] || '';
+    // Replace the label-button with an input; keep the × so the user
+    // can still bail out by deleting.
+    chip.classList.add('watch-chip--editing');
+    chip.innerHTML =
+      '<input type="text" class="watch-chip__edit" ' +
+        'data-watch-editing="' + kind + ':' + idx + '" ' +
+        'data-watch-original="' + escapeHtml(current) + '" ' +
+        'value="' + escapeHtml(current) + '" autocomplete="off" ' +
+        'spellcheck="false" autocapitalize="words">' +
+      '<button type="button" class="watch-chip__remove" ' +
+        'data-watch-remove="' + kind + ':' + idx + '" ' +
+        'aria-label="Remove">&times;</button>';
+    var input = chip.querySelector('input.watch-chip__edit');
+    if (input) { input.focus(); input.select(); }
+  }
+
+  function handleWatchlistEditCommit(kind, idx, raw) {
+    var val = String(raw || '').trim();
+    var key = watchlistListFor(kind);
+    var cur = (profile[key] || []).slice();
+    if (idx < 0 || idx >= cur.length) return;
+    if (!val) {
+      // Empty value → delete the chip (handleWatchlistRemove handles
+      // auto-unpin and re-render).
+      handleWatchlistRemove(kind, idx);
+      return;
+    }
+    var norm = _normalizeForWatch(val);
+    // Dedup against other entries; if a different chip already holds
+    // the same normalised form, drop THIS edit and remove this chip.
+    for (var i = 0; i < cur.length; i++) {
+      if (i === idx) continue;
+      if (_normalizeForWatch(cur[i]) === norm) {
+        handleWatchlistRemove(kind, idx);
+        return;
+      }
+    }
+    cur[idx] = val;
+    profile[key] = cur;
+    _watchRegexCache && _watchRegexCache.clear();
+    applyWatchlistAutoPin();
+    saveProfile();
+    requestRenderAll();
+    rerenderWatchlistSection(kind);
+  }
+
   // "Show event scores" toggle relocated from Theme — lives inside the
   // Tuning > Advanced disclosure where its destructive twin (raw shape
   // sliders) also lives.
@@ -6760,11 +6876,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var friendlyRows = TUNING_FRIENDLY.map(renderTuningFriendlyRow).join('\n');
     var advancedRows = SHAPE_FIELDS.map(renderShapeRow).join('\n');
     var weightRows = SUBURB_WEIGHT_FIELDS.map(renderSuburbWeightRow).join('\n');
+    // Show-event-scores toggle sits at the top of the panel — it's a
+    // useful diagnostic gate users reach for often, so it doesn't
+    // belong buried under the Advanced disclosure with the
+    // raw-shape sliders.
     return (
+      renderShowScoreToggleHtml() +
       '<div class="subcat-group">' + friendlyRows + '</div>' +
       '<details class="tuning-advanced" data-persist-open="tuning-advanced">' +
         '<summary>Advanced</summary>' +
-        renderShowScoreToggleHtml() +
         '<div class="subcat-group">' + advancedRows + weightRows + '</div>' +
       '</details>'
     );
@@ -7165,8 +7285,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       renderSubPanel({
         name: 'rules',
         hidden: true,
-        desc: 'Specific situations the menu reacts to &mdash; favourite ' +
-          'venues, free events, dating events, and so on.',
+        desc: 'Soft rules the menu folds into the ranking &mdash; ' +
+          'free events, date ideas, alt-lifestyle picks, age range.',
         body: renderRulesPanel(),
         resetAction: 'reset-rules',
         resetLabel: 'Reset all rules',
@@ -10856,6 +10976,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return;
     }
 
+    // Watchlist chip label — click to edit in place.
+    var watchEdit = e.target.closest && e.target.closest('[data-watch-edit]');
+    if (watchEdit) {
+      e.preventDefault();
+      var ePair = (watchEdit.dataset.watchEdit || '').split(':');
+      var eKind = ePair[0];
+      var eIdx = parseInt(ePair[1], 10);
+      if (eKind && !isNaN(eIdx)) handleWatchlistEditStart(eKind, eIdx);
+      return;
+    }
+
     // Pick from the custom suburb typeahead dropdown. Mirrors the
     // datalist-pick path on desktop browsers — fills the input and
     // commits via the same handleSuburbTypeaheadCommit flow.
@@ -11082,6 +11213,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         e.target.value = '';
         handleWatchlistAdd(kind, v);
       }
+    } else if (e.target.matches('input[data-watch-editing]')) {
+      // Commit-on-blur for chip edit. If the user clicked the chip's
+      // × button to abandon the edit, handleWatchlistRemove already
+      // re-renders so this commit call lands on a missing index and
+      // safely no-ops.
+      var ePair = (e.target.dataset.watchEditing || '').split(':');
+      var eKind = ePair[0];
+      var eIdx = parseInt(ePair[1], 10);
+      if (eKind && !isNaN(eIdx)) {
+        handleWatchlistEditCommit(eKind, eIdx, e.target.value);
+      }
     }
   });
 
@@ -11162,6 +11304,25 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         handleWatchlistAdd(wkind, wv);
       }
       return;
+    }
+    // Watchlist chip edit input: Enter commits, Escape cancels.
+    if (e.target.matches && e.target.matches('input[data-watch-editing]')) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var ePair = (e.target.dataset.watchEditing || '').split(':');
+        var eKind = ePair[0];
+        var eIdx = parseInt(ePair[1], 10);
+        if (eKind && !isNaN(eIdx)) {
+          handleWatchlistEditCommit(eKind, eIdx, e.target.value);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        var cKind = (e.target.dataset.watchEditing || '').split(':')[0];
+        if (cKind) rerenderWatchlistSection(cKind);
+        return;
+      }
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       var tab = e.target.closest && e.target.closest('.day-tab');
