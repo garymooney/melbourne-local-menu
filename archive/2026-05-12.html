@@ -3,6 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="format-detection" content="telephone=no, address=no, email=no, date=no">
 <title>Melbourne Local Menu - Week of 12th May 2026</title>
 <style>
 :root {
@@ -119,6 +120,23 @@ body {
   z-index: 10;
   background: var(--bg);
   padding-top: 0.8em;
+}
+/* Extend the header's solid background full-viewport-width via an
+   absolutely-positioned pseudo-element. The .container's padding
+   leaves a strip on each side of the header otherwise — during a
+   swipe, the translated day panel's edges peek through those strips.
+   This pseudo backs the header edge-to-edge regardless of container
+   width and sits BELOW the header content (z-index: -1). */
+.site-header::before {
+  content: "";
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  width: 100vw;
+  background: var(--bg);
+  z-index: -1;
 }
 /* 1px gradient hairline replacing the flat border-bottom. Echoes the
    brand-mark stripe so the header reads as one composed surface even
@@ -1073,10 +1091,41 @@ body:has(#first-visit-nudge) .day {
      ~44px). +12px of breathing room so the card top isn't flush. */
   scroll-margin-top: calc(var(--header-offset, 120px) + 56px);
 }
+/* Swipe scopes — .day section (per day) + #settings-view (settings
+   panel body) + #all-week-heading (banner). touch-action: pan-y
+   lets the browser handle native vertical scroll while horizontal
+   pans are intercepted by our pointermove handler. */
+.day, #settings-view, #all-week-heading { touch-action: pan-y; }
+/* Clip the swipe area to the viewport so a translated panel never
+   spills out the right/left side past the .container padding strips.
+   #main holds every day panel + settings + all-week banner.
+   position: relative is the anchor for the day-to-day swipe preview
+   pattern (prev/current/next .day siblings get absolute-positioned
+   relative to #main during the gesture). */
+#main { overflow-x: clip; position: relative; }
+/* During a day-to-day swipe, prev / current / next .day siblings all
+   sit absolute at the same top so they translate in lockstep. The
+   inline top is set per swipe based on the current panel's offsetTop
+   (varies with leading siblings: nudge, all-week banner). */
+.day.swipe-preview {
+  position: absolute;
+  left: 0;
+  right: 0;
+  width: 100%;
+}
+/* Subtab strip + day-tab strip opt out of swipe entirely via
+   [data-no-swipe] (JS check); they keep their own overflow-x scroll
+   so the active pill stays scrollable into view. */
+
 .event > * { grid-column: 1 / -1; }
 .event > .time { grid-column: 1; align-self: baseline; }
-.event > .price { grid-column: 2; align-self: baseline; justify-self: start; }
-.event > .price::before {
+/* Row order: time · multi-day · price. Multi-day lives between
+   time and price so it reads as a schedule modifier on the time
+   rather than a price modifier. */
+.event > .multi-day-tag { grid-column: 2; align-self: baseline; justify-self: start; }
+.event > .price { grid-column: 3; align-self: baseline; justify-self: start; }
+.event > .price::before,
+.event > .multi-day-tag::before {
   content: "·";
   margin: 0 0.5em;
   color: #a89e90;
@@ -1344,7 +1393,16 @@ body.has-banner > *:not(.deep-link-banner) {
 /* Title — loudest thing on the card. */
 .title {
   color: #141210;
-  text-decoration: none;
+  /* Persistent faint underline so the title reads as a link without
+     turning bright blue. Matches the multi-day / score-chip
+     affordance vocabulary but a notch stronger (35% vs 28%) since
+     this is the primary card link rather than a hover tooltip cue.
+     Hover bumps the underline toward accent-cool — the only place
+     the link "blue-ness" surfaces, keeping the resting state calm. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+  text-decoration-color: color-mix(in srgb, var(--faint) 35%, transparent);
   font-size: 17px;
   line-height: 22px;
   font-weight: 580;
@@ -1358,7 +1416,9 @@ body.has-banner > *:not(.deep-link-banner) {
   -webkit-user-select: text;
   user-select: text;
 }
-.title:hover { text-decoration: underline; }
+.title:hover {
+  text-decoration-color: color-mix(in srgb, var(--accent-cool) 70%, transparent);
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event .title { color: #f4f1ed; }
 }
@@ -1391,6 +1451,125 @@ body.has-banner > *:not(.deep-link-banner) {
 .price.free {
   color: var(--free-green);
   font-weight: 600;
+}
+
+/* Multi-day tag — inline schedule meta rendered between .time and
+   .price in the .event grid's first row so it reads as a third bit
+   of card metadata rather than a separate block. Just "multi-day"
+   — the start / end / span / cadence detail lives in the
+   hover/focus __tip. The mid-dot separator before/after the label
+   (via the shared .event > rule above) makes the row scan
+   `7:30pm · multi-day · $25`.
+   Carries a hover/focus-revealed __tip popover that mirrors the
+   .score-breakdown pattern — instant CSS hover, no native-title
+   ~700ms delay. */
+.multi-day-tag {
+  position: relative;
+  margin-top: 6px;
+  /* Slightly larger hit area + raise above the title link's z-stack
+     so a finger landing on the pill always hits the pill rather
+     than spilling onto the title anchor underneath it. */
+  z-index: 2;
+  padding: 4px 0;
+  font-size: 13px;
+  font-weight: 500;
+  font-variant-numeric: tabular-nums;
+  color: #6a6258;
+  cursor: help;
+}
+/* Give the label a hover/active surface that visibly extends the
+   hit target so the user senses the larger tappable zone. */
+.multi-day-tag__label {
+  display: inline-block;
+  padding: 2px 4px;
+  margin: -2px -4px;
+}
+.multi-day-tag__label {
+  /* Faint solid underline as the "more info on hover" cue —
+     subtler than the dashed style we tried (which read as rough
+     in the row) but still visually different from .time / .price
+     so it doesn't disappear into them. Slightly bolder on hover
+     to reinforce the affordance. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
+  text-underline-offset: 2px;
+  text-decoration-color: color-mix(in srgb, var(--faint) 28%, transparent);
+}
+.multi-day-tag:hover .multi-day-tag__label,
+.multi-day-tag:focus-within .multi-day-tag__label {
+  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .event .multi-day-tag { color: #a89e90; }
+}
+:root[data-theme="dark"] .event .multi-day-tag { color: #a89e90; }
+/* Tooltip — every property mirrors .score-breakdown so the two
+   tooltips read as one design vocabulary. Font-size is set absolute
+   (12px) rather than `0.75em` so the parent .multi-day-tag's smaller
+   font-size doesn't shrink the tooltip text out of legibility — the
+   score-breakdown gets 12px naturally because .score-chip inherits
+   the 16px body size, but .multi-day-tag carries its own 13px. */
+.multi-day-tag__tip {
+  display: none;
+  position: absolute;
+  z-index: 30;
+  top: calc(100% + 4px);
+  left: 0;
+  min-width: 220px;
+  max-width: 300px;
+  padding: 8px 10px;
+  background: var(--card-bg);
+  border: 1px solid color-mix(in srgb, var(--faint) 35%, transparent);
+  border-radius: 6px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.18);
+  font-size: 12px;
+  font-family: var(--mono-font);
+  font-weight: 400;
+  font-style: normal;
+  color: var(--text);
+  line-height: 1.5;
+  white-space: normal;
+  letter-spacing: normal;
+  font-variant-numeric: tabular-nums;
+}
+.multi-day-tag:focus-within .multi-day-tag__tip,
+.multi-day-tag.open .multi-day-tag__tip {
+  display: block;
+}
+@media (hover: hover) {
+  .multi-day-tag:hover:not(.hover-suppressed) .multi-day-tag__tip {
+    display: block;
+  }
+}
+.multi-day-tag__tip-row {
+  display: flex;
+  gap: 8px;
+}
+.multi-day-tag__tip-key {
+  min-width: 3.6em;
+  text-align: right;
+  font-weight: 600;
+  color: var(--faint);
+  flex-shrink: 0;
+}
+.multi-day-tag__tip-val {
+  flex: 1;
+  word-break: break-word;
+}
+.multi-day-tag__tip-total {
+  border-top: 1px dashed color-mix(in srgb, var(--faint) 40%, transparent);
+  margin-top: 4px;
+  padding-top: 4px;
+}
+.multi-day-tag__tip-total .multi-day-tag__tip-key {
+  color: var(--text);
+}
+/* Days list — one row per day this event runs in the loaded window.
+   The viewed card's own day gets the .--here modifier and is bolded
+   so the reader can pick it out at a glance. */
+.multi-day-tag__days-row--here .multi-day-tag__tip-val {
+  font-weight: 600;
+  color: var(--text);
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event .time,
@@ -1426,28 +1605,39 @@ body.has-banner > *:not(.deep-link-banner) {
 .score-chip {
   position: relative;
   display: inline-block;
-  /* Parent .event is a flex column; without align-self the chip
-     stretches across the cross-axis so its hover area extends to
-     the card's right edge. flex-start collapses it to its content
-     width so only the text triggers the tooltip. */
-  align-self: flex-start;
+  /* Parent .event is a CSS grid. `justify-self: start` is what
+     actually collapses the chip's box along the inline axis so the
+     hover area only covers the score text — without it, grid items
+     default to `justify-self: stretch` and the box spans the column
+     (whole card width) so any mouseover in that row triggers the
+     tooltip. `align-self: start` is the block-axis counterpart and
+     stays for completeness; the legacy `flex-start` comment dated
+     from the pre-grid layout. */
+  justify-self: start;
+  align-self: start;
   margin-top: 4px;
   cursor: help;
 }
 .score-chip .score-debug {
-  text-decoration: underline dotted;
+  /* Matches .multi-day-tag__label so the two hover-info affordances
+     read as one design vocabulary — faint 1px solid underline,
+     darker on hover/focus. Replaces the previous dotted style. */
+  text-decoration: underline;
+  text-decoration-thickness: 1px;
   text-underline-offset: 2px;
-  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
+  text-decoration-color: color-mix(in srgb, var(--faint) 28%, transparent);
 }
 .score-chip:focus-within .score-debug,
 .score-chip.open .score-debug {
   opacity: 1;
   color: var(--text);
+  text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
 }
 @media (hover: hover) {
   .score-chip:hover:not(.hover-suppressed) .score-debug {
     opacity: 1;
     color: var(--text);
+    text-decoration-color: color-mix(in srgb, var(--faint) 60%, transparent);
   }
 }
 .score-breakdown {
@@ -1997,6 +2187,17 @@ body.has-banner > *:not(.deep-link-banner) {
   text-shadow: 0 1px 1px rgba(0, 0, 0, 0.25);
   border: 0;
 }
+/* Watchlist pill — solid cool-accent + star glyph; distinct from
+   the gradient .date-idea pill so the two badges can co-occur on a
+   card without visual collision. Marks events whose venue or title
+   matched one of the user's Watchlist entries. */
+.pill.watchlist,
+.event .pill.watchlist {
+  color: #fff;
+  background: var(--accent-cool);
+  text-shadow: 0 1px 1px rgba(0, 0, 0, 0.2);
+  border: 0;
+}
 .acknowledgement {
   margin: 1.5em auto 0;
   padding: 1.5em 1em 0.5em;
@@ -2216,7 +2417,11 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .subcat-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  /* Always 3-col so the row layout doesn't reflow when a row toggles
+     into the modified state — chips/sliders stay put, the reset slot
+     just becomes visible. Without this the slider visually shifts
+     when the reset button appears (jittery on mobile especially). */
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 6px 2px;
@@ -2302,7 +2507,7 @@ body.has-banner > *:not(.deep-link-banner) {
 
 .suburb-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
+  grid-template-columns: minmax(0, 1fr) auto auto;
   align-items: center;
   gap: 10px;
   padding: 6px 2px;
@@ -2335,7 +2540,8 @@ body.has-banner > *:not(.deep-link-banner) {
    unless the row is modified. Modified rows reveal the button on
    hover / focus-within (desktop), or always on touch (no hover). */
 .row-reset-btn {
-  display: none;
+  display: inline-flex;
+  visibility: hidden;
   align-items: center;
   justify-content: center;
   width: 22px;
@@ -2352,12 +2558,13 @@ body.has-banner > *:not(.deep-link-banner) {
   opacity: 0;
   transition: opacity 0.12s, color 0.12s, border-color 0.12s;
   flex-shrink: 0;
-  /* Sits in column 2, between the label and chips. The chip cluster
-     stays anchored to the row's right edge — label (1fr) absorbs the
-     reset's width so chips don't shift on toggle. */
+  /* Always rendered to reserve column 2 in the row grid. Chips and
+     sliders stay anchored to their column regardless of modified
+     state — toggling a row no longer shifts neighbouring controls.
+     visibility: hidden hides the chrome but keeps the cell width. */
 }
 [data-modified="true"] .row-reset-btn {
-  display: inline-flex;
+  visibility: visible;
 }
 .subcat-row[data-modified="true"]:hover .row-reset-btn,
 .suburb-row[data-modified="true"]:hover .row-reset-btn,
@@ -2433,7 +2640,7 @@ body.has-banner > *:not(.deep-link-banner) {
  * to a 4-tier picker. Same .tri-state control as subcategory rows. */
 .facet-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 12px;
   padding: 10px 2px;
@@ -2462,12 +2669,18 @@ body.has-banner > *:not(.deep-link-banner) {
   border-radius: 6px;
   border-left: 3px solid var(--accent-cool);
 }
+/* Subtab-level explainer at the top of each Settings panel. Visually
+   distinct from per-row option blurbs (.facet-blurb, .subcat-blurb)
+   so the reader can tell "what is this panel for" apart from "what
+   does this single row do". */
 .settings-panel-desc {
-  font-size: 0.88em;
+  font-size: 0.85em;
+  font-style: italic;
   color: var(--muted);
-  line-height: 1.4;
-  margin: 0 0 0.75em;
-  padding: 0 2px;
+  line-height: 1.45;
+  margin: 0 0 0.9em;
+  padding: 0 0 0.6em;
+  border-bottom: 1px dashed color-mix(in srgb, var(--rule) 70%, transparent);
 }
 .settings-storage-note {
   font-size: 0.78em;
@@ -2484,7 +2697,7 @@ body.has-banner > *:not(.deep-link-banner) {
  * the shape-input is a range slider + value display. */
 .rule-row, .shape-row {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: 1fr auto auto;
   align-items: center;
   gap: 12px;
   padding: 10px 2px;
@@ -2880,11 +3093,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 }
 
 /* Tuning > Advanced disclosure — collapsed by default; houses the
-   raw shape sliders and the relocated Show event scores toggle. */
+   raw shape sliders and the relocated Show event scores toggle.
+   The divider was a single hairline that vanished once expanded;
+   bumped to 2px + a brighter mix so the section break is obvious
+   even when the disclosure is open. */
 .tuning-advanced {
-  margin-top: 1em;
-  border-top: 1px solid var(--rule);
-  padding-top: 0.6em;
+  margin-top: 1.2em;
+  border-top: 2px solid color-mix(in srgb, var(--rule) 75%, var(--text) 25%);
+  padding-top: 0.8em;
 }
 .tuning-advanced > summary {
   cursor: pointer;
@@ -3004,6 +3220,170 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   background: color-mix(in srgb, var(--accent-cool) 12%, transparent);
   outline: none;
 }
+
+/* Watchlist sub-tab — list-style UI mirroring the suburb tab.
+   Two sections per kind (Priority + Saved). Each section heading
+   has a `+` button that expands an inline input below; each row
+   is `[name | move | ×]` with the name itself acting as a
+   tap-to-edit affordance. Replaces the earlier chip drag UI
+   which was fighting iOS gesture conflicts. */
+.watchlist-section { margin: 0 0 1.6em; }
+.watchlist-section + .watchlist-section { margin-top: 1.6em; }
+.watchlist-hint {
+  font-size: 0.85em;
+  color: var(--muted);
+  line-height: 1.45;
+  margin: 0 0 12px;
+}
+.watchlist-kind {
+  display: flex;
+  flex-direction: column;
+  gap: 8px;
+}
+.watch-section { margin: 0 0 1em; }
+/* Heading inherits the .subcat-group-heading look set globally
+   (small uppercase warm-accent + 2px bottom rule). Override layout
+   so the + button sits inline next to the title rather than at the
+   row's right edge. Priority keeps the full treatment; Saved steps
+   back to a muted variant so the visual hierarchy reads
+   "Priority first, Saved is the parking lot". */
+.watch-section__heading {
+  display: flex;
+  align-items: center;
+  justify-content: flex-start;
+  gap: 8px;
+}
+.watch-section--saved .watch-section__heading {
+  color: var(--muted);
+  border-bottom-color: color-mix(in srgb, var(--rule) 80%, transparent);
+  border-bottom-width: 1px;
+  font-weight: 600;
+  /* Slightly tighter top margin so Saved tucks under Priority's
+     visual block rather than reading as a peer section. */
+  margin-top: 0.6em;
+}
+.watch-section__icon {
+  color: var(--accent-warm);
+  font-size: 1.05em;
+}
+.watch-section-add {
+  margin: 4px 0 6px;
+  padding: 4px 2px;
+}
+.watch-section-add[hidden] { display: none; }
+.watch-add-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text);
+  font: inherit;
+  /* 16px so iOS Safari doesn't zoom on focus. */
+  font-size: 16px;
+}
+.watch-add-input:focus {
+  outline: none;
+  border-color: var(--accent-cool);
+}
+.watch-rows {
+  display: flex;
+  flex-direction: column;
+}
+.watch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--rule);
+}
+.watch-row:last-child { border-bottom: 0; }
+.watch-row__name {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95em;
+  text-align: left;
+  padding: 4px 0;
+  cursor: text;
+  /* Long names wrap onto multiple lines rather than truncating —
+     full visibility at the cost of slight section height. */
+  white-space: normal;
+  word-break: break-word;
+  min-width: 0;
+}
+.watch-section--priority .watch-row__name { color: var(--text); }
+.watch-row__name:hover {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-cool) 50%, transparent);
+  text-underline-offset: 2px;
+}
+.watch-row__move {
+  appearance: none;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--faint) 40%, transparent);
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.1em;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.watch-row__move:hover,
+.watch-row__move:focus-visible {
+  color: var(--accent-cool);
+  border-color: var(--accent-cool);
+  outline: none;
+}
+.watch-row__remove {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.3em;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
+  border-radius: 50%;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.watch-row__remove:hover,
+.watch-row__remove:focus-visible {
+  color: #fff;
+  background: color-mix(in srgb, var(--accent-cool) 60%, transparent);
+  outline: none;
+}
+.watch-row__edit {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 16px;       /* iOS no-zoom on focus */
+  padding: 4px 0;
+  outline: none;
+  width: 100%;
+  min-width: 0;
+}
+.watch-row--editing .watch-row__edit {
+  border-bottom: 1px solid var(--accent-cool);
+}
+/* Chip-drag UI retired in favour of row-list; chip styles dropped. */
+/* .watch-chip* and .watch-input retired — replaced by
+   .watch-row* + .watch-add-input above. */
 
 /* Outside section is rendered as a <details> disclosure so it sits
    collapsed by default — typically the largest section and rarely
@@ -3257,7 +3637,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 </div>
 </div>
 <div class="tabs-row">
-<nav class="day-tabs" role="tablist" aria-label="Days"></nav>
+<nav class="day-tabs" role="tablist" aria-label="Days" data-no-swipe></nav>
 <span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day of the week stacked" title="Show every day of the week stacked"><span class="tab-weekday">All week</span><span class="tab-count" data-week-count></span></button></span>
 </div>
 <div class="search-panel" id="search-panel" hidden>
@@ -3324,6 +3704,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     'reset-rules':      ['rule_states', 'rule_weights', 'pinning_rules',
                          'min_age', 'max_age'],
     'reset-suburbs':    ['suburb_tiers', 'suburb_tier_weights'],
+    'reset-watchlist':  ['priority_venues', 'saved_venues',
+                         'priority_artists', 'saved_artists'],
     'reset-shape':      ['score_floor', 'diversity_category', 'diversity_subcategory', 'tier_bonuses'],
     'reset-appearance': ['theme'],
   };
@@ -3610,6 +3992,70 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     merged.max_age = (typeof stored.max_age === 'number')
       ? stored.max_age : (defaults.max_age != null ? defaults.max_age : 99);
 
+    // Dual-bin watchlist (schema v2). Priority bin auto-pins +
+    // tags matching events; Saved bin is an inert roster the user
+    // can drag into Priority. Migration paths:
+    //   - v2 stored: take both bins as-is.
+    //   - v1 stored (user_priority_venues / _artists): treat the
+    //     old single list as the user's curated Priority picks,
+    //     and seed Saved from defaults minus whatever's already in
+    //     Priority (no duplicates).
+    //   - fresh: priority empty; saved = shipped defaults.
+    function _dedup(list) {
+      var out = [];
+      var seen = {};
+      for (var i = 0; i < list.length; i++) {
+        var v = String(list[i] || '').trim();
+        if (!v) continue;
+        var k = v.toLowerCase();
+        if (seen[k]) continue;
+        seen[k] = true;
+        out.push(v);
+      }
+      return out;
+    }
+    function _migrateBin(kind) {
+      // kind is 'venues' or 'artists'. Returns {priority, saved}.
+      var pKey = 'priority_' + kind;
+      var sKey = 'saved_' + kind;
+      var legacyKey = 'user_priority_' + kind;
+      if (stored && stored.schema_version >= 2 &&
+          Array.isArray(stored[pKey]) && Array.isArray(stored[sKey])) {
+        return {
+          priority: _dedup(stored[pKey]),
+          saved:    _dedup(stored[sKey]),
+        };
+      }
+      if (stored && Array.isArray(stored[legacyKey])) {
+        var p = _dedup(stored[legacyKey]);
+        var pSet = {};
+        for (var i = 0; i < p.length; i++) pSet[p[i].toLowerCase()] = true;
+        var seedSaved = (Array.isArray(defaults[sKey]) ? defaults[sKey] : []);
+        var s = _dedup(seedSaved).filter(function (v) {
+          return !pSet[v.toLowerCase()];
+        });
+        return { priority: p, saved: s };
+      }
+      return {
+        priority: [],
+        saved: _dedup(Array.isArray(defaults[sKey]) ? defaults[sKey] : []),
+      };
+    }
+    var migV = _migrateBin('venues');
+    var migA = _migrateBin('artists');
+    merged.priority_venues  = migV.priority;
+    merged.saved_venues     = migV.saved;
+    merged.priority_artists = migA.priority;
+    merged.saved_artists    = migA.saved;
+    merged.schema_version   = 2;
+    // auto_pinned_watch_ids — every event id we've ever auto-pinned
+    // because of a Priority-bin match. Once an id lands here we
+    // won't auto-pin it again, so an explicit unpin sticks even
+    // though the event would still match a Priority entry.
+    merged.auto_pinned_watch_ids = Array.isArray(stored.auto_pinned_watch_ids)
+      ? stored.auto_pinned_watch_ids.slice()
+      : [];
+
     return merged;
   }
 
@@ -3642,6 +4088,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         theme: profile.theme || 'auto',
         min_age: profile.min_age,
         max_age: profile.max_age,
+        schema_version: 2,
+        priority_venues:  profile.priority_venues  || [],
+        saved_venues:     profile.saved_venues     || [],
+        priority_artists: profile.priority_artists || [],
+        saved_artists:    profile.saved_artists    || [],
+        auto_pinned_watch_ids: profile.auto_pinned_watch_ids || [],
       }));
     } catch (_) {}
   }
@@ -3733,6 +4185,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       .replace(/^-|-$/g, '') || 'day';
   }
 
+  // Per-match score bonus for user watchlist hits — mirrors the
+  // server-side W_PRIORITY_VENUE / W_PRIORITY_ARTIST. Venue + artist
+  // award independently so an event matching both stacks. Applied in
+  // addition to the auto-pin from applyWatchlistAutoPin(), since the
+  // user wants matches to also rank higher among curated picks.
+  var W_USER_WATCH = 0.30;
+
   var WEEKDAYS = ['Sunday','Monday','Tuesday','Wednesday','Thursday','Friday','Saturday'];
   var MONTHS = ['January','February','March','April','May','June','July','August',
                 'September','October','November','December'];
@@ -3772,6 +4231,277 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return { lead: tonightFlipped ? 'Tonight' : 'Today', trail: shortDate };
     }
     return { lead: WEEKDAYS[d.getDay()], trail: d.getDate() + ' ' + MONTHS_SHORT[d.getMonth()] };
+  }
+
+  // User watchlist — venues and artists the user types into the
+  // Watchlist Settings tab. Stored as two arrays of free-text entries
+  // on the profile. A match against an event awards a +0.30 score
+  // bonus (matching the server-side W_PRIORITY_VENUE / _ARTIST
+  // weights) and promotes the event to "pinned" treatment in
+  // buildRanking — always in curated, above the floor, sits at the
+  // top of its section.
+  function _escapeRegex(s) {
+    return s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+  }
+  // Compiled-regex cache so 1500 events × N watchlist terms doesn't
+  // recompile per render. Cleared whenever the watchlist mutates.
+  // Key is the normalised term; value is the regex.
+  var _watchRegexCache = (typeof Map === 'function') ? new Map() : null;
+  function _watchTermRegex(normTerm) {
+    if (_watchRegexCache && _watchRegexCache.has(normTerm)) {
+      return _watchRegexCache.get(normTerm);
+    }
+    var re = new RegExp('\\b' + _escapeRegex(normTerm) + '\\b');
+    if (_watchRegexCache) _watchRegexCache.set(normTerm, re);
+    return re;
+  }
+  // Punctuation-stripped, whitespace-collapsed lowercase form used for
+  // watchlist matching so "Bar 303" matches "Bar-303", "Tim's Bar"
+  // matches "Tims Bar", "Kamasi, Washington" matches "Kamasi
+  // Washington", etc. Drops apostrophes, hyphens, commas, periods,
+  // ampersands; collapses runs of whitespace.
+  function _normalizeForWatch(s) {
+    return String(s || '')
+      .toLowerCase()
+      .replace(/['’`]/g, '')
+      .replace(/[-–—,.&/]+/g, ' ')
+      .replace(/\s+/g, ' ')
+      .trim();
+  }
+  // watchlistRevision increments on every Priority-bin mutation.
+  // The match cache below is keyed by (revision, eventId); a bumped
+  // revision forces a single cache miss → fresh scan → fresh entry.
+  // Saved-bin edits don't bump the revision (they don't affect
+  // matching), so dragging-without-promoting is free.
+  var watchlistRevision = 0;
+  function bumpWatchlistRevision() {
+    watchlistRevision++;
+    _watchRegexCache && _watchRegexCache.clear();
+    _watchMatchCache = null;
+  }
+
+  // Per-event match cache: { eventId: { v, a } } booleans. Built
+  // lazily the first time a render asks for a match after a
+  // revision bump. Empty Priority lists short-circuit before the
+  // cache is built.
+  var _watchMatchCache = null;
+  function _watchMatchFor(ev) {
+    if (!ev || ev.id == null) return { v: false, a: false };
+    if (_watchMatchCache) return _watchMatchCache[ev.id] ||
+                                 (_watchMatchCache[ev.id] = _computeWatchMatch(ev));
+    _watchMatchCache = {};
+    return (_watchMatchCache[ev.id] = _computeWatchMatch(ev));
+  }
+  function _computeWatchMatch(ev) {
+    var venues = profile.priority_venues || [];
+    var artists = profile.priority_artists || [];
+    var venueHit = false;
+    if (venues.length && ev.venue) {
+      var hayV = _normalizeForWatch(ev.venue);
+      for (var i = 0; i < venues.length; i++) {
+        var t = _normalizeForWatch(venues[i]);
+        if (t && hayV.indexOf(t) !== -1) { venueHit = true; break; }
+      }
+    }
+    var artistHit = false;
+    if (artists.length) {
+      var hayA = _normalizeForWatch(
+        (ev.title || '') + ' ' + (ev.context_line || ''));
+      for (var j = 0; j < artists.length; j++) {
+        var tA = _normalizeForWatch(artists[j]);
+        if (!tA) continue;
+        if (_watchTermRegex(tA).test(hayA)) { artistHit = true; break; }
+      }
+    }
+    return { v: venueHit, a: artistHit };
+  }
+  function eventMatchesWatchVenue(ev)  { return _watchMatchFor(ev).v; }
+  function eventMatchesWatchArtist(ev) { return _watchMatchFor(ev).a; }
+  function eventMatchesWatchlist(ev)   {
+    var m = _watchMatchFor(ev);
+    return m.v || m.a;
+  }
+
+  // One-shot auto-pin pass: every event matching the user's watchlist
+  // gets added to pinned_event_ids the FIRST time we see it. After
+  // that the id is tracked in auto_pinned_watch_ids so subsequent
+  // passes never re-pin it — a user who unpins the auto-pin keeps it
+  // unpinned even though the event still matches a watchlist entry.
+  // Watching badge stays based on live matching, independent of pin.
+  function applyWatchlistAutoPin() {
+    var auto = new Set(profile.auto_pinned_watch_ids || []);
+    var pinned = (profile.pinned_event_ids || []).slice();
+    var pinnedSet = new Set(pinned);
+    var changedAuto = false;
+    var changedPinned = false;
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (!ev || ev.id == null) continue;
+      var key = String(ev.id);
+      if (auto.has(key)) continue;
+      if (!eventMatchesWatchlist(ev, profile)) continue;
+      auto.add(key);
+      changedAuto = true;
+      if (!pinnedSet.has(key)) {
+        pinned.push(key);
+        pinnedSet.add(key);
+        changedPinned = true;
+      }
+    }
+    if (changedAuto) profile.auto_pinned_watch_ids = Array.from(auto);
+    if (changedPinned) profile.pinned_event_ids = pinned;
+    if (changedAuto || changedPinned) {
+      saveProfile();
+      if (changedPinned) refreshPinnedSet();
+    }
+  }
+  // Run the initial auto-pin pass immediately so first-time visitors
+  // (who get the config-default watchlist via score_export) see those
+  // events already pinned without an extra render cycle.
+  applyWatchlistAutoPin();
+
+  // Treat any price string with "free" as a free event — covers
+  // "Free", "Free event", "from free" (tiered with a free option),
+  // etc. Used for both the green-text display and the "Free events
+  // only" filter, so the two stay consistent. Falls back to the
+  // server's `ev.is_free` flag for events with no price string at
+  // all (server treats those as null = not free, but we honour
+  // whatever the server decided).
+  function eventIsFree(ev) {
+    if (!ev) return false;
+    if (ev.price && /\bfree\b/i.test(ev.price)) return true;
+    return !!ev.is_free;
+  }
+
+  // Compresses verbose time_display strings emitted by recommend.py
+  // for events without a concrete time (continuous exhibitions, etc.).
+  // "open during venue hours" is the most common offender — it crowds
+  // the schedule row out next to the multi-day pill and price. The
+  // multi-day pill already signals "this isn't a one-off", so "venue
+  // hours" alone reads cleanly.
+  function shortenTimeDisplay(td) {
+    if (!td) return td;
+    var low = String(td).trim().toLowerCase();
+    if (low === 'open during venue hours') return 'venue hours';
+    return td;
+  }
+
+  // Collapses comma- / slash-separated tier prices into a compact
+  // range so the schedule row doesn't sprawl. Triggers only when
+  // there are 2+ distinct dollar amounts in the string; pass-through
+  // for single-amount strings, "Free", or anything without dollars.
+  // Detects an existing range (a single "$X–$Y" / "$X-$Y") and leaves
+  // it alone — we don't want to re-format what the source already
+  // wrote as a range.
+  function compactPrice(price) {
+    if (!price) return price;
+    var s = String(price).trim();
+    var low = s.toLowerCase();
+    if (low === 'free' || low === 'free event') return s;
+    var matches = s.match(/\$\s*\d+(?:\.\d+)?/g);
+    if (!matches || matches.length < 2) return s;
+    var nums = matches.map(function (m) {
+      return parseFloat(m.replace(/[^0-9.]/g, ''));
+    }).filter(function (n) { return !isNaN(n); });
+    if (nums.length < 2) return s;
+    var lo = Math.min.apply(null, nums);
+    var hi = Math.max.apply(null, nums);
+    if (lo === hi) return '$' + fmtPriceNum(lo);
+    return '$' + fmtPriceNum(lo) + '–' + fmtPriceNum(hi);
+  }
+  function fmtPriceNum(n) {
+    // Drop ".00" but keep ".50" etc. — most Melbourne ticket prices
+    // are whole dollars, the trailing zeros add noise.
+    return (n === Math.floor(n)) ? String(n) : n.toFixed(2).replace(/0+$/, '').replace(/\.$/, '');
+  }
+
+  // Returns { startIso, endIso, endLong, days } if the event spans
+  // more than one calendar date, else null. `datetime_start` /
+  // `datetime_end` ship as ISO date strings (sometimes ISO datetimes);
+  // we slice to the date portion before comparing so a same-day event
+  // with different times doesn't get tagged. Open-ended (missing end)
+  // counts as not multi-day — we don't know.
+  function multiDaySpan(ev) {
+    if (!ev || !ev.datetime_start || !ev.datetime_end) return null;
+    var s = String(ev.datetime_start).slice(0, 10);
+    var e = String(ev.datetime_end).slice(0, 10);
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(s) || !/^\d{4}-\d{2}-\d{2}$/.test(e)) return null;
+    if (e <= s) return null;
+    var ed = new Date(e + 'T12:00:00');
+    var endYear = ed.getFullYear();
+    return {
+      startIso: s,
+      endIso: e,
+      // 3-char weekday + day + 3-char month + year. Used in the tooltip
+      // "Ends" row — the short form is plenty when there's only one
+      // date to read and the year resolves ambiguity for long runs.
+      endLong:   WEEKDAYS_SHORT[ed.getDay()] + ' ' + ed.getDate() + ' ' +
+                 MONTHS_SHORT[ed.getMonth()] + ' ' + endYear,
+    };
+  }
+
+  // Lookup of event_id → sorted unique ISO days this event appears in
+  // the loaded window. Multi-day events fan out per-day in
+  // `_event_dict` (the pipeline emits one row per day the schedule
+  // says it runs), so the count here reflects the actual schedule
+  // within the visible window — gaps in the schedule (weekdays-only,
+  // weekly recurrences, public-holiday closures) become gaps in this
+  // list. Lazy-built; reset by `resetMultiDayDayMap` on data reload.
+  var _multiDayDayMap = null;
+  function multiDayDayMap() {
+    if (_multiDayDayMap) return _multiDayDayMap;
+    var map = {};
+    for (var i = 0; i < events.length; i++) {
+      var ev = events[i];
+      if (!ev || ev.id == null || !ev.day) continue;
+      if (!map[ev.id]) map[ev.id] = [];
+      map[ev.id].push(ev.day);
+    }
+    for (var k in map) {
+      // Dedup + sort. Most events have ≤14 entries so the linear scan
+      // / array sort is cheaper than building a Set per id.
+      map[k] = map[k]
+        .filter(function (v, idx, a) { return a.indexOf(v) === idx; })
+        .sort();
+    }
+    _multiDayDayMap = map;
+    return map;
+  }
+  function resetMultiDayDayMap() { _multiDayDayMap = null; }
+
+  // Build the per-day list shown in the multi-day tooltip's "Days"
+  // section. Returns an array of {iso, label, isHere} where `isHere`
+  // is true for the day matching the viewed card — the renderer
+  // bolds that row so the reader can pick out "where am I in the
+  // run" at a glance.
+  //
+  // Filtered to the days currently visible in the day-tab strip
+  // (`lastDayIsos`, set by renderAll). The loaded data window can be
+  // longer than the visible window — a long-running exhibit might
+  // appear on 10+ days in the data but the user can only navigate to
+  // 7 of them, so listing the others is noise. Returns [] when the
+  // event would only show itself in the visible window (no other
+  // days to surface).
+  function multiDayDaysList(ev) {
+    if (!ev || ev.id == null) return [];
+    var days = multiDayDayMap()[ev.id] || [];
+    if (days.length <= 1) return [];
+    var visible = (lastDayIsos && lastDayIsos.length)
+      ? new Set(lastDayIsos)
+      : null;
+    var filtered = visible
+      ? days.filter(function (d) { return visible.has(d); })
+      : days;
+    if (filtered.length <= 1) return [];
+    return filtered.map(function (iso) {
+      var d = new Date(iso + 'T12:00:00');
+      return {
+        iso: iso,
+        label: WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' +
+               MONTHS_SHORT[d.getMonth()],
+        isHere: iso === ev.day,
+      };
+    });
   }
 
   // Same lead-word logic but for the day-tab label. Today's pill reads
@@ -3900,6 +4630,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var rw = ruleW[rules[i]];
       if (rw != null) score += rw;
     }
+    // Watchlist bonus: venue/artist matches each award W_USER_WATCH
+    // on top of the auto-pin. The score lift shows in the breakdown
+    // and influences sort ORDER within the pinned cluster (where
+    // multiple pinned events compete for spots near the top).
+    if (eventMatchesWatchVenue(event, profile)) score += W_USER_WATCH;
+    if (eventMatchesWatchArtist(event, profile)) score += W_USER_WATCH;
     // Suburb tier bonus: look up tier from profile.suburb_tiers (keyed
     // by lowercased canonical suburb), then weight from suburb_tier_weights.
     // Anything not in suburb_tiers is "outside" with implicit 0.
@@ -3966,6 +4702,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         parts.push({ label: 'rule ' + rules[i], value: rw });
         total += rw;
       }
+    }
+    if (eventMatchesWatchVenue(event, profile)) {
+      parts.push({ label: 'watchlist venue', value: W_USER_WATCH });
+      total += W_USER_WATCH;
+    }
+    if (eventMatchesWatchArtist(event, profile)) {
+      parts.push({ label: 'watchlist artist', value: W_USER_WATCH });
+      total += W_USER_WATCH;
     }
     var sn2 = event.suburb_normalized;
     var stier2 = sn2 ? ((profile.suburb_tiers || {})[sn2] || 'outside') : 'outside';
@@ -4074,7 +4818,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return false;
   }
 
-  function diversityPenaltyFor(event, priorCats, priorSubSets, profile) {
+  function diversityPenaltyFor(event, priorCats, priorSubSets, profile, opts) {
     var penalty = 0;
     var varietyMult = profile.variety_multiplier != null ? profile.variety_multiplier : 1;
     // Subcategory penalty drives within-category variety. Scaled by
@@ -4090,8 +4834,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // floor 0.1, one sub-overlap to clear adj=floor.
     //   cat_pen = (0.4 − floor/2 − eff_sub_pen) / 5
     // Capped at 0 — a negative penalty would reward redundancy.
+    // `opts.catPenaltyScale` (default 1.0) lets the all-week view halve
+    // the category penalty so combining all categories into one
+    // per-day block doesn't double-punish events that share a
+    // category — the cross-category mix is the point of that view.
     var floor = profile.score_floor != null ? profile.score_floor : 0;
-    var dCat = Math.max(0, (0.4 - floor / 2 - dSub) / 5);
+    var catScale = (opts && opts.catPenaltyScale != null) ? opts.catPenaltyScale : 1;
+    var dCat = Math.max(0, (0.4 - floor / 2 - dSub) / 5) * catScale;
     var cat = (event.category || '').toLowerCase();
     if (cat) {
       var catPairs = 0;
@@ -4111,7 +4860,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return penalty;
   }
 
-  function selectWithDiversity(block, profile) {
+  function selectWithDiversity(block, profile, opts) {
     // block: array of {event, score, pinned, selected}.
     // Pinned + user-selected items are pre-pushed (force-included
     // regardless of score floor); the remainder are picked greedily by
@@ -4120,6 +4869,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // pinning — both bypass the floor, but selection doesn't reorder
     // the card to the top of the block (it inherits its natural score
     // position via the final sort).
+    //
+    // `opts.catPenaltyScale` (optional) is forwarded to
+    // diversityPenaltyFor — the all-week view uses 0.5 so category
+    // overlap doesn't dominate the cross-category mix.
+    opts = opts || {};
     var forced = [];
     var rest = [];
     for (var i = 0; i < block.length; i++) {
@@ -4160,7 +4914,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var bestPen = 0;
       for (var j = 0; j < rest.length; j++) {
         var pen = diversityPenaltyFor(
-          rest[j].event, priorCats, priorSubs, profile
+          rest[j].event, priorCats, priorSubs, profile, opts
         );
         var adj = rest[j].score - pen;
         if (adj > bestAdj) {
@@ -4194,7 +4948,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var fPen = 0;
       for (var k = 0; k < rest.length; k++) {
         var pen2 = diversityPenaltyFor(
-          rest[k].event, priorCats, priorSubs, profile
+          rest[k].event, priorCats, priorSubs, profile, opts
         );
         var adj2 = rest[k].score - pen2;
         if (adj2 > fAdj) { fAdj = adj2; fIdx = k; fPen = pen2; }
@@ -4217,7 +4971,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var rk = 0; rk < rest.length; rk++) {
       var rItem = rest[rk];
       var rPen = diversityPenaltyFor(
-        rItem.event, priorCats, priorSubs, profile
+        rItem.event, priorCats, priorSubs, profile, opts
       );
       rItem.pickAdj = rItem.score - rPen;
       rItem.pickPenalty = rPen;
@@ -4311,7 +5065,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var userPin = isUserPinned(ev);
       var bypass = sel || userPin;
       // "Free events only" toggle: On → drop paid events; Off → no filter.
-      if (freeOnly && !ev.is_free && !bypass) continue;
+      if (freeOnly && !eventIsFree(ev) && !bypass) continue;
       // Outside-tier suburbs are filtered by default; user can re-tier
       // in the Suburbs sub-tab to surface them.
       var sn = ev.suburb_normalized;
@@ -4355,9 +5109,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       byDayCat[day][cat].push({
         event: ev,
         score: getCachedScore(ev, profile),
-        // Combine rule-pinned (priority_venue) with user-pinned. Both
-        // force-bypass the score floor in selectWithDiversity and
-        // skip the "Show more" expansion bucket in renderCategoryHtml.
+        // Combine rule-pinned (priority_venue) with user-pinned.
+        // Watchlist matches don't add a separate pin source —
+        // applyWatchlistAutoPin() puts their ids into user_pins on
+        // first encounter, so they're already captured by `userPin`.
         pinned: isPinned(ev, profile) || userPin,
         selected: sel,
         is_expanded: false,
@@ -4513,16 +5268,77 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       'target="_blank" rel="noopener">' + escapeHtml(ev.title) + '</a>'
     );
     if (ev.time_display) {
-      parts.push('<div class="time">' + escapeHtml(ev.time_display) + '</div>');
+      parts.push('<div class="time">' +
+        escapeHtml(shortenTimeDisplay(ev.time_display)) + '</div>');
     }
     var blurb = ev.context_line || ev.description_summary;
     if (blurb) {
       parts.push('<div class="description">' + escapeHtml(blurb) + '</div>');
     }
+    // DOM order: multi-day BEFORE price so the screen-reader sequence
+    // (time → multi-day → price) matches the visual row order set by
+    // the .event grid (multi-day at col 2, price at col 3). The grid
+    // placement makes layout independent of DOM order, but a11y
+    // benefits from them being aligned.
+    //
+    // Multi-day tag: surfaces when datetime_start/end span more than
+    // one calendar date (exhibitions, weekly runs, festival passes).
+    // The event already appears on each day's tab; this is the
+    // explicit "yep, also showing on other days" cue.
+    //
+    // Pill reads just "multi-day" — the start / end / span / cadence
+    // detail lives in the hover/focus __tip. Tip mirrors the
+    // .score-breakdown CSS pattern so the two tooltips read as one
+    // design vocabulary.
+    var mdSpan = multiDaySpan(ev);
+    if (mdSpan) {
+      // Days list rendered as a vertical column, one row per
+      // appearance in the loaded window. The viewed card's own day
+      // is bolded via .multi-day-tag__days-row--here so the reader
+      // can spot "where am I" inside the run at a glance. First row
+      // carries the "Days" key + dashed top border for the section
+      // break; subsequent rows leave the key empty so the val column
+      // stays aligned under the first.
+      // Start date dropped from the tooltip — for long-running
+      // events the scraped `datetime_start` is often the earliest
+      // date we happened to see, not the true start. End + per-day
+      // list is the accurate residual.
+      var daysList = multiDayDaysList(ev);
+      var daysRowsHtml = '';
+      if (daysList.length > 0) {
+        daysRowsHtml = daysList.map(function (d, idx) {
+          var cls = 'multi-day-tag__tip-row multi-day-tag__days-row';
+          if (idx === 0) cls += ' multi-day-tag__tip-total';
+          if (d.isHere) cls += ' multi-day-tag__days-row--here';
+          var key = idx === 0 ? 'Days' : '';
+          return '<div class="' + cls + '">' +
+            '<span class="multi-day-tag__tip-key">' + key + '</span> ' +
+            '<span class="multi-day-tag__tip-val">' +
+              escapeHtml(d.label) +
+            '</span>' +
+          '</div>';
+        }).join('');
+      }
+      parts.push(
+        '<div class="multi-day-tag">' +
+          '<span class="multi-day-tag__label">multi-day</span>' +
+          '<div class="multi-day-tag__tip" role="tooltip">' +
+            '<div class="multi-day-tag__tip-row">' +
+              '<span class="multi-day-tag__tip-key">Ends</span> ' +
+              '<span class="multi-day-tag__tip-val">' +
+                escapeHtml(mdSpan.endLong) +
+              '</span>' +
+            '</div>' +
+            daysRowsHtml +
+          '</div>' +
+        '</div>'
+      );
+    }
     if (ev.price) {
-      var low = ev.price.toLowerCase();
-      var pcls = (low === 'free' || low === 'free event') ? 'price free' : 'price';
-      parts.push('<div class="' + pcls + '">' + escapeHtml(ev.price) + '</div>');
+      var isFree = eventIsFree(ev);
+      var pcls = isFree ? 'price free' : 'price';
+      var priceDisplay = isFree ? 'free' : compactPrice(ev.price);
+      parts.push('<div class="' + pcls + '">' + escapeHtml(priceDisplay) + '</div>');
     }
     // Score chip — hidden by default; opt-in via Settings → Appearance.
     // PR-2 of the redesign moved this off the default card surface.
@@ -4603,6 +5419,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var dateIdeaOn = ((profile.rule_states || {}).date_idea || 'on') !== 'off';
     if (ev.date_idea && dateIdeaOn) {
       badges.push('<span class="pill date-idea">date idea</span>');
+    }
+    // Watchlist hit badge — distinct text per match type so the user
+    // knows whether the venue or artist name triggered. Star glyph
+    // ties it to "favourite/saved" rather than a generic tag.
+    var watchVenue = eventMatchesWatchVenue(ev, profile);
+    var watchArtist = eventMatchesWatchArtist(ev, profile);
+    if (watchVenue) {
+      badges.push('<span class="pill watchlist">&#9733; watching venue</span>');
+    }
+    if (watchArtist) {
+      badges.push('<span class="pill watchlist">&#9733; watching artist</span>');
     }
     if (badges.length) parts.push('<div class="badges">' + badges.join('') + '</div>');
     var evIdAttr = 'data-event-id="' + escapeHtml(String(ev.id)) + '"';
@@ -4838,6 +5665,198 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return best;
   }
 
+  // ============================================================
+  //  All-week view: flatten one day's per-category blocks into a
+  //  single pool and re-run selection with the category penalty
+  //  halved (so the cross-category mix isn't double-punished).
+  //  Returns null if the day has nothing visible.
+  //
+  //  Hidden items keep their per-category provenance (used by the
+  //  inline restore action) but are concatenated into one disclosure
+  //  in this view — the categorical separation is the whole thing
+  //  the all-week pane drops.
+  // ============================================================
+  function buildAllWeekDayBlock(byCatMap, profile) {
+    if (!byCatMap) return null;
+    var pool = [];
+    var hiddenAll = [];
+    var seenIds = {};
+    for (var ck in byCatMap) {
+      var block = byCatMap[ck];
+      if (!block) continue;
+      for (var i = 0; i < block.length; i++) {
+        var src = block[i];
+        var eid = src.event && src.event.id;
+        if (eid && seenIds[eid]) continue;
+        if (eid) seenIds[eid] = true;
+        pool.push({
+          event: src.event,
+          score: src.score,
+          pinned: src.pinned,
+          selected: src.selected,
+          // is_expanded gets recomputed by the fresh selection pass
+          // below — the categorical split's curated/extras call is no
+          // longer authoritative in this view.
+          is_expanded: false,
+        });
+      }
+      var hl = block.hidden || [];
+      for (var hi = 0; hi < hl.length; hi++) hiddenAll.push(hl[hi]);
+    }
+    if (pool.length === 0 && hiddenAll.length === 0) return null;
+    // Halve the auto-derived category penalty so events from the same
+    // category aren't aggressively spread out — the mix across
+    // categories is already happening, the within-category bunching is
+    // the only thing the cat penalty has to push back on here.
+    var curated = pool.length
+      ? selectWithDiversity(pool, profile, { catPenaltyScale: 0.5 })
+      : [];
+    var curatedIds = {};
+    for (var ci = 0; ci < curated.length; ci++) {
+      curatedIds[curated[ci].event.id] = true;
+    }
+    var floor = profile.score_floor != null ? profile.score_floor : 0;
+    var extras = [];
+    for (var pi = 0; pi < pool.length; pi++) {
+      var it = pool[pi];
+      if (curatedIds[it.event.id]) continue;
+      if (it.score > floor || it.selected) {
+        extras.push({
+          event: it.event,
+          score: it.score,
+          pinned: it.pinned,
+          selected: it.selected,
+          pickAdj: it.pickAdj,
+          pickPenalty: it.pickPenalty,
+          pickReason: it.pickReason,
+          is_expanded: true,
+        });
+      }
+    }
+    extras.sort(function (a, b) { return b.score - a.score; });
+    var combined = curated.concat(extras);
+    combined.hidden = hiddenAll;
+    return combined;
+  }
+
+  // Render one day's section for the all-week (stacked) view —
+  // a single events block per day, no per-category headers.
+  // Mirrors renderDayHtml's outer shell (day-heading, quiet hint,
+  // empty fallback) so day-tab activate / scroll-into-view code keeps
+  // working unchanged.
+  function renderAllWeekDayHtml(dayIso, byCatMap, profile, nextDayTop) {
+    var heading = formatDayHeading(dayIso);
+    var daySlug = slugify(heading);
+    var hero = formatDayHeroParts(dayIso);
+    var combined = buildAllWeekDayBlock(byCatMap, profile);
+    if (!combined) {
+      return (
+        '<section class="day day--empty" id="day-' + daySlug + '" ' +
+        'data-day-iso="' + escapeHtml(dayIso) + '" ' +
+        'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
+        '<h2 class="day-heading">' +
+          '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
+          ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
+          '<span class="day-heading__trail">' + escapeHtml(hero.trail) + '</span>' +
+        '</h2>\n' +
+        '<p class="empty-day-msg">Nothing curated for this day yet.</p>\n' +
+        '</section>'
+      );
+    }
+    var curated = [];
+    var expanded = [];
+    for (var i = 0; i < combined.length; i++) {
+      var it = combined[i];
+      var forceCurated = isUserPinned(it.event) || isUserSelected(it.event);
+      if (it.is_expanded && !forceCurated) expanded.push(it);
+      else curated.push(it);
+    }
+    curated = sortForDisplay(curated);
+    expanded = sortForDisplay(expanded);
+    var curatedCount = curated.length;
+    var hiddenItems = combined.hidden || [];
+    if (searchQueryRaw) {
+      hiddenItems = hiddenItems.filter(function (it) {
+        return !!it.matches_search;
+      });
+    }
+    var inner = [];
+    if (curated.length > 0) {
+      inner.push(
+        '<div class="events">\n' + curated.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>'
+      );
+    }
+    if (expanded.length > 0) {
+      inner.push(
+        '<button class="show-more" type="button" aria-expanded="false">' +
+        'Show ' + expanded.length + ' more' +
+        '</button>' +
+        '<div class="events events-expanded" hidden="until-found">\n' +
+        expanded.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>'
+      );
+    }
+    if (hiddenItems.length > 0) {
+      var nHidden = hiddenItems.length;
+      var summaryText = searchQueryRaw
+        ? nHidden + ' hidden matching your search'
+        : nHidden + ' hidden';
+      inner.push(
+        '<details class="hidden-disclosure">' +
+        '<summary>' + summaryText + '</summary>' +
+        '<div class="events events-hidden">\n' +
+        hiddenItems.map(function (it) {
+          return renderEventHtml(it, profile);
+        }).join('\n') + '\n</div>' +
+        '</details>'
+      );
+    }
+    var sections = [];
+    if (inner.length > 0) {
+      sections.push(
+        '<section class="category category--all-week" data-cat="all">' +
+        inner.join('\n') +
+        '</section>'
+      );
+    }
+    var quietHint = '';
+    if (!searchQueryRaw && curatedCount > 0 && curatedCount <= 2) {
+      if (nextDayTop && nextDayTop.event && nextDayTop.event.title) {
+        var nextTitle = String(nextDayTop.event.title);
+        var nextId = String(nextDayTop.event.id);
+        quietHint =
+          '<button class="empty-evening-hint" type="button" ' +
+          'data-advance-day="next" ' +
+          'data-advance-focus-event-id="' + escapeHtml(nextId) + '" ' +
+          'aria-label="Also worth a look tomorrow: ' +
+              escapeHtml(nextTitle) + '">' +
+          '<span class="empty-evening-hint__lead">' +
+              'Quieter night &mdash; also worth a look:' +
+          '</span> ' +
+          '<span class="empty-evening-hint__title">' +
+              escapeHtml(nextTitle) +
+          '</span> <span aria-hidden="true">&rarr;</span>' +
+          '</button>\n';
+      }
+    }
+    return (
+      '<section class="day" id="day-' + daySlug + '" ' +
+      'data-day-iso="' + escapeHtml(dayIso) + '" ' +
+      'role="tabpanel" aria-labelledby="tab-' + daySlug + '" hidden>\n' +
+      '<h2 class="day-heading">' +
+        '<span class="day-heading__lead">' + escapeHtml(hero.lead) + '</span>' +
+        ' <span class="day-heading__sep" aria-hidden="true">·</span> ' +
+        '<span class="day-heading__trail">' + escapeHtml(hero.trail) + '</span>' +
+      '</h2>\n' +
+      quietHint +
+      sections.join('\n') + '\n' +
+      '</section>'
+    );
+  }
+
   function renderDayHtml(dayIso, byCatMap, profile, nextDayTop) {
     byCatMap = byCatMap || {};
     var heading = formatDayHeading(dayIso);
@@ -5019,7 +6038,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function settingsTabModifiedCounts() {
     var keys, k;
     var out = { tags: 0, vibes: 0, rules: 0,
-      suburbs: 0, shape: 0, appearance: 0 };
+      suburbs: 0, watchlist: 0, shape: 0, appearance: 0 };
     keys = Object.keys(defaultProfile.subcategory_tiers || {});
     var profKeys = Object.keys(profile.subcategory_tiers || {});
     for (k = 0; k < profKeys.length; k++) {
@@ -5054,6 +6073,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (k = 0; k < shapeFields.length; k++) {
       if (isShapeModified(shapeFields[k])) out.shape++;
     }
+    out.watchlist =
+      (profile.priority_venues  || []).length +
+      (profile.saved_venues     || []).length +
+      (profile.priority_artists || []).length +
+      (profile.saved_artists    || []).length;
     if ((profile.theme || 'auto') !== 'auto') out.appearance++;
     return out;
   }
@@ -5062,7 +6086,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var c = settingsTabModifiedCounts();
     return {
       tags: c.tags > 0, vibes: c.vibes > 0, rules: c.rules > 0,
-      suburbs: c.suburbs > 0, shape: c.shape > 0, appearance: c.appearance > 0,
+      suburbs: c.suburbs > 0, watchlist: c.watchlist > 0,
+      shape: c.shape > 0, appearance: c.appearance > 0,
     };
   }
 
@@ -5214,11 +6239,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
 
   // --- Rules sub-tab --------------------------------------------------
+  // priority_venue / priority_artist removed — those rules now live
+  // in the Watchlist tab as a chip-list UI with auto-pin on match.
   var RULE_META = {
-    priority_venue:   { label: 'Priority venue',
-      hint: 'Pin: always show these events. On: favour these events. Off: no effect.' },
-    priority_artist:  { label: 'Priority artist',
-      hint: 'Pin: always show these events. On: favour these events. Off: no effect.' },
     alt_lifestyle:    { label: 'Alternative lifestyle',
       hint: 'Favour alt-lifestyle events — body-based workshops, ecstatic dance, breathwork, ceremony.' },
     special_event:    { label: 'Special / rare event',
@@ -5272,7 +6295,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (ruleName === 'date_idea' && state === 'off') action = 'hide tag';
     } else if (PIN_CAPABLE_SET[ruleName]) {
       weight = (state === 'off') ? 0 : defaultWeight;
-      if (state === 'pin') action = 'always shown';
+      // No action label — the "Pin" / "On" / "Off" chip already
+      // tells the user what state is active. Adding "always shown"
+      // here was pushing the ? help button past the action text in
+      // collapsed-hint mode, making it look detached from its
+      // label.
     } else if (ruleName === 'free') {
       // Filter-only — events are excluded, no bonus involved.
       return { weight: null, action: state === 'on' ? 'hide paid events' : '' };
@@ -5584,10 +6611,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       label: 'Variety',
       hint: 'How much category &amp; subcategory mix the menu favours.',
       chips: [
-        { label: 'Anything goes', multiplier: 0,    color: 'love' },
-        { label: 'Mixed',         multiplier: 0.5,  color: 'like' },
-        { label: 'Varied',        multiplier: 1,    color: 'meh' },
-        { label: 'Very varied',   multiplier: 1.67, color: 'avoid' },
+        // Monotonic less→more variety. Plain wording so the dial's
+        // direction is obvious without context: lower = more
+        // repeats allowed (score-first), higher = more spread
+        // enforced (variety-first, even if it demotes a higher-
+        // scored event).
+        { label: 'Less variety', multiplier: 0,    color: 'love' },
+        { label: 'Some variety', multiplier: 0.5,  color: 'like' },
+        { label: 'Varied',       multiplier: 1,    color: 'meh' },
+        { label: 'More variety', multiplier: 1.67, color: 'avoid' },
       ],
     },
     {
@@ -5730,6 +6762,392 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
   }
 
+  // Watchlist sub-tab — dual-bin (Priority + Saved) per kind
+  // (venues, artists). Each chip carries kind/bin/idx in its
+  // dataset; handlers pluck the triple out. Priority bin auto-pins
+  // matching events; Saved bin is inert until promoted.
+  function watchlistKey(kind, bin) {
+    return bin + '_' + kind;  // 'priority_venues', 'saved_artists', ...
+  }
+  function watchlistList(kind, bin) {
+    return profile[watchlistKey(kind, bin)] || [];
+  }
+
+  // Per-row markup — mirrors .subcat-row / .suburb-row layout so
+  // existing reset/hover/modified-dot styling applies for free. Each
+  // row: name (clickable to edit) + Move-to-other-bin button + ×.
+  function renderWatchlistRow(kind, bin, item, idx) {
+    var otherBin = bin === 'priority' ? 'saved' : 'priority';
+    var moveLabel = bin === 'priority' ? 'Move to Saved' : 'Move to Watch';
+    var moveIcon  = bin === 'priority' ? '↓' : '↑';
+    return (
+      '<div class="watch-row" ' +
+        'data-watch-kind="' + kind + '" ' +
+        'data-watch-bin="' + bin + '" ' +
+        'data-watch-idx="' + idx + '">' +
+        '<button type="button" class="watch-row__name" ' +
+          'data-watch-edit="' + kind + ':' + bin + ':' + idx + '" ' +
+          'title="Tap to edit">' + escapeHtml(item) + '</button>' +
+        '<button type="button" class="watch-row__move" ' +
+          'data-watch-move="' + kind + ':' + bin + ':' + idx + ':' + otherBin + '" ' +
+          'aria-label="' + moveLabel + '" title="' + moveLabel + '">' +
+          moveIcon + '</button>' +
+        '<button type="button" class="watch-row__remove" ' +
+          'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
+          'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
+      '</div>'
+    );
+  }
+
+  function renderWatchlistAddInput(kind, bin) {
+    var noun = kind === 'venues' ? 'venue' : 'artist';
+    return (
+      '<div class="watch-section-add" hidden ' +
+        'data-watch-add-row="' + kind + ':' + bin + '">' +
+        '<input type="text" class="watch-add-input" ' +
+          'data-watch-add="' + kind + ':' + bin + '" ' +
+          'placeholder="Type a ' + noun + '&hellip;" ' +
+          'autocomplete="off" autocapitalize="words" spellcheck="false">' +
+      '</div>'
+    );
+  }
+
+  function renderWatchlistSection(kind, bin) {
+    var items = watchlistList(kind, bin);
+    var noun = kind === 'venues' ? 'venues' : 'artists';
+    var title = (bin === 'priority' ? 'Watch ' : 'Saved ') + noun;
+    var iconHtml = bin === 'priority'
+      ? '<span class="watch-section__icon" aria-hidden="true">&#9733;</span> '
+      : '';
+    var rows = items.map(function (item, idx) {
+      return renderWatchlistRow(kind, bin, item, idx);
+    }).join('\n');
+    return (
+      '<div class="watch-section watch-section--' + bin + '" ' +
+        'data-watch-section="' + kind + ':' + bin + '">' +
+        '<h4 class="subcat-group-heading watch-section__heading">' +
+          '<span>' + iconHtml + escapeHtml(title) +
+            ' (' + items.length + ')</span>' +
+          '<button type="button" class="add-suburb-btn" ' +
+            'data-watch-section-add="' + kind + ':' + bin + '" ' +
+            'aria-expanded="false" ' +
+            'aria-label="Add to ' + escapeHtml(title) + '">+</button>' +
+        '</h4>' +
+        renderWatchlistAddInput(kind, bin) +
+        '<div class="watch-rows" ' +
+          'data-watch-rows="' + kind + ':' + bin + '">' +
+          rows +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderWatchlistKindBlock(kind) {
+    return (
+      '<div class="watchlist-kind" data-watch-kind-block="' + kind + '">' +
+        renderWatchlistSection(kind, 'priority') +
+        renderWatchlistSection(kind, 'saved') +
+      '</div>'
+    );
+  }
+
+  function renderWatchlistPanel() {
+    return (
+      '<div class="watchlist-section">' +
+        renderWatchlistKindBlock('venues') +
+      '</div>' +
+      '<div class="watchlist-section">' +
+        renderWatchlistKindBlock('artists') +
+      '</div>'
+    );
+  }
+
+  function handleWatchlistAdd(kind, bin, raw) {
+    var v = String(raw || '').trim();
+    if (!v) return;
+    var key = watchlistKey(kind, bin);
+    var cur = (profile[key] || []).slice();
+    var norm = _normalizeForWatch(v);
+    // Dedup within the destination bin AND across to the other bin
+    // — if a term already lives in the OTHER bin (e.g. user types
+    // "Bar Oussou" into Priority but it's already in Saved), move
+    // it instead of duplicating.
+    var otherBin = bin === 'priority' ? 'saved' : 'priority';
+    var otherKey = watchlistKey(kind, otherBin);
+    var otherCur = (profile[otherKey] || []).slice();
+    for (var i = 0; i < cur.length; i++) {
+      if (_normalizeForWatch(cur[i]) === norm) return;
+    }
+    var movedFromOther = false;
+    for (var j = 0; j < otherCur.length; j++) {
+      if (_normalizeForWatch(otherCur[j]) === norm) {
+        otherCur.splice(j, 1);
+        profile[otherKey] = otherCur;
+        movedFromOther = true;
+        break;
+      }
+    }
+    cur.push(v);
+    profile[key] = cur;
+    if (bin === 'priority' || movedFromOther) bumpWatchlistRevision();
+    if (bin === 'priority') applyWatchlistAutoPin();
+    saveProfile();
+    requestRenderAll();
+    rerenderWatchlistKind(kind, { focusBin: bin });
+  }
+
+  function handleWatchlistRemove(kind, bin, idx) {
+    var key = watchlistKey(kind, bin);
+    var cur = (profile[key] || []).slice();
+    if (idx < 0 || idx >= cur.length) return;
+    var removed = cur[idx];
+    // Stash the auto-pin state so Undo can fully restore — both the
+    // term AND the events that were auto-pinned via it.
+    var beforeAuto    = (profile.auto_pinned_watch_ids || []).slice();
+    var beforePinned  = (profile.pinned_event_ids || []).slice();
+    cur.splice(idx, 1);
+    profile[key] = cur;
+    if (bin === 'priority') {
+      bumpWatchlistRevision();
+      // Auto-unpin events that were ONLY pinned via the removed term.
+      var auto = new Set(profile.auto_pinned_watch_ids || []);
+      var pinnedList = profile.pinned_event_ids || [];
+      var droppedKeys = new Set();
+      _watchMatchCache = null; // force fresh checks below
+      for (var i = 0; i < events.length; i++) {
+        var ev = events[i];
+        if (!ev || ev.id == null) continue;
+        var k = String(ev.id);
+        if (!auto.has(k)) continue;
+        if (eventMatchesWatchlist(ev)) continue;
+        auto.delete(k);
+        droppedKeys.add(k);
+      }
+      if (droppedKeys.size > 0) {
+        profile.auto_pinned_watch_ids = Array.from(auto);
+        profile.pinned_event_ids = pinnedList.filter(function (id) {
+          return !droppedKeys.has(String(id));
+        });
+        refreshPinnedSet();
+      }
+    }
+    saveProfile();
+    requestRenderAll();
+    rerenderWatchlistKind(kind);
+    // Fire an Undo toast — the user can restore the term + any
+    // events that were auto-pinned via it. Routed through the
+    // batched-undo queue so rapid consecutive deletes accumulate
+    // into a single "Removed N items · Undo" toast that restores
+    // every item in one tap.
+    var kindWord = kind === 'venues' ? 'venue' : 'artist';
+    enqueueWatchUndo(kindWord, removed, function () {
+      // Restore at the original position so chip order stays
+      // stable. If the user already added new chips, the
+      // restored item lands at the splice index — close enough.
+      var restoreList = (profile[key] || []).slice();
+      var insertAt = Math.min(idx, restoreList.length);
+      restoreList.splice(insertAt, 0, removed);
+      profile[key] = restoreList;
+      if (bin === 'priority') {
+        profile.auto_pinned_watch_ids = beforeAuto;
+        profile.pinned_event_ids = beforePinned;
+        bumpWatchlistRevision();
+        refreshPinnedSet();
+      }
+      saveProfile();
+      requestRenderAll();
+      rerenderWatchlistKind(kind);
+    });
+  }
+
+  function handleWatchlistMove(kind, fromBin, fromIdx, toBin) {
+    if (fromBin === toBin) return;
+    var fromKey = watchlistKey(kind, fromBin);
+    var toKey   = watchlistKey(kind, toBin);
+    var fromList = (profile[fromKey] || []).slice();
+    var toList   = (profile[toKey] || []).slice();
+    if (fromIdx < 0 || fromIdx >= fromList.length) return;
+    var item = fromList.splice(fromIdx, 1)[0];
+    var norm = _normalizeForWatch(item);
+    // Dedup at destination.
+    for (var i = 0; i < toList.length; i++) {
+      if (_normalizeForWatch(toList[i]) === norm) {
+        profile[fromKey] = fromList;
+        bumpWatchlistRevision();
+        saveProfile();
+        requestRenderAll();
+        rerenderWatchlistKind(kind);
+        return;
+      }
+    }
+    toList.push(item);
+    profile[fromKey] = fromList;
+    profile[toKey]   = toList;
+    bumpWatchlistRevision();
+    // Moves involving Priority change matching; re-run auto-pin.
+    if (toBin === 'priority') applyWatchlistAutoPin();
+    if (fromBin === 'priority') {
+      // Possible auto-unpin: events lost their only Priority match.
+      var auto = new Set(profile.auto_pinned_watch_ids || []);
+      var pinnedList = profile.pinned_event_ids || [];
+      var dropped = new Set();
+      _watchMatchCache = null;
+      for (var j = 0; j < events.length; j++) {
+        var ev = events[j];
+        if (!ev || ev.id == null) continue;
+        var k = String(ev.id);
+        if (!auto.has(k)) continue;
+        if (eventMatchesWatchlist(ev)) continue;
+        auto.delete(k);
+        dropped.add(k);
+      }
+      if (dropped.size > 0) {
+        profile.auto_pinned_watch_ids = Array.from(auto);
+        profile.pinned_event_ids = pinnedList.filter(function (id) {
+          return !dropped.has(String(id));
+        });
+        refreshPinnedSet();
+      }
+    }
+    saveProfile();
+    requestRenderAll();
+    rerenderWatchlistKind(kind);
+  }
+
+  function rerenderWatchlistKind(kind, opts) {
+    var block = document.querySelector(
+      '.watchlist-kind[data-watch-kind-block="' + kind + '"]');
+    if (!block) return;
+    // Replace the entire kind block so row indices stay in sync
+    // with the new arrays. Cheap: at most ~16 entries per kind.
+    var fresh = document.createElement('div');
+    fresh.innerHTML = renderWatchlistKindBlock(kind);
+    var freshBlock = fresh.firstElementChild;
+    if (freshBlock && block.parentNode) {
+      block.parentNode.replaceChild(freshBlock, block);
+    }
+    if (opts && opts.focusBin) {
+      // Re-open the add row + focus its input for the bin we just
+      // added to, so successive adds don't need a fresh + tap.
+      var addRow = document.querySelector(
+        '[data-watch-add-row="' + kind + ':' + opts.focusBin + '"]');
+      if (addRow) {
+        addRow.hidden = false;
+        var btn = document.querySelector(
+          '[data-watch-section-add="' + kind + ':' + opts.focusBin + '"]');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        var input = addRow.querySelector('input');
+        if (input) input.focus();
+      }
+    }
+    updateSettingsTabDots();
+  }
+
+  // Click-to-edit on a chip — swap the label button for an inline
+  // input pre-populated with the current value. Commit on Enter or
+  // blur; cancel on Escape; empty value deletes the chip. Keeps the
+  // remove × in place so the user can still hit "delete" once the
+  // edit mode is active.
+  function handleWatchlistEditStart(kind, bin, idx) {
+    var key = watchlistKey(kind, bin);
+    var cur = profile[key] || [];
+    if (idx < 0 || idx >= cur.length) return;
+    var row = document.querySelector(
+      '[data-watch-rows="' + kind + ':' + bin + '"] ' +
+      '.watch-row[data-watch-idx="' + idx + '"]');
+    if (!row) return;
+    var current = cur[idx] || '';
+    // iOS Safari auto-scrolls the focused input into view above the
+    // soft keyboard and leaves the page at the new scroll position
+    // when the keyboard dismisses — feels like the page moves
+    // downwards. Snapshot scrollY here and restore it on commit.
+    var savedScrollY = (typeof window.scrollY === 'number')
+      ? window.scrollY : (window.pageYOffset || 0);
+    var nameBtn = row.querySelector('.watch-row__name');
+    if (!nameBtn) return;
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'watch-row__edit';
+    input.value = current;
+    input.dataset.watchEditing = kind + ':' + bin + ':' + idx;
+    input.dataset.watchSavedScroll = String(savedScrollY);
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('autocapitalize', 'words');
+    nameBtn.replaceWith(input);
+    row.classList.add('watch-row--editing');
+    input.focus();
+    input.select();
+  }
+
+  function handleWatchlistEditCommit(kind, bin, idx, raw) {
+    var val = String(raw || '').trim();
+    var key = watchlistKey(kind, bin);
+    var cur = (profile[key] || []).slice();
+    if (idx < 0 || idx >= cur.length) return;
+    // Restore the scroll position that was active when edit began —
+    // iOS Safari scrolled the page up to fit the keyboard, and
+    // leaving that scroll in place after blur looks like a "page
+    // moved down" jump. Scroll target is read from the input's
+    // dataset so the value survives the re-render.
+    var inputEl = document.querySelector(
+      'input[data-watch-editing="' + kind + ':' + bin + ':' + idx + '"]');
+    var savedScrollY = inputEl
+      ? parseFloat(inputEl.dataset.watchSavedScroll || '0')
+      : null;
+    if (!val) {
+      handleWatchlistRemove(kind, bin, idx);
+      if (!isNaN(savedScrollY) && savedScrollY != null) {
+        _restoreScroll(savedScrollY);
+      }
+      return;
+    }
+    var norm = _normalizeForWatch(val);
+    // Dedup against this bin and the other bin alike — promotes
+    // "edit duplicate" into "delete this chip" cleanly.
+    var otherBin = bin === 'priority' ? 'saved' : 'priority';
+    var otherCur = profile[watchlistKey(kind, otherBin)] || [];
+    for (var i = 0; i < cur.length; i++) {
+      if (i === idx) continue;
+      if (_normalizeForWatch(cur[i]) === norm) {
+        handleWatchlistRemove(kind, bin, idx);
+        return;
+      }
+    }
+    for (var j = 0; j < otherCur.length; j++) {
+      if (_normalizeForWatch(otherCur[j]) === norm) {
+        handleWatchlistRemove(kind, bin, idx);
+        if (!isNaN(savedScrollY) && savedScrollY != null) {
+          _restoreScroll(savedScrollY);
+        }
+        return;
+      }
+    }
+    cur[idx] = val;
+    profile[key] = cur;
+    if (bin === 'priority') {
+      bumpWatchlistRevision();
+      applyWatchlistAutoPin();
+    }
+    saveProfile();
+    requestRenderAll();
+    rerenderWatchlistKind(kind);
+    if (!isNaN(savedScrollY) && savedScrollY != null) {
+      _restoreScroll(savedScrollY);
+    }
+  }
+
+  // Restore the page scroll to a snapshotted Y position after iOS
+  // Safari has finished its keyboard-dismiss animation. Two attempts
+  // — one immediate, one after a short delay — so we beat both the
+  // synchronous re-render and the asynchronous viewport restore.
+  function _restoreScroll(targetY) {
+    if (typeof targetY !== 'number' || isNaN(targetY)) return;
+    window.scrollTo(0, targetY);
+    setTimeout(function () { window.scrollTo(0, targetY); }, 60);
+    setTimeout(function () { window.scrollTo(0, targetY); }, 220);
+  }
+
   // "Show event scores" toggle relocated from Theme — lives inside the
   // Tuning > Advanced disclosure where its destructive twin (raw shape
   // sliders) also lives.
@@ -5817,11 +7235,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var friendlyRows = TUNING_FRIENDLY.map(renderTuningFriendlyRow).join('\n');
     var advancedRows = SHAPE_FIELDS.map(renderShapeRow).join('\n');
     var weightRows = SUBURB_WEIGHT_FIELDS.map(renderSuburbWeightRow).join('\n');
+    // Show-event-scores toggle sits at the top of the panel — it's a
+    // useful diagnostic gate users reach for often, so it doesn't
+    // belong buried under the Advanced disclosure with the
+    // raw-shape sliders.
     return (
+      renderShowScoreToggleHtml() +
       '<div class="subcat-group">' + friendlyRows + '</div>' +
       '<details class="tuning-advanced" data-persist-open="tuning-advanced">' +
         '<summary>Advanced</summary>' +
-        renderShowScoreToggleHtml() +
         '<div class="subcat-group">' + advancedRows + weightRows + '</div>' +
       '</details>'
     );
@@ -6177,6 +7599,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var tabMod = {
       tags: tabCounts.tags > 0, vibes: tabCounts.vibes > 0,
       rules: tabCounts.rules > 0, suburbs: tabCounts.suburbs > 0,
+      watchlist: tabCounts.watchlist > 0,
       shape: tabCounts.shape > 0, appearance: tabCounts.appearance > 0,
     };
     function tabBtn(slug, label, selected) {
@@ -6190,8 +7613,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       );
     }
     view.innerHTML = (
-      '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
-        tabBtn('vibes', 'Vibes', true) +
+      '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections" data-no-swipe>' +
+        tabBtn('watchlist', 'Watchlist', true) +
+        tabBtn('vibes', 'Vibes', false) +
         tabBtn('tags', 'Topics', false) +
         tabBtn('rules', 'Rules', false) +
         tabBtn('suburbs', 'Suburbs', false) +
@@ -6200,6 +7624,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       '</nav>' +
       renderSubPanel({
         name: 'vibes',
+        hidden: true,
         desc: 'Stable feels you always like or avoid &mdash; meditation-y, ' +
           'corporate-y, avant-garde-y.',
         body: renderFacetGroups(),
@@ -6219,8 +7644,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       renderSubPanel({
         name: 'rules',
         hidden: true,
-        desc: 'Specific situations the menu reacts to &mdash; favourite ' +
-          'venues, free events, dating events, and so on.',
+        desc: 'Soft rules the menu folds into the ranking &mdash; ' +
+          'free events, date ideas, alt-lifestyle picks, age range.',
         body: renderRulesPanel(),
         resetAction: 'reset-rules',
         resetLabel: 'Reset all rules',
@@ -6232,6 +7657,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         body: renderSuburbsPanel(),
         resetAction: 'reset-suburbs',
         resetLabel: 'Reset all suburbs',
+      }) +
+      renderSubPanel({
+        name: 'watchlist',
+        desc: 'Venues and artists you always want surfaced.',
+        body: renderWatchlistPanel(),
+        resetAction: 'reset-watchlist',
+        resetLabel: 'Reset to defaults',
       }) +
       renderSubPanel({
         name: 'shape',
@@ -6335,7 +7767,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (OPEN_POPOVERS[rhi]._kind === 'row-help') closePopover(OPEN_POPOVERS[rhi]);
     }
     var current = document.querySelector('.settings-subtab[aria-selected="true"]');
-    var name = (current && current.dataset.subtab) || 'vibes';
+    var name = (current && current.dataset.subtab) || 'watchlist';
     // Snapshot any <details data-persist-open="X"> open states so a
     // chip-driven re-render doesn't collapse Tuning > Advanced or the
     // Outside section out from under the user.
@@ -6551,6 +7983,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var hash = tabName === 'settings' ? '#settings' : '#day-' + tabName;
       if (location.hash !== hash) history.replaceState(null, '', hash);
     }
+    // Settings activation lands the user at the top of the panel.
+    // Without this, opening Settings after scrolling halfway down a
+    // day panel leaves the Settings view scrolled too — the subtab
+    // strip ends up off-screen and the user has to scroll back up.
+    // skipScroll: true is passed by deep-link / back-button restores
+    // where the URL's intent is "preserve scroll".
+    if (tabName === 'settings' && !opts.skipScroll) {
+      window.scrollTo({ top: 0, behavior: 'auto' });
+    }
     // Expanding the header (no resize event) would otherwise leave
     // --header-offset stale; recompute after any activation in case
     // layout shifted.
@@ -6764,7 +8205,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var j = 0; j < days.length; j++) {
       var nextDay = j + 1 < days.length ? days[j + 1] : null;
       var nextTop = nextDay ? pickDayTopEvent(ranking[nextDay]) : null;
-      var h = renderDayHtml(days[j], ranking[days[j]], profile, nextTop);
+      // Stacked (all-week) view drops the per-category split and renders
+      // a single combined section per day; per-day-tab view keeps the
+      // existing categorical render.
+      var h = stacked
+        ? renderAllWeekDayHtml(days[j], ranking[days[j]], profile, nextTop)
+        : renderDayHtml(days[j], ranking[days[j]], profile, nextTop);
       if (!h) continue;
       tpl.innerHTML = h;
       var dayEl = tpl.firstElementChild;
@@ -8325,7 +9771,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   function wouldEventBeFiltered(ev, profile) {
     var freeOnly = ((profile.rule_states || {}).free || 'off') === 'on';
-    if (freeOnly && !ev.is_free) return true;
+    if (freeOnly && !eventIsFree(ev)) return true;
     var sTiers = profile.suburb_tiers || {};
     var sn = ev.suburb_normalized;
     var stier = sn ? (sTiers[sn] || 'outside') : 'outside';
@@ -8518,6 +9964,58 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     document.body.appendChild(t);
     var ms = opts.durationMs || TOAST_DURATION_MS;
     toastTimer = setTimeout(dismissToast, ms);
+  }
+
+  // ============================================================
+  //  Batched undo for watchlist deletes. Rapid consecutive deletes
+  //  accumulate into a single toast — "Removed N items · Undo" —
+  //  with Undo restoring every queued item. Tap Undo or wait for
+  //  the timer to abandon (= permanent delete). Each new delete
+  //  during the active window resets the 5s timer.
+  //
+  //  Restores are applied in REVERSE order: each delete's restoreFn
+  //  was captured with the splice-index AT-DELETE-TIME, so rewinding
+  //  newest-first puts every item back at its original slot. Forward
+  //  order would shift indices and reorder the list.
+  // ============================================================
+  var _watchUndoQueue = [];
+  function _watchUndoMsg() {
+    if (_watchUndoQueue.length === 1) {
+      var q0 = _watchUndoQueue[0];
+      return 'Removed ' + q0.kindWord + ': ' + (q0.label || '');
+    }
+    return 'Removed ' + _watchUndoQueue.length + ' items';
+  }
+  function _watchUndoFlushQueue() {
+    var q = _watchUndoQueue;
+    _watchUndoQueue = [];
+    for (var i = q.length - 1; i >= 0; i--) {
+      try { q[i].restore(); } catch (_) {}
+    }
+    dismissToast();
+  }
+  function enqueueWatchUndo(kindWord, label, restoreFn) {
+    var isOursActive = !!document.getElementById(TOAST_ID) &&
+      toastUndoCb === _watchUndoFlushQueue;
+    if (!isOursActive) _watchUndoQueue = [];
+    _watchUndoQueue.push({
+      kindWord: kindWord, label: label, restore: restoreFn,
+    });
+    if (isOursActive) {
+      var existing = document.getElementById(TOAST_ID);
+      var msgEl = existing && existing.querySelector('.toast__msg');
+      if (msgEl) msgEl.textContent = _watchUndoMsg();
+      if (toastTimer != null) clearTimeout(toastTimer);
+    } else {
+      showToast(_watchUndoMsg(), { onUndo: _watchUndoFlushQueue });
+      // showToast set its own auto-dismiss timer; override so the
+      // expire path also abandons our queue (no restoration).
+      if (toastTimer != null) clearTimeout(toastTimer);
+    }
+    toastTimer = setTimeout(function () {
+      _watchUndoQueue = [];
+      dismissToast();
+    }, TOAST_DURATION_MS);
   }
 
   // ============================================================
@@ -9877,6 +11375,74 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       openMenus[omi].innerHTML = '';
     }
 
+    // Watchlist chip × button — remove the entry at the encoded
+    // (kind, idx) position.
+    var watchRemove = e.target.closest && e.target.closest('[data-watch-remove]');
+    if (watchRemove) {
+      e.preventDefault();
+      var trip = (watchRemove.dataset.watchRemove || '').split(':');
+      var rKind = trip[0], rBin = trip[1], rIdx = parseInt(trip[2], 10);
+      if (rKind && rBin && !isNaN(rIdx)) {
+        handleWatchlistRemove(rKind, rBin, rIdx);
+      }
+      return;
+    }
+
+    // Move-to-other-bin button on a watchlist row.
+    var watchMove = e.target.closest && e.target.closest('[data-watch-move]');
+    if (watchMove) {
+      e.preventDefault();
+      var mQuad = (watchMove.dataset.watchMove || '').split(':');
+      var mKind = mQuad[0], mBin = mQuad[1];
+      var mIdx = parseInt(mQuad[2], 10);
+      var mTo  = mQuad[3];
+      if (mKind && mBin && !isNaN(mIdx) && mTo) {
+        handleWatchlistMove(mKind, mBin, mIdx, mTo);
+      }
+      return;
+    }
+
+    // + button on a watchlist section heading — toggles the inline
+    // input row below the heading. Mirrors the suburb-add pattern.
+    var sectionAdd = e.target.closest && e.target.closest('[data-watch-section-add]');
+    if (sectionAdd) {
+      e.preventDefault();
+      var addKey = sectionAdd.dataset.watchSectionAdd; // 'kind:bin'
+      var addRow = document.querySelector(
+        '[data-watch-add-row="' + addKey + '"]');
+      if (!addRow) return;
+      var wasOpen = !addRow.hidden;
+      // Close every other watchlist add row so only one is open at
+      // a time (matches the suburb-tab UX).
+      var allRows = document.querySelectorAll('[data-watch-add-row]');
+      for (var ri = 0; ri < allRows.length; ri++) allRows[ri].hidden = true;
+      var allBtns = document.querySelectorAll('[data-watch-section-add]');
+      for (var bi = 0; bi < allBtns.length; bi++) {
+        allBtns[bi].setAttribute('aria-expanded', 'false');
+      }
+      if (!wasOpen) {
+        addRow.hidden = false;
+        sectionAdd.setAttribute('aria-expanded', 'true');
+        var input = addRow.querySelector('input');
+        if (input) input.focus();
+      }
+      return;
+    }
+
+    // Tap the row name to edit — single tap, no drag conflict in
+    // this UI (the chip-drag layer was retired in favour of the
+    // row + Move button pattern).
+    var rowEdit = e.target.closest && e.target.closest('[data-watch-edit]');
+    if (rowEdit) {
+      e.preventDefault();
+      var eTrip = (rowEdit.dataset.watchEdit || '').split(':');
+      var eKind = eTrip[0], eBin = eTrip[1], eIdx = parseInt(eTrip[2], 10);
+      if (eKind && eBin && !isNaN(eIdx)) {
+        handleWatchlistEditStart(eKind, eBin, eIdx);
+      }
+      return;
+    }
+
     // Pick from the custom suburb typeahead dropdown. Mirrors the
     // datalist-pick path on desktop browsers — fills the input and
     // commits via the same handleSuburbTypeaheadCommit flow.
@@ -9955,6 +11521,28 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
     var showMore = e.target.closest && e.target.closest('.show-more');
     if (showMore) { toggleShowMore(showMore); return; }
+
+    // Multi-day tag tooltip: same tap-to-toggle pattern as the
+    // score-chip so the tooltip is reachable on touch where :hover
+    // never fires. Click outside closes any open multi-day tooltip.
+    var mdEl = e.target.closest && e.target.closest('.multi-day-tag');
+    var openMds = document.querySelectorAll('.multi-day-tag.open');
+    for (var omd = 0; omd < openMds.length; omd++) {
+      if (openMds[omd] !== mdEl) {
+        openMds[omd].classList.remove('open');
+        openMds[omd].classList.remove('hover-suppressed');
+      }
+    }
+    if (mdEl) {
+      var wasOpenMd = mdEl.classList.contains('open');
+      mdEl.classList.toggle('open');
+      if (wasOpenMd) {
+        mdEl.classList.add('hover-suppressed');
+      } else {
+        mdEl.classList.remove('hover-suppressed');
+      }
+      return;
+    }
 
     // Score breakdown chip: tap toggles .open on mobile; mouse users
     // get :hover automatically. Clicking outside any chip closes them.
@@ -10073,8 +11661,545 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       handleSuburbTypeaheadCommit(e.target);
     } else if (e.target.matches('input[data-quick-toggle]')) {
       handleQuickToggle(e.target.dataset.quickToggle, e.target.checked);
+    } else if (e.target.matches('input[data-watch-add]')) {
+      // Commit-on-blur: typed-but-uncommitted value lands too.
+      var addPair = (e.target.dataset.watchAdd || '').split(':');
+      var addKind = addPair[0], addBin = addPair[1];
+      var v = e.target.value;
+      if (v && v.trim() && addKind && addBin) {
+        e.target.value = '';
+        handleWatchlistAdd(addKind, addBin, v);
+      }
+    }
+    // Watchlist edit commit handled in focusout below so unchanged
+    // inputs still commit (change fires only on dirty values).
+  });
+  document.addEventListener('focusout', function (e) {
+    if (!e.target.matches) return;
+    if (e.target.matches('input[data-watch-editing]')) {
+      var trip = (e.target.dataset.watchEditing || '').split(':');
+      var k = trip[0], b = trip[1], i = parseInt(trip[2], 10);
+      if (k && b && !isNaN(i)) {
+        handleWatchlistEditCommit(k, b, i, e.target.value);
+      }
     }
   });
+
+  // ============================================================
+  //  Mobile swipe — between day tabs (incl. All-week + Settings)
+  //  and between Settings subtabs. Pointer-events based; one code
+  //  path for touch + mouse + trackpad. Skips when:
+  //    - target inside [data-no-swipe] (tab strips themselves)
+  //    - within 20px of the screen's left edge (iOS back-swipe)
+  //    - active watchlist drag is already underway
+  // ============================================================
+  var SWIPE_DIST_FRAC = 0.5;     // commit if |dx| > 50% of viewport
+  var SWIPE_VEL_PX_MS = 0.3;     // OR velocity > 0.3 px/ms
+  var SWIPE_AXIS_BIAS = 15;      // vertical wins if |dy| > |dx| + 15
+  var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
+  var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
+  var SWIPE_COMMIT_MS = 200;     // commit animation duration
+  var _swipeState = null;
+  var _swipeBail = null;         // safety timer to clear stale state
+
+  function _swipeLadderForDay() {
+    // [Mon..Sun, all-week, settings]. Day slugs read from the DOM
+    // so we don't drift from renderTabsHtml's source of truth.
+    var ladder = [];
+    var dayBtns = document.querySelectorAll('.day-tab[data-tab]');
+    for (var i = 0; i < dayBtns.length; i++) {
+      ladder.push({ kind: 'day', slug: dayBtns[i].dataset.tab });
+    }
+    ladder.push({ kind: 'all-week' });
+    ladder.push({ kind: 'settings' });
+    return ladder;
+  }
+  function _swipeCurrentDayIdx(ladder) {
+    if (activeTab === 'settings') return _swipeFind(ladder, 'settings');
+    if (viewState.showAllDays) return _swipeFind(ladder, 'all-week');
+    var slug = activeTab;
+    for (var i = 0; i < ladder.length; i++) {
+      if (ladder[i].kind === 'day' && ladder[i].slug === slug) return i;
+    }
+    return -1;
+  }
+  function _swipeFind(ladder, kind) {
+    for (var i = 0; i < ladder.length; i++) {
+      if (ladder[i].kind === kind) return i;
+    }
+    return -1;
+  }
+  function _swipeActivateLadderEntry(entry) {
+    if (!entry) return;
+    if (entry.kind === 'all-week') {
+      setAllWeekActive(true);
+      return;
+    }
+    if (viewState.showAllDays && entry.kind !== 'all-week') {
+      setAllWeekActive(false);
+    }
+    var target = entry.kind === 'settings' ? 'settings' : entry.slug;
+    activate(target, { updateHash: true });
+  }
+
+  var SUBTAB_LADDER = [
+    'watchlist', 'vibes', 'tags', 'rules', 'suburbs',
+    'shape', 'appearance',
+  ];
+  function _swipeCurrentSubtab() {
+    var sel = document.querySelector(
+      '.settings-subtab[aria-selected="true"]');
+    return sel ? sel.dataset.subtab : 'watchlist';
+  }
+
+  function _swipeClearTimer() {
+    if (_swipeBail) { clearTimeout(_swipeBail); _swipeBail = null; }
+  }
+  function _swipeReducedMotion() {
+    return !!(window.matchMedia &&
+      window.matchMedia('(prefers-reduced-motion: reduce)').matches);
+  }
+  // Day-to-day swipe preview ("iPhone home-screen pattern"). When
+  // the user is mid-swipe between two adjacent day tabs, the prev
+  // and next .day panels slide into view alongside the current one
+  // so the destination is visible during the drag. Boundaries
+  // (day↔all-week, day↔settings, subtabs) fall back to the simple
+  // single-panel slide.
+  function _setupSwipePreview(state) {
+    // Only applies to day-scope swipes between two .day panels.
+    if (state.scope !== 'day') return;
+    if (viewState.showAllDays) return;          // stacked mode uses #main
+    var panel = state.panel;
+    if (!panel || !panel.classList || !panel.classList.contains('day')) return;
+    var ladder = state.ladder;
+    if (!ladder) return;
+    var idx = state.idx;
+    if (idx < 0) return;
+    var prevPanel = null, nextPanel = null;
+    if (idx > 0 && ladder[idx - 1].kind === 'day') {
+      prevPanel = document.getElementById('day-' + ladder[idx - 1].slug);
+    }
+    if (idx + 1 < ladder.length && ladder[idx + 1].kind === 'day') {
+      nextPanel = document.getElementById('day-' + ladder[idx + 1].slug);
+    }
+    if (!prevPanel && !nextPanel) return;       // edge — no preview
+    var mainEl = panel.parentNode;
+    if (!mainEl) return;
+    var panelTop = panel.offsetTop;
+    var panelH = panel.offsetHeight;
+    var vw = window.innerWidth || 360;
+    // Lock #main's min-height so the rest of the page doesn't reflow
+    // when the panels become absolutely positioned. Bake in panelTop
+    // so leading nudges/banners stay in place.
+    var lockH = panelTop + panelH;
+    mainEl.style.minHeight = lockH + 'px';
+    // Pin the active panel at the same offsetTop so prev/next can
+    // align with it via absolute positioning.
+    panel.classList.add('swipe-preview');
+    panel.style.top = panelTop + 'px';
+    function setupNeighbour(el, dir) {
+      if (!el) return;
+      el.hidden = false;
+      el.classList.add('swipe-preview');
+      el.style.top = panelTop + 'px';
+      el.style.transform = 'translateX(' + (dir * vw) + 'px)';
+    }
+    setupNeighbour(prevPanel, -1);
+    setupNeighbour(nextPanel, 1);
+    state.previewArmed = true;
+    state.prevPanel = prevPanel;
+    state.nextPanel = nextPanel;
+    state.previewParent = mainEl;
+    state.viewportWidth = vw;
+    // Part B: capture the tab-strip scroll position so we can slide
+    // the day-tab pills in sync with the content during the swipe.
+    var tabsRow = document.querySelector('.tabs-row');
+    if (tabsRow) {
+      var activeTabEl = document.querySelector(
+        '.day-tab[aria-selected="true"]');
+      var pillSpan = 0;
+      if (activeTabEl) {
+        if (nextPanel) {
+          var nextTab = document.querySelector(
+            '.day-tab[data-tab="' + ladder[idx + 1].slug + '"]');
+          if (nextTab) pillSpan = Math.abs(nextTab.offsetLeft -
+            activeTabEl.offsetLeft);
+        }
+        if (!pillSpan && prevPanel) {
+          var prevTab = document.querySelector(
+            '.day-tab[data-tab="' + ladder[idx - 1].slug + '"]');
+          if (prevTab) pillSpan = Math.abs(activeTabEl.offsetLeft -
+            prevTab.offsetLeft);
+        }
+      }
+      state.tabsRow = tabsRow;
+      state.tabsScroll0 = tabsRow.scrollLeft;
+      state.pillSpan = pillSpan;
+    }
+  }
+  function _swipeCleanupPreviewState(s) {
+    if (!s) return;
+    function clearPanel(el) {
+      if (!el) return;
+      el.classList.remove('swipe-preview');
+      el.style.top = '';
+      el.style.transform = '';
+      el.style.transition = '';
+    }
+    // Re-hide neighbours BEFORE clearing styles. If we cleared the
+    // `swipe-preview` class first, the neighbour would briefly return
+    // to flow positioning alongside the active panel and the page
+    // height would jump for one frame before the hidden flag landed.
+    var activeId = 'day-' + activeTab;
+    if (s.prevPanel && s.prevPanel.id !== activeId) s.prevPanel.hidden = true;
+    if (s.nextPanel && s.nextPanel.id !== activeId) s.nextPanel.hidden = true;
+    clearPanel(s.panel);
+    clearPanel(s.prevPanel);
+    clearPanel(s.nextPanel);
+    if (s.previewParent) s.previewParent.style.minHeight = '';
+  }
+  function _swipeCancel() {
+    _swipeClearTimer();
+    if (!_swipeState) return;
+    var dur = _swipeReducedMotion() ? 0 : 160;
+    if (_swipeState.previewArmed) {
+      // Snap-back: active to 0, prev to -100%, next to +100%.
+      var s = _swipeState;
+      var vw = s.viewportWidth || (window.innerWidth || 360);
+      function snap(el, target) {
+        if (!el) return;
+        el.style.transition = 'transform ' + dur + 'ms ease-out';
+        el.style.transform = target;
+      }
+      snap(s.panel, 'translateX(0)');
+      snap(s.prevPanel, 'translateX(' + (-vw) + 'px)');
+      snap(s.nextPanel, 'translateX(' + vw + 'px)');
+      if (s.tabsRow != null && s.tabsScroll0 != null) {
+        try { s.tabsRow.scrollTo({ left: s.tabsScroll0, behavior: 'smooth' }); }
+        catch (_) { s.tabsRow.scrollLeft = s.tabsScroll0; }
+      }
+      var snap_s = s;
+      setTimeout(function () { _swipeCleanupPreviewState(snap_s); }, dur + 40);
+      _swipeState = null;
+      return;
+    }
+    if (_swipeState.panel) {
+      _swipeState.panel.style.transition = 'transform ' + dur + 'ms ease-out';
+      _swipeState.panel.style.transform = '';
+      // Clear inline transition after the animation so layout is
+      // unaffected next time.
+      var panel = _swipeState.panel;
+      setTimeout(function () { panel.style.transition = ''; }, dur + 40);
+    }
+    _swipeState = null;
+  }
+  function _swipeCommit(direction) {
+    _swipeClearTimer();
+    if (!_swipeState) return;
+    var s = _swipeState;
+    var width = window.innerWidth || 360;
+    var dur = _swipeReducedMotion() ? 0 : SWIPE_COMMIT_MS;
+    // Identify whether the commit direction has a preview panel; if
+    // not, fall back to the single-panel slide.
+    var hasPreviewTarget = s.previewArmed && (
+      (direction < 0 && s.nextPanel) ||
+      (direction > 0 && s.prevPanel)
+    );
+    var scope = s.scope;
+    var nextEntry = s.nextEntry;
+    var subtab = s.subtab;
+    if (hasPreviewTarget) {
+      var to = direction < 0 ? -width : width;
+      // Active slides off-screen in the swipe direction; the
+      // destination neighbour slides to 0.
+      s.panel.style.transition = 'transform ' + dur + 'ms ease-out';
+      s.panel.style.transform = 'translateX(' + to + 'px)';
+      var target = direction < 0 ? s.nextPanel : s.prevPanel;
+      target.style.transition = 'transform ' + dur + 'ms ease-out';
+      target.style.transform = 'translateX(0)';
+      // Symmetric snap for the un-used neighbour (keeps things tidy
+      // for the cleanup pass).
+      var other = direction < 0 ? s.prevPanel : s.nextPanel;
+      if (other) {
+        other.style.transition = 'transform ' + dur + 'ms ease-out';
+        other.style.transform =
+          'translateX(' + (direction < 0 ? -2 * width : 2 * width) + 'px)';
+      }
+      if (s.tabsRow != null && s.pillSpan && s.tabsScroll0 != null) {
+        var finalScroll = s.tabsScroll0 - direction * s.pillSpan;
+        try { s.tabsRow.scrollTo({ left: finalScroll, behavior: 'smooth' }); }
+        catch (_) { s.tabsRow.scrollLeft = finalScroll; }
+      }
+      var prevPanel = s.prevPanel;
+      var nextPanel = s.nextPanel;
+      var activePanel = s.panel;
+      var parent = s.previewParent;
+      _swipeState = null;
+      setTimeout(function () {
+        // Activate first so the active panel's CSS state matches the
+        // post-commit world before we clear inline styles.
+        if (scope === 'day') {
+          _swipeActivateLadderEntry(nextEntry);
+        }
+        // Clear inline overrides on every previewed panel.
+        function clearOne(el) {
+          if (!el) return;
+          el.classList.remove('swipe-preview');
+          el.style.top = '';
+          el.style.transform = '';
+          el.style.transition = '';
+        }
+        clearOne(activePanel);
+        clearOne(prevPanel);
+        clearOne(nextPanel);
+        // activate() already set hidden flags; nothing else to do.
+        if (parent) parent.style.minHeight = '';
+      }, dur);
+      return;
+    }
+    // Single-panel commit (boundary cases: day↔all-week, day↔settings,
+    // subtab↔subtab — and preview-armed swipes that commit toward a
+    // non-day ladder entry).
+    var panel = s.panel;
+    var to2 = direction < 0 ? -width : width;
+    if (panel) {
+      panel.style.transition = 'transform ' + dur + 'ms ease-out';
+      panel.style.transform = 'translateX(' + to2 + 'px)';
+    }
+    // If preview was armed but the commit direction has no day
+    // neighbour (e.g. last day → all-week), drag the parked neighbours
+    // along for visual consistency and queue them for cleanup.
+    var previewArmedAtCommit = !!s.previewArmed;
+    var prevPanel = s.prevPanel, nextPanel = s.nextPanel;
+    var previewParent = s.previewParent;
+    if (previewArmedAtCommit) {
+      var dragOff = direction < 0 ? -width : width;
+      function dragNeighbour(el) {
+        if (!el) return;
+        el.style.transition = 'transform ' + dur + 'ms ease-out';
+        var current = el.style.transform || '';
+        // Pull each neighbour an extra viewport in the commit
+        // direction so they trail the active panel off-screen.
+        el.style.transform = current.replace(/translateX\(([^)]+)\)/,
+          function (_, px) {
+            var n = parseFloat(px) || 0;
+            return 'translateX(' + (n + dragOff) + 'px)';
+          });
+        if (!/translateX/.test(el.style.transform)) {
+          el.style.transform = 'translateX(' + dragOff + 'px)';
+        }
+      }
+      dragNeighbour(prevPanel);
+      dragNeighbour(nextPanel);
+    }
+    _swipeState = null;
+    setTimeout(function () {
+      if (scope === 'day') {
+        _swipeActivateLadderEntry(nextEntry);
+      } else if (scope === 'subtab') {
+        switchSubtab(subtab);
+      }
+      function clearOne(el) {
+        if (!el) return;
+        el.classList.remove('swipe-preview');
+        el.style.top = '';
+        el.style.transform = '';
+        el.style.transition = '';
+      }
+      clearOne(panel);
+      if (previewArmedAtCommit) {
+        clearOne(prevPanel);
+        clearOne(nextPanel);
+        // activate() resets hidden flags; nothing else to do.
+        if (previewParent) previewParent.style.minHeight = '';
+      }
+    }, dur);
+  }
+
+  function _swipeStart(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    // If any watchlist row is currently in edit mode, the whole page
+    // is swipe-locked regardless of where the touch landed — the user
+    // is mid-typing and a swipe-out would dump the input.
+    if (document.querySelector('input[data-watch-editing]')) return;
+    if (e.clientX < SWIPE_EDGE_EXCLUDE) return; // iOS back-swipe
+    if (e.target.closest && e.target.closest('[data-no-swipe]')) return;
+    // Determine swipe scope by where the pointer lands. Day-content
+    // (any .day panel) AND the all-week banner both count as the
+    // top-level day scope so swiping on the banner navigates too.
+    var inSettings = e.target.closest && e.target.closest('#settings-view');
+    var inDayPanel = e.target.closest && e.target.closest('.day');
+    var inAllWeek  = e.target.closest && e.target.closest('#all-week-heading');
+    if (!inSettings && !inDayPanel && !inAllWeek) return;
+    var scope = inSettings ? 'subtab' : 'day';
+    // In stacked all-week mode every .day panel is visible at once;
+    // translating just one looks broken. Translate #main so the
+    // whole feed moves together. Same when pointerdown is on the
+    // banner itself (no single day panel to attach to).
+    var stackedOrBanner = !!inAllWeek || (scope === 'day' && viewState.showAllDays);
+    var panel = inSettings ||
+      (stackedOrBanner ? document.getElementById('main') : inDayPanel);
+    _swipeState = {
+      scope: scope,
+      panel: panel,
+      x0: e.clientX,
+      y0: e.clientY,
+      t0: Date.now(),
+      lastX: e.clientX,
+      lastT: Date.now(),
+      vel: 0,
+      pointerId: e.pointerId,
+      armed: false,
+      cancelled: false,
+    };
+    // Safety net for iOS pointercancel not firing on some
+    // interruptions: 5s max swipe duration.
+    _swipeBail = setTimeout(_swipeCancel, 5000);
+  }
+
+  function _swipeMove(e) {
+    if (!_swipeState || _swipeState.cancelled) return;
+    if (_swipeState.pointerId !== e.pointerId) return;
+    var dx = e.clientX - _swipeState.x0;
+    var dy = e.clientY - _swipeState.y0;
+    if (!_swipeState.armed) {
+      // Axis arbitration: vertical bias wins by 15px so a deliberate
+      // vertical scroll never triggers a horizontal swipe gesture.
+      if (Math.abs(dy) > Math.abs(dx) + SWIPE_AXIS_BIAS) {
+        _swipeState.cancelled = true;
+        return;
+      }
+      if (Math.abs(dx) < SWIPE_ACTIVATE_DIST) return;
+      _swipeState.armed = true;
+      // Setup ladder / target lookup once the gesture is real.
+      if (_swipeState.scope === 'day') {
+        _swipeState.ladder = _swipeLadderForDay();
+        _swipeState.idx = _swipeCurrentDayIdx(_swipeState.ladder);
+        // Set up day-to-day preview panels (no-op for boundary cases).
+        _setupSwipePreview(_swipeState);
+      } else {
+        _swipeState.subtabStart = _swipeCurrentSubtab();
+      }
+    }
+    // Velocity (px/ms) over the last 60ms slot for the commit gate.
+    var now = Date.now();
+    var dt = now - _swipeState.lastT;
+    if (dt > 0) {
+      _swipeState.vel = (e.clientX - _swipeState.lastX) / dt;
+      _swipeState.lastX = e.clientX;
+      _swipeState.lastT = now;
+    }
+    // Translate the panel; rubber-band at edges where there's no
+    // neighbour in the swipe direction.
+    var atEdge = false;
+    if (_swipeState.scope === 'day') {
+      var idx = _swipeState.idx;
+      if (idx === 0 && dx > 0) atEdge = true;
+      if (idx === _swipeState.ladder.length - 1 && dx < 0) atEdge = true;
+    } else {
+      var cur = _swipeState.subtabStart;
+      var sIdx = SUBTAB_LADDER.indexOf(cur);
+      if (sIdx === SUBTAB_LADDER.length - 1 && dx < 0) atEdge = true;
+      // Left edge: NOT rubber-band — Watchlist wraps back to All-week
+      // (per user choice). Treated as a normal commit, not an edge.
+    }
+    // Preview path: if a preview armed in this direction, translate
+    // active + neighbour in lockstep. Atedge for the previewed side
+    // means a non-day boundary in that direction; we fall back to
+    // rubber-band on the active only and leave neighbours parked.
+    if (_swipeState.previewArmed) {
+      var vw = _swipeState.viewportWidth || (window.innerWidth || 360);
+      var previewSide = dx < 0 ? _swipeState.nextPanel : _swipeState.prevPanel;
+      var oppositeSide = dx < 0 ? _swipeState.prevPanel : _swipeState.nextPanel;
+      var travel = dx;
+      // Rubber-band when the preview side is empty (boundary swipe).
+      if (!previewSide) travel = dx / 3;
+      if (_swipeState.panel) {
+        _swipeState.panel.style.transform = 'translateX(' + travel + 'px)';
+      }
+      if (previewSide) {
+        var dir = dx < 0 ? 1 : -1;
+        previewSide.style.transform =
+          'translateX(' + ((dir * vw) + travel) + 'px)';
+      }
+      if (oppositeSide) {
+        var dirO = dx < 0 ? -1 : 1;
+        // Keep the un-used neighbour parked off-screen; nudge it
+        // gently with the swipe so it doesn't visually "stick".
+        oppositeSide.style.transform =
+          'translateX(' + ((dirO * vw) + travel) + 'px)';
+      }
+      // Part B: slide the day-tab strip's scrollLeft in sync.
+      // Direction: swiping content left (dx<0) → scrollLeft increases
+      // so the strip moves leftward, bringing the next pill toward
+      // where the current pill sits.
+      if (_swipeState.tabsRow != null && _swipeState.pillSpan &&
+          _swipeState.tabsScroll0 != null && previewSide) {
+        var frac = Math.max(-1, Math.min(1, travel / vw));
+        _swipeState.tabsRow.scrollLeft =
+          _swipeState.tabsScroll0 - frac * _swipeState.pillSpan;
+      }
+      return;
+    }
+    var shown = atEdge ? dx / 3 : dx;
+    if (_swipeState.panel) {
+      _swipeState.panel.style.transform = 'translateX(' + shown + 'px)';
+    }
+  }
+
+  function _swipeEnd(e) {
+    if (!_swipeState) return;
+    if (_swipeState.pointerId !== e.pointerId) return;
+    if (_swipeState.cancelled || !_swipeState.armed) {
+      _swipeCancel();
+      return;
+    }
+    var dx = e.clientX - _swipeState.x0;
+    var dt = Date.now() - _swipeState.t0;
+    var vp = window.innerWidth || 360;
+    var commit = (Math.abs(dx) > vp * SWIPE_DIST_FRAC) ||
+                 (Math.abs(_swipeState.vel) > SWIPE_VEL_PX_MS && dt < 600);
+    if (!commit) { _swipeCancel(); return; }
+    var dir = dx < 0 ? -1 : 1;
+    if (_swipeState.scope === 'day') {
+      var idx = _swipeState.idx;
+      var nextIdx = idx + (dir < 0 ? 1 : -1);
+      if (nextIdx < 0 || nextIdx >= _swipeState.ladder.length) {
+        _swipeCancel();
+        return;
+      }
+      _swipeState.nextEntry = _swipeState.ladder[nextIdx];
+    } else {
+      var curSub = _swipeState.subtabStart;
+      var sIdx = SUBTAB_LADDER.indexOf(curSub);
+      var nextSubIdx = sIdx + (dir < 0 ? 1 : -1);
+      if (nextSubIdx >= SUBTAB_LADDER.length) {
+        _swipeCancel(); // rubber-banded; don't commit past Theme
+        return;
+      }
+      if (nextSubIdx < 0) {
+        // Wrap left from Watchlist → All-week (per user choice). Treat
+        // as a top-level transition: animate the settings panel off,
+        // then activate All-week.
+        _swipeState.scope = 'day';
+        _swipeState.nextEntry = { kind: 'all-week' };
+      } else {
+        _swipeState.subtab = SUBTAB_LADDER[nextSubIdx];
+      }
+    }
+    _swipeCommit(dir);
+  }
+
+  if (window.PointerEvent) {
+    document.addEventListener('pointerdown', _swipeStart);
+    document.addEventListener('pointermove', _swipeMove);
+    document.addEventListener('pointerup', _swipeEnd);
+    document.addEventListener('pointercancel', _swipeCancel);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) _swipeCancel();
+    });
+    window.addEventListener('blur', _swipeCancel);
+  }
 
   // :has() fallback for the score-breakdown tooltip on .event.extra cards.
   // Older Safari (<15.4), Firefox (<121), and Android WebView don't honour
@@ -10142,6 +12267,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       e.preventDefault();
       handleSuburbTypeaheadCommit(e.target);
       return;
+    }
+    if (e.key === 'Enter' && e.target.matches &&
+        e.target.matches('input[data-watch-add]')) {
+      e.preventDefault();
+      var wTrip = (e.target.dataset.watchAdd || '').split(':');
+      var wKind = wTrip[0], wBin = wTrip[1];
+      var wv = e.target.value;
+      if (wv && wv.trim() && wKind && wBin) {
+        e.target.value = '';
+        handleWatchlistAdd(wKind, wBin, wv);
+      }
+      return;
+    }
+    if (e.target.matches && e.target.matches('input[data-watch-editing]')) {
+      if (e.key === 'Enter') {
+        e.preventDefault();
+        var eTrip2 = (e.target.dataset.watchEditing || '').split(':');
+        var eK = eTrip2[0], eB = eTrip2[1], eI = parseInt(eTrip2[2], 10);
+        if (eK && eB && !isNaN(eI)) {
+          handleWatchlistEditCommit(eK, eB, eI, e.target.value);
+        }
+        return;
+      }
+      if (e.key === 'Escape') {
+        e.preventDefault();
+        var cKind = (e.target.dataset.watchEditing || '').split(':')[0];
+        if (cKind) rerenderWatchlistKind(cKind);
+        return;
+      }
     }
     if (e.key === 'ArrowLeft' || e.key === 'ArrowRight') {
       var tab = e.target.closest && e.target.closest('.day-tab');
