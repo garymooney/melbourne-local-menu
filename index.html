@@ -3208,189 +3208,162 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   outline: none;
 }
 
-/* Watchlist sub-tab — dual-bin chip list per kind (venues + artists).
-   Priority bin auto-pins matches and tags them with a "watching"
-   pill; Saved bin is an inert roster the user can drag into
-   Priority. Chips have a grip handle for drag, a label that opens
-   inline edit on click, and an × that removes.
-   user-select / touch-callout killed on the chip so iOS doesn't pop
-   a text-selection magnifier on long-press. */
+/* Watchlist sub-tab — list-style UI mirroring the suburb tab.
+   Two sections per kind (Priority + Saved). Each section heading
+   has a `+` button that expands an inline input below; each row
+   is `[name | move | ×]` with the name itself acting as a
+   tap-to-edit affordance. Replaces the earlier chip drag UI
+   which was fighting iOS gesture conflicts. */
 .watchlist-section { margin: 0 0 1.6em; }
 .watchlist-section + .watchlist-section { margin-top: 1.6em; }
 .watchlist-hint {
   font-size: 0.85em;
   color: var(--muted);
   line-height: 1.45;
-  margin: 0 0 10px;
+  margin: 0 0 12px;
 }
-.watchlist-bins {
+.watchlist-kind {
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 8px;
 }
-@media (min-width: 640px) {
-  .watchlist-bins {
-    flex-direction: row;
-    align-items: stretch;
-  }
-  .watchlist-bins > .watch-bin { flex: 1 1 0; min-width: 0; }
-}
-.watch-bin {
-  border: 1px solid var(--rule);
-  border-radius: 8px;
-  padding: 10px 12px 12px 24px; /* ≥24px left so iOS back-swipe zone
-                                   doesn't clip the grip handle */
-  background: var(--card-bg, #fff);
-  transition: border-color 0.15s, background 0.15s;
-}
-.watch-bin--priority {
-  border-color: color-mix(in srgb, var(--accent-cool) 30%, var(--rule));
-  background: color-mix(in srgb, var(--accent-cool) 4%, var(--card-bg, #fff));
-}
-.watch-bin--drop-target {
-  border-color: var(--accent-cool);
-  background: color-mix(in srgb, var(--accent-cool) 10%, var(--card-bg, #fff));
-}
-.watch-bin__heading {
+.watch-section { margin: 0; }
+.watch-section__heading {
+  /* Mirrors .subcat-group-heading layout — title on left, +
+     button on right. */
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin: 6px 0 4px;
   font-size: 0.85em;
   font-weight: 600;
   color: var(--text);
-  margin: 0 0 8px;
-  display: flex;
-  align-items: center;
-  gap: 6px;
 }
-.watch-bin__icon {
-  color: var(--accent-cool);
-  font-size: 1.05em;
-}
-.watch-empty-hint {
-  font-size: 0.78em;
-  color: var(--faint);
-  font-style: italic;
-  margin: 0 0 8px;
-}
-.watch-list {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 6px;
-  min-height: 36px;
-}
-.watch-chip {
-  display: inline-flex;
-  align-items: center;
-  gap: 2px;
-  padding: 4px 4px 4px 10px;
-  background: color-mix(in srgb, var(--accent-cool) 6%, transparent);
-  border: 1px solid color-mix(in srgb, var(--accent-cool) 22%, transparent);
-  border-radius: 999px;
+.watch-section--priority .watch-section__heading {
   color: var(--text);
-  font-size: 0.9em;
-  line-height: 1.3;
-  max-width: 100%;
-  cursor: grab;
-  /* iOS / Chrome: kill native scroll AND swipe while finger is on a
-     chip — entire chip is the drag target. The user can scroll the
-     watchlist panel by touching whitespace between chips, but not
-     by touching a chip itself. Selection + callout disabled too so
-     long-press doesn't pop the system magnifier. */
-  touch-action: none;
-  -webkit-user-select: none;
-  user-select: none;
-  -webkit-touch-callout: none;
 }
-.watch-chip:active { cursor: grabbing; }
-.watch-chip--priority {
-  background: color-mix(in srgb, var(--accent-cool) 18%, transparent);
-  border-color: color-mix(in srgb, var(--accent-cool) 45%, transparent);
+.watch-section__icon {
+  color: var(--accent-cool);
+  margin-right: 2px;
 }
-.watch-chip--dragging {
-  opacity: 0.35;
+.watch-section-add {
+  margin: 4px 0 6px;
+  padding: 4px 2px;
 }
-.watch-chip__ghost {
-  opacity: 0.9;
-  box-shadow: 0 6px 18px rgba(0, 0, 0, 0.22);
-  transform: scale(1.02);
-  background: color-mix(in srgb, var(--accent-cool) 22%, var(--card-bg, #fff));
+.watch-section-add[hidden] { display: none; }
+.watch-add-input {
+  width: 100%;
+  box-sizing: border-box;
+  padding: 8px 10px;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  background: var(--card-bg, #fff);
+  color: var(--text);
+  font: inherit;
+  /* 16px so iOS Safari doesn't zoom on focus. */
+  font-size: 16px;
+}
+.watch-add-input:focus {
+  outline: none;
   border-color: var(--accent-cool);
 }
-.watchlist-dragging * { cursor: grabbing !important; }
-.watch-chip__label {
-  /* Full text visible — no ellipsis. Long names just make the chip
-     wider; flex-wrap on .watch-list handles wrapping. Cursor
-     stays grab from the parent chip (whole chip is now the drag
-     handle). Edit opens on dblclick (see dblclick handler in JS). */
+.watch-rows {
+  display: flex;
+  flex-direction: column;
+}
+.watch-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  align-items: center;
+  gap: 8px;
+  padding: 6px 2px;
+  border-bottom: 1px solid var(--rule);
+}
+.watch-row:last-child { border-bottom: 0; }
+.watch-row__name {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--text);
+  font: inherit;
+  font-size: 0.95em;
+  text-align: left;
+  padding: 4px 0;
+  cursor: text;
+  /* Long names wrap onto multiple lines rather than truncating —
+     full visibility at the cost of slight section height. */
   white-space: normal;
   word-break: break-word;
-  text-align: left;
-  padding: 0 4px;
-  cursor: inherit;
+  min-width: 0;
 }
-.watch-chip__edit {
+.watch-section--priority .watch-row__name { color: var(--text); }
+.watch-row__name:hover {
+  text-decoration: underline;
+  text-decoration-color: color-mix(in srgb, var(--accent-cool) 50%, transparent);
+  text-underline-offset: 2px;
+}
+.watch-row__move {
   appearance: none;
-  border: 0;
   background: transparent;
-  color: inherit;
-  font: inherit;
-  /* 16px so iOS Safari doesn't zoom on focus when the chip is the
-     entry point for edits. */
-  font-size: 16px;
-  line-height: 1.3;
-  outline: none;
-  min-width: 6ch;
-  width: auto;
-  padding: 0;
-  /* While editing, the screen must NOT swipe in any direction —
-     touch on the input is for typing/selecting text, never page
-     navigation. touch-action: none kills native scroll; the chip's
-     data-no-swipe (in markup) kills the JS swipe handler. */
-  touch-action: none;
-}
-.watch-chip--editing {
-  background: color-mix(in srgb, var(--accent-cool) 24%, transparent);
-  border-color: var(--accent-cool);
-}
-.watch-chip__remove {
-  appearance: none;
-  border: 0;
-  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--faint) 40%, transparent);
   color: var(--muted);
   font: inherit;
-  font-size: 1.2em;
+  font-size: 1.1em;
   line-height: 1;
-  padding: 0;
-  width: 22px;
-  height: 22px;
+  width: 28px;
+  height: 28px;
+  border-radius: 999px;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+.watch-row__move:hover,
+.watch-row__move:focus-visible {
+  color: var(--accent-cool);
+  border-color: var(--accent-cool);
+  outline: none;
+}
+.watch-row__remove {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  color: var(--muted);
+  font: inherit;
+  font-size: 1.3em;
+  line-height: 1;
+  width: 28px;
+  height: 28px;
   border-radius: 50%;
   cursor: pointer;
   display: inline-flex;
   align-items: center;
   justify-content: center;
 }
-.watch-chip__remove:hover,
-.watch-chip__remove:focus-visible {
+.watch-row__remove:hover,
+.watch-row__remove:focus-visible {
   color: #fff;
-  background: color-mix(in srgb, var(--accent-cool) 70%, transparent);
+  background: color-mix(in srgb, var(--accent-cool) 60%, transparent);
   outline: none;
 }
-.watch-input {
-  flex: 1 1 12ch;
-  min-width: 12ch;
-  padding: 4px 4px;
-  border: 0;
-  outline: none;
+.watch-row__edit {
+  appearance: none;
   background: transparent;
+  border: 0;
   color: var(--text);
   font: inherit;
-  /* 16px (not em) so iOS Safari doesn't zoom on focus. */
-  font-size: 16px;
-  line-height: 1.4;
+  font-size: 16px;       /* iOS no-zoom on focus */
+  padding: 4px 0;
+  outline: none;
+  width: 100%;
+  min-width: 0;
 }
-.watch-input::placeholder {
-  color: var(--faint);
-  opacity: 0.8;
+.watch-row--editing .watch-row__edit {
+  border-bottom: 1px solid var(--accent-cool);
 }
+/* Chip-drag UI retired in favour of row-list; chip styles dropped. */
+/* .watch-chip* and .watch-input retired — replaced by
+   .watch-row* + .watch-add-input above. */
 
 /* Outside section is rendered as a <details> disclosure so it sits
    collapsed by default — typically the largest section and rarely
@@ -6780,80 +6753,80 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return profile[watchlistKey(kind, bin)] || [];
   }
 
-  function renderWatchlistChips(kind, bin, items) {
-    var label = bin === 'priority' ? 'Priority' : 'Saved';
-    var html = items.map(function (item, idx) {
-      // Whole chip is the drag target — long-press anywhere on it
-      // (or 8px movement) starts the drag. CSS sets touch-action:
-      // none so dragging on a chip never starts a vertical scroll
-      // or a page swipe. Single tap does nothing; double-tap on the
-      // label opens inline edit. × stays as the delete affordance.
-      // data-watch-grip stays on the chip itself (rather than a
-      // separate sub-element) so anywhere-on-chip = drag handle.
-      return (
-        '<span class="watch-chip watch-chip--' + bin + '" ' +
-          'data-watch-kind="' + kind + '" ' +
-          'data-watch-bin="' + bin + '" ' +
-          'data-watch-idx="' + idx + '" ' +
-          'data-watch-grip="' + kind + ':' + bin + ':' + idx + '" ' +
-          // data-no-swipe so the page-swipe pointer handler bails
-          // before arming — chip drag owns this gesture entirely.
-          'data-no-swipe ' +
-          'title="Tap to edit · drag to move">' +
-          '<span class="watch-chip__label" ' +
-            'data-watch-edit="' + kind + ':' + bin + ':' + idx + '">' +
-            escapeHtml(item) +
-          '</span>' +
-          '<button type="button" class="watch-chip__remove" ' +
-            'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
-            'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
-        '</span>'
-      );
-    }).join('');
-    var placeholder = (bin === 'priority' ? 'Add ' + label.toLowerCase() + ' ' : 'Add ') +
-      (kind === 'venues' ? 'venue…' : 'artist…');
-    html += (
-      '<input type="text" class="watch-input" ' +
-        'data-watch-add="' + kind + ':' + bin + '" ' +
-        'placeholder="' + placeholder + '" ' +
-        'autocomplete="off" autocapitalize="words">'
+  // Per-row markup — mirrors .subcat-row / .suburb-row layout so
+  // existing reset/hover/modified-dot styling applies for free. Each
+  // row: name (clickable to edit) + Move-to-other-bin button + ×.
+  function renderWatchlistRow(kind, bin, item, idx) {
+    var otherBin = bin === 'priority' ? 'saved' : 'priority';
+    var moveLabel = bin === 'priority' ? 'Move to Saved' : 'Move to Priority';
+    var moveIcon  = bin === 'priority' ? '↓' : '↑';
+    return (
+      '<div class="watch-row" ' +
+        'data-watch-kind="' + kind + '" ' +
+        'data-watch-bin="' + bin + '" ' +
+        'data-watch-idx="' + idx + '">' +
+        '<button type="button" class="watch-row__name" ' +
+          'data-watch-edit="' + kind + ':' + bin + ':' + idx + '" ' +
+          'title="Tap to edit">' + escapeHtml(item) + '</button>' +
+        '<button type="button" class="watch-row__move" ' +
+          'data-watch-move="' + kind + ':' + bin + ':' + idx + ':' + otherBin + '" ' +
+          'aria-label="' + moveLabel + '" title="' + moveLabel + '">' +
+          moveIcon + '</button>' +
+        '<button type="button" class="watch-row__remove" ' +
+          'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
+          'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
+      '</div>'
     );
-    return html;
   }
 
-  function renderWatchlistBins(kind) {
-    var priority = watchlistList(kind, 'priority');
-    var saved    = watchlistList(kind, 'saved');
-    var kindLabel = kind === 'venues' ? 'venues' : 'artists';
-    var emptyHint = priority.length === 0
-      ? ('<p class="watch-empty-hint">Drag a chip from Saved, or type ' +
-         'a name above to add a ' + (kind === 'venues' ? 'venue' : 'artist') +
-         '.</p>')
-      : '';
+  function renderWatchlistAddInput(kind, bin) {
+    var noun = kind === 'venues' ? 'venue' : 'artist';
     return (
-      '<div class="watchlist-bins" data-watch-bins="' + kind + '">' +
-        '<div class="watch-bin watch-bin--priority" ' +
-          'data-watch-bin="priority" data-watch-kind="' + kind + '">' +
-          '<div class="watch-bin__heading">' +
-            '<span class="watch-bin__title">' +
-              '<span class="watch-bin__icon" aria-hidden="true">&#9733;</span> ' +
-              'Priority ' + kindLabel +
-            '</span>' +
-          '</div>' +
-          emptyHint +
-          '<div class="watch-list" data-watch-list="' + kind + ':priority">' +
-            renderWatchlistChips(kind, 'priority', priority) +
-          '</div>' +
+      '<div class="watch-section-add" hidden ' +
+        'data-watch-add-row="' + kind + ':' + bin + '">' +
+        '<input type="text" class="watch-add-input" ' +
+          'data-watch-add="' + kind + ':' + bin + '" ' +
+          'placeholder="Type a ' + noun + '&hellip;" ' +
+          'autocomplete="off" autocapitalize="words" spellcheck="false">' +
+      '</div>'
+    );
+  }
+
+  function renderWatchlistSection(kind, bin) {
+    var items = watchlistList(kind, bin);
+    var noun = kind === 'venues' ? 'venues' : 'artists';
+    var title = (bin === 'priority' ? 'Priority ' : 'Saved ') + noun;
+    var iconHtml = bin === 'priority'
+      ? '<span class="watch-section__icon" aria-hidden="true">&#9733;</span> '
+      : '';
+    var rows = items.map(function (item, idx) {
+      return renderWatchlistRow(kind, bin, item, idx);
+    }).join('\n');
+    return (
+      '<div class="watch-section watch-section--' + bin + '" ' +
+        'data-watch-section="' + kind + ':' + bin + '">' +
+        '<h4 class="subcat-group-heading watch-section__heading">' +
+          '<span>' + iconHtml + escapeHtml(title) +
+            ' (' + items.length + ')</span>' +
+          '<button type="button" class="add-suburb-btn" ' +
+            'data-watch-section-add="' + kind + ':' + bin + '" ' +
+            'aria-expanded="false" ' +
+            'aria-label="Add to ' + escapeHtml(title) + '">+</button>' +
+        '</h4>' +
+        renderWatchlistAddInput(kind, bin) +
+        '<div class="watch-rows" ' +
+          'data-watch-rows="' + kind + ':' + bin + '">' +
+          rows +
         '</div>' +
-        '<div class="watch-bin watch-bin--saved" ' +
-          'data-watch-bin="saved" data-watch-kind="' + kind + '">' +
-          '<div class="watch-bin__heading">' +
-            '<span class="watch-bin__title">Saved ' + kindLabel + '</span>' +
-          '</div>' +
-          '<div class="watch-list" data-watch-list="' + kind + ':saved">' +
-            renderWatchlistChips(kind, 'saved', saved) +
-          '</div>' +
-        '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderWatchlistKindBlock(kind) {
+    return (
+      '<div class="watchlist-kind" data-watch-kind-block="' + kind + '">' +
+        renderWatchlistSection(kind, 'priority') +
+        renderWatchlistSection(kind, 'saved') +
       '</div>'
     );
   }
@@ -6861,13 +6834,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderWatchlistPanel() {
     return (
       '<div class="watchlist-section">' +
-        '<p class="watchlist-hint">Drag chips into Priority to pin ' +
-          'their events to the top with a &ldquo;watching&rdquo; ' +
-          'tag. Saved is just a parking spot.</p>' +
-        renderWatchlistBins('venues') +
+        '<p class="watchlist-hint">Add venues and artists you always ' +
+          'want surfaced. Priority items get pinned to the top of ' +
+          'their section with a &ldquo;watching&rdquo; tag; Saved is ' +
+          'a parking spot.</p>' +
+        renderWatchlistKindBlock('venues') +
       '</div>' +
       '<div class="watchlist-section">' +
-        renderWatchlistBins('artists') +
+        renderWatchlistKindBlock('artists') +
       '</div>'
     );
   }
@@ -7029,130 +7003,31 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     rerenderWatchlistKind(kind);
   }
 
-  // Pointer-event-based chip drag. One code path for desktop + touch
-  // — no native HTML5 DnD (which doesn't fire on iOS Safari for
-  // touch interactions). Long-press on the grip icon (or 8px of
-  // movement) enters drag mode; ghost element follows the pointer;
-  // drop on a bin moves the chip via handleWatchlistMove. Cancels
-  // cleanly on pointercancel / visibilitychange / page blur so a
-  // backgrounded app doesn't leave a stranded ghost.
-  var LONG_PRESS_MS = 220;
-  var DRAG_THRESHOLD = 8;
-  var _watchDragState = null;
-  function _watchDragCancel() {
-    if (!_watchDragState) return;
-    if (_watchDragState.ghost && _watchDragState.ghost.parentNode) {
-      _watchDragState.ghost.parentNode.removeChild(_watchDragState.ghost);
-    }
-    if (_watchDragState.chip) {
-      _watchDragState.chip.classList.remove('watch-chip--dragging');
-    }
-    if (_watchDragState.lastHover) {
-      _watchDragState.lastHover.classList.remove('watch-bin--drop-target');
-    }
-    if (_watchDragState.timer) clearTimeout(_watchDragState.timer);
-    _watchDragState = null;
-    document.body.classList.remove('watchlist-dragging');
-  }
-  function _watchDragArm(chip, kind, bin, idx, startX, startY, pointerId) {
-    _watchDragState = {
-      chip: chip,
-      kind: kind,
-      fromBin: bin,
-      idx: idx,
-      startX: startX,
-      startY: startY,
-      pointerId: pointerId,
-      armed: false,        // becomes true after long-press OR threshold
-      ghost: null,
-      lastHover: null,
-      timer: null,
-    };
-    _watchDragState.timer = setTimeout(function () {
-      if (_watchDragState) _watchDragArmFinalise();
-    }, LONG_PRESS_MS);
-  }
-  function _watchDragArmFinalise() {
-    if (!_watchDragState || _watchDragState.armed) return;
-    _watchDragState.armed = true;
-    var chip = _watchDragState.chip;
-    // Build the floating ghost — a clone with no event handlers,
-    // positioned absolutely at the cursor. Pointer-events: none so
-    // it doesn't capture elementFromPoint hits.
-    var rect = chip.getBoundingClientRect();
-    var ghost = chip.cloneNode(true);
-    ghost.classList.add('watch-chip__ghost');
-    ghost.style.position = 'fixed';
-    ghost.style.left = rect.left + 'px';
-    ghost.style.top = rect.top + 'px';
-    ghost.style.width = rect.width + 'px';
-    ghost.style.pointerEvents = 'none';
-    ghost.style.zIndex = '9999';
-    document.body.appendChild(ghost);
-    _watchDragState.ghost = ghost;
-    _watchDragState.ghostOffsetX = _watchDragState.startX - rect.left;
-    _watchDragState.ghostOffsetY = _watchDragState.startY - rect.top;
-    chip.classList.add('watch-chip--dragging');
-    document.body.classList.add('watchlist-dragging');
-  }
-  function _watchDragMove(x, y) {
-    if (!_watchDragState) return;
-    if (!_watchDragState.armed) {
-      var dx = x - _watchDragState.startX;
-      var dy = y - _watchDragState.startY;
-      if ((dx * dx + dy * dy) >= DRAG_THRESHOLD * DRAG_THRESHOLD) {
-        _watchDragArmFinalise();
-      } else {
-        return;
-      }
-    }
-    var ghost = _watchDragState.ghost;
-    if (ghost) {
-      ghost.style.left = (x - _watchDragState.ghostOffsetX) + 'px';
-      ghost.style.top  = (y - _watchDragState.ghostOffsetY) + 'px';
-    }
-    var under = document.elementFromPoint(x, y);
-    var bin = under && under.closest && under.closest('.watch-bin');
-    if (_watchDragState.lastHover && _watchDragState.lastHover !== bin) {
-      _watchDragState.lastHover.classList.remove('watch-bin--drop-target');
-      _watchDragState.lastHover = null;
-    }
-    if (bin && bin.dataset.watchKind === _watchDragState.kind &&
-        bin.dataset.watchBin !== _watchDragState.fromBin) {
-      bin.classList.add('watch-bin--drop-target');
-      _watchDragState.lastHover = bin;
-    }
-  }
-  function _watchDragDrop() {
-    if (!_watchDragState) return;
-    var s = _watchDragState;
-    var target = s.lastHover;
-    _watchDragCancel();
-    if (target) {
-      handleWatchlistMove(
-        s.kind, s.fromBin, s.idx,
-        target.dataset.watchBin
-      );
-    }
-  }
-
   function rerenderWatchlistKind(kind, opts) {
-    var bins = document.querySelector(
-      '.watchlist-bins[data-watch-bins="' + kind + '"]');
-    if (!bins) return;
-    // Replace the entire kind block so chip indices stay in sync
-    // with the new arrays. Cheap: at most ~16 chips per kind.
+    var block = document.querySelector(
+      '.watchlist-kind[data-watch-kind-block="' + kind + '"]');
+    if (!block) return;
+    // Replace the entire kind block so row indices stay in sync
+    // with the new arrays. Cheap: at most ~16 entries per kind.
     var fresh = document.createElement('div');
-    fresh.innerHTML = renderWatchlistBins(kind);
-    var freshBins = fresh.firstElementChild;
-    if (freshBins && bins.parentNode) {
-      bins.parentNode.replaceChild(freshBins, bins);
+    fresh.innerHTML = renderWatchlistKindBlock(kind);
+    var freshBlock = fresh.firstElementChild;
+    if (freshBlock && block.parentNode) {
+      block.parentNode.replaceChild(freshBlock, block);
     }
     if (opts && opts.focusBin) {
-      var input = document.querySelector(
-        '.watch-list[data-watch-list="' + kind + ':' + opts.focusBin +
-        '"] .watch-input');
-      if (input) input.focus();
+      // Re-open the add row + focus its input for the bin we just
+      // added to, so successive adds don't need a fresh + tap.
+      var addRow = document.querySelector(
+        '[data-watch-add-row="' + kind + ':' + opts.focusBin + '"]');
+      if (addRow) {
+        addRow.hidden = false;
+        var btn = document.querySelector(
+          '[data-watch-section-add="' + kind + ':' + opts.focusBin + '"]');
+        if (btn) btn.setAttribute('aria-expanded', 'true');
+        var input = addRow.querySelector('input');
+        if (input) input.focus();
+      }
     }
     updateSettingsTabDots();
   }
@@ -7166,39 +7041,32 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var key = watchlistKey(kind, bin);
     var cur = profile[key] || [];
     if (idx < 0 || idx >= cur.length) return;
-    var chip = document.querySelector(
-      '.watch-list[data-watch-list="' + kind + ':' + bin + '"] ' +
-      '.watch-chip[data-watch-idx="' + idx + '"]');
-    if (!chip) return;
+    var row = document.querySelector(
+      '[data-watch-rows="' + kind + ':' + bin + '"] ' +
+      '.watch-row[data-watch-idx="' + idx + '"]');
+    if (!row) return;
     var current = cur[idx] || '';
     // iOS Safari auto-scrolls the focused input into view above the
     // soft keyboard and leaves the page at the new scroll position
-    // when the keyboard dismisses — feels like the page "moves
-    // downwards". We snapshot scrollY here and restore it on
-    // commit. preventScroll on focus suppresses the initial jump
-    // too (Safari 16+ honours the option).
+    // when the keyboard dismisses — feels like the page moves
+    // downwards. Snapshot scrollY here and restore it on commit.
     var savedScrollY = (typeof window.scrollY === 'number')
       ? window.scrollY : (window.pageYOffset || 0);
-    chip.classList.add('watch-chip--editing');
-    chip.innerHTML =
-      '<input type="text" class="watch-chip__edit" ' +
-        'data-watch-editing="' + kind + ':' + bin + ':' + idx + '" ' +
-        'data-watch-saved-scroll="' + savedScrollY + '" ' +
-        'value="' + escapeHtml(current) + '" autocomplete="off" ' +
-        'spellcheck="false" autocapitalize="words">' +
-      '<button type="button" class="watch-chip__remove" ' +
-        'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
-        'aria-label="Remove">&times;</button>';
-    var input = chip.querySelector('input.watch-chip__edit');
-    if (input) {
-      // Plain focus — iOS Safari's auto-scroll-to-keyboard is
-      // actually wanted here so the chip stays visible above the
-      // soft keyboard. We just rely on the savedScrollY restore on
-      // commit to undo the scroll so the page lands where the user
-      // started instead of stranded "further down".
-      input.focus();
-      input.select();
-    }
+    var nameBtn = row.querySelector('.watch-row__name');
+    if (!nameBtn) return;
+    var input = document.createElement('input');
+    input.type = 'text';
+    input.className = 'watch-row__edit';
+    input.value = current;
+    input.dataset.watchEditing = kind + ':' + bin + ':' + idx;
+    input.dataset.watchSavedScroll = String(savedScrollY);
+    input.autocomplete = 'off';
+    input.spellcheck = false;
+    input.setAttribute('autocapitalize', 'words');
+    nameBtn.replaceWith(input);
+    row.classList.add('watch-row--editing');
+    input.focus();
+    input.select();
   }
 
   function handleWatchlistEditCommit(kind, bin, idx, raw) {
@@ -11452,18 +11320,65 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var trip = (watchRemove.dataset.watchRemove || '').split(':');
       var rKind = trip[0], rBin = trip[1], rIdx = parseInt(trip[2], 10);
       if (rKind && rBin && !isNaN(rIdx)) {
-        // Move to other bin if a soft-undo-ish round-trip is useful?
-        // No — agent feedback wanted real delete with undo toast.
-        // For v1 we just delete; toast wiring lands in follow-up.
         handleWatchlistRemove(rKind, rBin, rIdx);
       }
       return;
     }
 
-    // Single-click on chip label does nothing — edit requires
-    // double-click so accidental taps during drag-grab don't
-    // accidentally enter edit mode. The double-click handler is
-    // wired in its own dblclick listener below.
+    // Move-to-other-bin button on a watchlist row.
+    var watchMove = e.target.closest && e.target.closest('[data-watch-move]');
+    if (watchMove) {
+      e.preventDefault();
+      var mQuad = (watchMove.dataset.watchMove || '').split(':');
+      var mKind = mQuad[0], mBin = mQuad[1];
+      var mIdx = parseInt(mQuad[2], 10);
+      var mTo  = mQuad[3];
+      if (mKind && mBin && !isNaN(mIdx) && mTo) {
+        handleWatchlistMove(mKind, mBin, mIdx, mTo);
+      }
+      return;
+    }
+
+    // + button on a watchlist section heading — toggles the inline
+    // input row below the heading. Mirrors the suburb-add pattern.
+    var sectionAdd = e.target.closest && e.target.closest('[data-watch-section-add]');
+    if (sectionAdd) {
+      e.preventDefault();
+      var addKey = sectionAdd.dataset.watchSectionAdd; // 'kind:bin'
+      var addRow = document.querySelector(
+        '[data-watch-add-row="' + addKey + '"]');
+      if (!addRow) return;
+      var wasOpen = !addRow.hidden;
+      // Close every other watchlist add row so only one is open at
+      // a time (matches the suburb-tab UX).
+      var allRows = document.querySelectorAll('[data-watch-add-row]');
+      for (var ri = 0; ri < allRows.length; ri++) allRows[ri].hidden = true;
+      var allBtns = document.querySelectorAll('[data-watch-section-add]');
+      for (var bi = 0; bi < allBtns.length; bi++) {
+        allBtns[bi].setAttribute('aria-expanded', 'false');
+      }
+      if (!wasOpen) {
+        addRow.hidden = false;
+        sectionAdd.setAttribute('aria-expanded', 'true');
+        var input = addRow.querySelector('input');
+        if (input) input.focus();
+      }
+      return;
+    }
+
+    // Tap the row name to edit — single tap, no drag conflict in
+    // this UI (the chip-drag layer was retired in favour of the
+    // row + Move button pattern).
+    var rowEdit = e.target.closest && e.target.closest('[data-watch-edit]');
+    if (rowEdit) {
+      e.preventDefault();
+      var eTrip = (rowEdit.dataset.watchEdit || '').split(':');
+      var eKind = eTrip[0], eBin = eTrip[1], eIdx = parseInt(eTrip[2], 10);
+      if (eKind && eBin && !isNaN(eIdx)) {
+        handleWatchlistEditStart(eKind, eBin, eIdx);
+      }
+      return;
+    }
 
     // Pick from the custom suburb typeahead dropdown. Mirrors the
     // datalist-pick path on desktop browsers — fills the input and
@@ -11818,8 +11733,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   function _swipeStart(e) {
     if (e.button !== undefined && e.button !== 0) return;
-    if (_watchDragState) return; // watchlist chip drag wins
-    // If any watchlist chip is currently in edit mode, the whole page
+    // If any watchlist row is currently in edit mode, the whole page
     // is swipe-locked regardless of where the touch landed — the user
     // is mid-typing and a swipe-out would dump the input.
     if (document.querySelector('input[data-watch-editing]')) return;
@@ -11960,58 +11874,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (document.hidden) _swipeCancel();
     });
     window.addEventListener('blur', _swipeCancel);
-  }
-
-  // Pointer-event delegated handlers for watchlist chip drag. The
-  // pointerdown lands on the chip itself (whole chip is the drag
-  // handle now — was just a grip icon before).
-  // carries data-watch-grip="kind:bin:idx". Once a drag starts the
-  // grip captures the pointer so subsequent move/up land here even
-  // if the user's finger drifts off the chip.
-  if (window.PointerEvent) {
-    document.addEventListener('pointerdown', function (e) {
-      if (e.button !== undefined && e.button !== 0) return;
-      // × button is delete, NOT drag — let its own click handler run.
-      if (e.target.closest && e.target.closest('[data-watch-remove]')) return;
-      // Editing-input chip-state: don't start a drag on the input.
-      if (e.target.closest && e.target.closest('input[data-watch-editing]')) return;
-      var chip = e.target.closest && e.target.closest('[data-watch-grip]');
-      if (!chip) return;
-      var trip = (chip.dataset.watchGrip || '').split(':');
-      var k = trip[0], b = trip[1], i = parseInt(trip[2], 10);
-      if (!k || !b || isNaN(i)) return;
-      // Suppress text selection / iOS callout pre-emptively.
-      e.preventDefault();
-      try { chip.setPointerCapture(e.pointerId); } catch (_) {}
-      _watchDragArm(chip, k, b, i, e.clientX, e.clientY, e.pointerId);
-    });
-    document.addEventListener('pointermove', function (e) {
-      if (!_watchDragState) return;
-      if (_watchDragState.pointerId !== e.pointerId) return;
-      _watchDragMove(e.clientX, e.clientY);
-    });
-    document.addEventListener('pointerup', function (e) {
-      if (!_watchDragState) return;
-      if (_watchDragState.pointerId !== e.pointerId) return;
-      if (_watchDragState.armed) {
-        // Drag committed (long-press or movement past threshold).
-        _watchDragDrop();
-        return;
-      }
-      // Tap-no-drag: pointerdown→pointerup with no movement and no
-      // long-press. Treat as a tap → open inline edit. No 300ms
-      // dblclick wait — single deliberate tap is the edit gesture.
-      var k = _watchDragState.kind;
-      var b = _watchDragState.fromBin;
-      var i = _watchDragState.idx;
-      _watchDragCancel();
-      if (k && b && !isNaN(i)) handleWatchlistEditStart(k, b, i);
-    });
-    document.addEventListener('pointercancel', _watchDragCancel);
-    document.addEventListener('visibilitychange', function () {
-      if (document.hidden) _watchDragCancel();
-    });
-    window.addEventListener('blur', _watchDragCancel);
   }
 
   // :has() fallback for the score-breakdown tooltip on .event.extra cards.
