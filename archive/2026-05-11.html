@@ -1074,6 +1074,17 @@ body:has(#first-visit-nudge) .day {
      ~44px). +12px of breathing room so the card top isn't flush. */
   scroll-margin-top: calc(var(--header-offset, 120px) + 56px);
 }
+/* Swipe scopes — .day section (per day) + #settings-view (settings
+   panel body). touch-action: pan-y lets the browser handle native
+   vertical scroll while horizontal pans are intercepted by our
+   pointermove handler. Without this, fighting the browser scroll
+   with preventDefault inside touchmove is unreliable on iOS Safari
+   (and warned about by Chrome). */
+.day, #settings-view { touch-action: pan-y; }
+/* Subtab strip + day-tab strip opt out of swipe entirely via
+   [data-no-swipe] (JS check); they keep their own overflow-x scroll
+   so the active pill stays scrollable into view. */
+
 .event > * { grid-column: 1 / -1; }
 .event > .time { grid-column: 1; align-self: baseline; }
 /* Row order: time · multi-day · price. Multi-day lives between
@@ -3616,7 +3627,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 </div>
 </div>
 <div class="tabs-row">
-<nav class="day-tabs" role="tablist" aria-label="Days"></nav>
+<nav class="day-tabs" role="tablist" aria-label="Days" data-no-swipe></nav>
 <span class="week-pill-wrap"><button class="week-pill" type="button" data-toggle-all-days aria-pressed="false" aria-label="Show every day of the week stacked" title="Show every day of the week stacked"><span class="tab-weekday">All week</span><span class="tab-count" data-week-count></span></button></span>
 </div>
 <div class="search-panel" id="search-panel" hidden>
@@ -7627,7 +7638,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       );
     }
     view.innerHTML = (
-      '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections">' +
+      '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections" data-no-swipe>' +
         tabBtn('watchlist', 'Watchlist', true) +
         tabBtn('vibes', 'Vibes', false) +
         tabBtn('tags', 'Topics', false) +
@@ -11605,6 +11616,248 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       }
     }
   });
+
+  // ============================================================
+  //  Mobile swipe — between day tabs (incl. All-week + Settings)
+  //  and between Settings subtabs. Pointer-events based; one code
+  //  path for touch + mouse + trackpad. Skips when:
+  //    - target inside [data-no-swipe] (tab strips themselves)
+  //    - within 20px of the screen's left edge (iOS back-swipe)
+  //    - active watchlist drag is already underway
+  // ============================================================
+  var SWIPE_DIST_FRAC = 0.5;     // commit if |dx| > 50% of viewport
+  var SWIPE_VEL_PX_MS = 0.3;     // OR velocity > 0.3 px/ms
+  var SWIPE_AXIS_BIAS = 15;      // vertical wins if |dy| > |dx| + 15
+  var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
+  var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
+  var SWIPE_COMMIT_MS = 200;     // commit animation duration
+  var _swipeState = null;
+  var _swipeBail = null;         // safety timer to clear stale state
+
+  function _swipeLadderForDay() {
+    // [Mon..Sun, all-week, settings]. Day slugs read from the DOM
+    // so we don't drift from renderTabsHtml's source of truth.
+    var ladder = [];
+    var dayBtns = document.querySelectorAll('.day-tab[data-tab]');
+    for (var i = 0; i < dayBtns.length; i++) {
+      ladder.push({ kind: 'day', slug: dayBtns[i].dataset.tab });
+    }
+    ladder.push({ kind: 'all-week' });
+    ladder.push({ kind: 'settings' });
+    return ladder;
+  }
+  function _swipeCurrentDayIdx(ladder) {
+    if (activeTab === 'settings') return _swipeFind(ladder, 'settings');
+    if (viewState.showAllDays) return _swipeFind(ladder, 'all-week');
+    var slug = activeTab;
+    for (var i = 0; i < ladder.length; i++) {
+      if (ladder[i].kind === 'day' && ladder[i].slug === slug) return i;
+    }
+    return -1;
+  }
+  function _swipeFind(ladder, kind) {
+    for (var i = 0; i < ladder.length; i++) {
+      if (ladder[i].kind === kind) return i;
+    }
+    return -1;
+  }
+  function _swipeActivateLadderEntry(entry) {
+    if (!entry) return;
+    if (entry.kind === 'all-week') {
+      setAllWeekActive(true);
+      return;
+    }
+    if (viewState.showAllDays && entry.kind !== 'all-week') {
+      setAllWeekActive(false);
+    }
+    var target = entry.kind === 'settings' ? 'settings' : entry.slug;
+    activate(target, { updateHash: true });
+  }
+
+  var SUBTAB_LADDER = [
+    'watchlist', 'vibes', 'tags', 'rules', 'suburbs',
+    'shape', 'appearance',
+  ];
+  function _swipeCurrentSubtab() {
+    var sel = document.querySelector(
+      '.settings-subtab[aria-selected="true"]');
+    return sel ? sel.dataset.subtab : 'watchlist';
+  }
+
+  function _swipeClearTimer() {
+    if (_swipeBail) { clearTimeout(_swipeBail); _swipeBail = null; }
+  }
+  function _swipeCancel() {
+    _swipeClearTimer();
+    if (!_swipeState) return;
+    if (_swipeState.panel) {
+      _swipeState.panel.style.transition = 'transform 160ms ease-out';
+      _swipeState.panel.style.transform = '';
+      // Clear inline transition after the animation so layout is
+      // unaffected next time.
+      var panel = _swipeState.panel;
+      setTimeout(function () { panel.style.transition = ''; }, 200);
+    }
+    _swipeState = null;
+  }
+  function _swipeCommit(direction) {
+    _swipeClearTimer();
+    if (!_swipeState) return;
+    var s = _swipeState;
+    var panel = s.panel;
+    var width = window.innerWidth || 360;
+    var to = direction < 0 ? -width : width;
+    if (panel) {
+      panel.style.transition = 'transform ' + SWIPE_COMMIT_MS + 'ms ease-out';
+      panel.style.transform = 'translateX(' + to + 'px)';
+    }
+    var scope = s.scope;
+    var ladder = s.ladder;
+    var nextEntry = s.nextEntry;
+    var subtab = s.subtab;
+    _swipeState = null;
+    setTimeout(function () {
+      if (panel) { panel.style.transition = ''; panel.style.transform = ''; }
+      if (scope === 'day') {
+        _swipeActivateLadderEntry(nextEntry);
+      } else if (scope === 'subtab') {
+        switchSubtab(subtab);
+      }
+    }, SWIPE_COMMIT_MS);
+  }
+
+  function _swipeStart(e) {
+    if (e.button !== undefined && e.button !== 0) return;
+    if (_watchDragState) return; // watchlist chip drag wins
+    if (e.clientX < SWIPE_EDGE_EXCLUDE) return; // iOS back-swipe
+    if (e.target.closest && e.target.closest('[data-no-swipe]')) return;
+    // Determine swipe scope by where the pointer lands.
+    var inSettings = e.target.closest && e.target.closest('#settings-view');
+    var inDayPanel = e.target.closest && e.target.closest('.day');
+    if (!inSettings && !inDayPanel) return;
+    var scope = inSettings ? 'subtab' : 'day';
+    var panel = inSettings || inDayPanel;
+    _swipeState = {
+      scope: scope,
+      panel: panel,
+      x0: e.clientX,
+      y0: e.clientY,
+      t0: Date.now(),
+      lastX: e.clientX,
+      lastT: Date.now(),
+      vel: 0,
+      pointerId: e.pointerId,
+      armed: false,
+      cancelled: false,
+    };
+    // Safety net for iOS pointercancel not firing on some
+    // interruptions: 5s max swipe duration.
+    _swipeBail = setTimeout(_swipeCancel, 5000);
+  }
+
+  function _swipeMove(e) {
+    if (!_swipeState || _swipeState.cancelled) return;
+    if (_swipeState.pointerId !== e.pointerId) return;
+    var dx = e.clientX - _swipeState.x0;
+    var dy = e.clientY - _swipeState.y0;
+    if (!_swipeState.armed) {
+      // Axis arbitration: vertical bias wins by 15px so a deliberate
+      // vertical scroll never triggers a horizontal swipe gesture.
+      if (Math.abs(dy) > Math.abs(dx) + SWIPE_AXIS_BIAS) {
+        _swipeState.cancelled = true;
+        return;
+      }
+      if (Math.abs(dx) < SWIPE_ACTIVATE_DIST) return;
+      _swipeState.armed = true;
+      // Setup ladder / target lookup once the gesture is real.
+      if (_swipeState.scope === 'day') {
+        _swipeState.ladder = _swipeLadderForDay();
+        _swipeState.idx = _swipeCurrentDayIdx(_swipeState.ladder);
+      } else {
+        _swipeState.subtabStart = _swipeCurrentSubtab();
+      }
+    }
+    // Velocity (px/ms) over the last 60ms slot for the commit gate.
+    var now = Date.now();
+    var dt = now - _swipeState.lastT;
+    if (dt > 0) {
+      _swipeState.vel = (e.clientX - _swipeState.lastX) / dt;
+      _swipeState.lastX = e.clientX;
+      _swipeState.lastT = now;
+    }
+    // Translate the panel; rubber-band at edges where there's no
+    // neighbour in the swipe direction.
+    var atEdge = false;
+    if (_swipeState.scope === 'day') {
+      var idx = _swipeState.idx;
+      if (idx === 0 && dx > 0) atEdge = true;
+      if (idx === _swipeState.ladder.length - 1 && dx < 0) atEdge = true;
+    } else {
+      var cur = _swipeState.subtabStart;
+      var sIdx = SUBTAB_LADDER.indexOf(cur);
+      if (sIdx === SUBTAB_LADDER.length - 1 && dx < 0) atEdge = true;
+      // Left edge: NOT rubber-band — Watchlist wraps back to All-week
+      // (per user choice). Treated as a normal commit, not an edge.
+    }
+    var shown = atEdge ? dx / 3 : dx;
+    if (_swipeState.panel) {
+      _swipeState.panel.style.transform = 'translateX(' + shown + 'px)';
+    }
+  }
+
+  function _swipeEnd(e) {
+    if (!_swipeState) return;
+    if (_swipeState.pointerId !== e.pointerId) return;
+    if (_swipeState.cancelled || !_swipeState.armed) {
+      _swipeCancel();
+      return;
+    }
+    var dx = e.clientX - _swipeState.x0;
+    var dt = Date.now() - _swipeState.t0;
+    var vp = window.innerWidth || 360;
+    var commit = (Math.abs(dx) > vp * SWIPE_DIST_FRAC) ||
+                 (Math.abs(_swipeState.vel) > SWIPE_VEL_PX_MS && dt < 600);
+    if (!commit) { _swipeCancel(); return; }
+    var dir = dx < 0 ? -1 : 1;
+    if (_swipeState.scope === 'day') {
+      var idx = _swipeState.idx;
+      var nextIdx = idx + (dir < 0 ? 1 : -1);
+      if (nextIdx < 0 || nextIdx >= _swipeState.ladder.length) {
+        _swipeCancel();
+        return;
+      }
+      _swipeState.nextEntry = _swipeState.ladder[nextIdx];
+    } else {
+      var curSub = _swipeState.subtabStart;
+      var sIdx = SUBTAB_LADDER.indexOf(curSub);
+      var nextSubIdx = sIdx + (dir < 0 ? 1 : -1);
+      if (nextSubIdx >= SUBTAB_LADDER.length) {
+        _swipeCancel(); // rubber-banded; don't commit past Theme
+        return;
+      }
+      if (nextSubIdx < 0) {
+        // Wrap left from Watchlist → All-week (per user choice). Treat
+        // as a top-level transition: animate the settings panel off,
+        // then activate All-week.
+        _swipeState.scope = 'day';
+        _swipeState.nextEntry = { kind: 'all-week' };
+      } else {
+        _swipeState.subtab = SUBTAB_LADDER[nextSubIdx];
+      }
+    }
+    _swipeCommit(dir);
+  }
+
+  if (window.PointerEvent) {
+    document.addEventListener('pointerdown', _swipeStart);
+    document.addEventListener('pointermove', _swipeMove);
+    document.addEventListener('pointerup', _swipeEnd);
+    document.addEventListener('pointercancel', _swipeCancel);
+    document.addEventListener('visibilitychange', function () {
+      if (document.hidden) _swipeCancel();
+    });
+    window.addEventListener('blur', _swipeCancel);
+  }
 
   // Pointer-event delegated handlers for watchlist chip drag. The
   // pointerdown lands on the grip span (.watch-chip__grip) which
