@@ -96,14 +96,20 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-/* overflow-x: clip + touch-action: pan-y together fully lock the
-   document from horizontal panning. overflow-x alone isn't
-   sufficient on iOS Safari — touch-action prevents the browser's
-   default touch-pan from interpreting a horizontal drag on the
-   header (or anywhere outside .day / #settings-view) as a request
-   to pan the page. Elements that need horizontal-scroll (the
-   tab-row + subtab strip) override with touch-action: pan-x. */
-html, body { overflow-x: clip; }
+/* Belt-and-suspenders lock against horizontal page scrolling:
+   - overflow-x: clip prevents content overflow from being scrollable.
+   - max-width: 100vw constrains the actual layout box.
+   - overscroll-behavior-x: none disables browser's back-swipe/
+     bounce-out gestures.
+   - body touch-action: pan-y disables the browser's default
+     horizontal touch-pan globally.
+   Elements that need horizontal scroll (the tab-row + subtab strip)
+   override with touch-action: pan-x. */
+html, body {
+  overflow-x: clip;
+  max-width: 100vw;
+  overscroll-behavior-x: none;
+}
 body {
   font-family: var(--body-font);
   color: var(--dark);
@@ -113,8 +119,6 @@ body {
   line-height: 1.45;
   touch-action: pan-y;
 }
-/* Horizontal-scrolling pill strips: explicit pan-x so they keep
-   their own touch scroll despite the body-level pan-y lock. */
 .tabs-row, .settings-subtabs { touch-action: pan-x; }
 .container {
   max-width: 900px;
@@ -12114,7 +12118,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
                                  // — very strong bias toward horizontal.
                                  // Diagonals up to 1:2 (horizontal-
                                  // to-vertical) engage the swipe.
-  var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
+  var SWIPE_ACTIVATE_DIST = 4;   // arm swipe after 4px of horizontal
+                                 // — small threshold so the gesture
+                                 // engages quickly, including when
+                                 // the page is mid-momentum-scroll.
   var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
   var SWIPE_COMMIT_MS = 200;     // commit animation duration
   var SWIPE_CANCEL_MS = 160;     // snap-back animation duration
@@ -13202,6 +13209,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (document.querySelector('input[data-watch-editing]')) return;
     if (e.clientX < SWIPE_EDGE_EXCLUDE) return; // iOS back-swipe
     if (e.target.closest && e.target.closest('[data-no-swipe]')) return;
+    // Stop any in-flight inertial vertical scroll. When the user
+    // touches down during momentum, the browser's first job is to
+    // halt the inertia — which can swallow the first ~50ms of touch
+    // events as "scroll cancellation". Programmatic scroll to the
+    // current position halts momentum without visual jump.
+    try {
+      var sy = window.scrollY || document.documentElement.scrollTop || 0;
+      window.scrollTo(window.scrollX || 0, sy);
+    } catch (_) {}
     // Determine swipe scope by where the pointer lands. Day-content
     // (any .day panel) AND the all-week banner both count as the
     // top-level day scope so swiping on the banner navigates too.
