@@ -12087,7 +12087,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // ============================================================
   var SWIPE_DIST_FRAC = 0.4;     // commit if |dx| > 40% of viewport
   var SWIPE_VEL_PX_MS = 0.3;     // OR velocity > 0.3 px/ms
-  var SWIPE_AXIS_BIAS = 15;      // vertical wins if |dy| > |dx| + 15
+  var SWIPE_AXIS_BIAS = 25;      // vertical wins if |dy| > |dx| + 25
+                                 // — biases axis arbitration toward
+                                 // horizontal so diagonal-leaning
+                                 // gestures engage the swipe.
   var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
   var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
   var SWIPE_COMMIT_MS = 200;     // commit animation duration
@@ -12097,8 +12100,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // visually fights the user's vertical scroll. When dy outgrows dx by
   // this margin AFTER arming, we silently bail (instant transform
   // reset, no animated snap) so the page's native vertical scroll
-  // continues without a horizontal jiggle.
-  var SWIPE_VERTICAL_PIVOT = 30;
+  // continues without a horizontal jiggle. Higher value = more
+  // forgiving of vertical drift mid-swipe (favours swipe completion).
+  var SWIPE_VERTICAL_PIVOT = 50;
   var _swipeState = null;
   var _swipeBail = null;         // safety timer to clear stale state
   // Numeric cooldown — `_swipeStart` bails while performance.now() is
