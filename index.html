@@ -12055,14 +12055,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function _flipTabAriaImmediate(slug) {
     if (!slug) return;
     var allTabs = document.querySelectorAll('[data-tab]');
-    var stackedActive = !!viewState.showAllDays && slug !== 'settings';
     for (var i = 0; i < allTabs.length; i++) {
       var t = allTabs[i];
       var match = t.dataset.tab === slug;
-      var dayTab = t.classList.contains('day-tab');
-      var selected = stackedActive && dayTab ? false : match;
-      t.setAttribute('aria-selected', selected ? 'true' : 'false');
-      t.tabIndex = selected ? 0 : -1;
+      t.setAttribute('aria-selected', match ? 'true' : 'false');
+      t.tabIndex = match ? 0 : -1;
+    }
+    // Whenever the destination is a day pill, the Week pill MUST be
+    // unpressed in the same paint — otherwise the user sees BOTH
+    // highlighted during the 200ms commit animation (Week pressed +
+    // day selected). activate() syncs state at end of animation.
+    if (slug !== 'settings' && weekPillBtn) {
+      weekPillBtn.setAttribute('aria-pressed', 'false');
     }
     var tabsRowEl = document.querySelector('.tabs-row');
     if (tabsRowEl && slug !== 'settings') {
@@ -12106,27 +12110,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // ============================================================
   var SWIPE_DIST_FRAC = 0.4;     // commit if |dx| > 40% of viewport
   var SWIPE_VEL_PX_MS = 0.3;     // OR velocity > 0.3 px/ms
-  var SWIPE_AXIS_BIAS = 40;      // vertical wins if |dy| > |dx| + 40
-                                 // — strong bias toward horizontal
-                                 // so diagonal gestures engage the
-                                 // swipe (user has to deliberately
-                                 // move mostly-vertical to scroll).
+  var SWIPE_AXIS_BIAS = 80;      // vertical wins if |dy| > |dx| + 80
+                                 // — very strong bias toward horizontal.
+                                 // Diagonals up to 1:2 (horizontal-
+                                 // to-vertical) engage the swipe.
   var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
   var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
   var SWIPE_COMMIT_MS = 200;     // commit animation duration
   var SWIPE_CANCEL_MS = 160;     // snap-back animation duration
-  // Mid-swipe vertical-pivot threshold. If the user starts horizontal,
-  // arms the swipe, then pivots to vertical, the snap-back animation
-  // visually fights the user's vertical scroll. When dy outgrows dx by
-  // this margin AFTER arming, we silently bail. ALSO requires that
-  // dx is still under the COMMIT_STICKY threshold below — once the
-  // user has dragged "enough" horizontally, they're committed and
-  // mid-swipe vertical drift no longer bails the gesture.
-  var SWIPE_VERTICAL_PIVOT = 100;
-  // After dragging horizontally this far, the swipe is "sticky" —
-  // the vertical-pivot check stops firing so a user who's clearly
-  // committed to the swipe doesn't get bailed by hand drift.
-  var SWIPE_COMMIT_STICKY = 60;
+  // Mid-swipe vertical-pivot threshold — very lenient now so
+  // diagonal swipes commit reliably.
+  var SWIPE_VERTICAL_PIVOT = 200;
+  // After this much horizontal travel, the vertical-pivot check
+  // stops firing entirely.
+  var SWIPE_COMMIT_STICKY = 40;
   var _swipeState = null;
   var _swipeBail = null;         // safety timer to clear stale state
   // Numeric cooldown — `_swipeStart` bails while performance.now() is
@@ -12387,11 +12384,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       panels[i].hidden = panels[i].dataset.subtab !== name;
     }
   }
+  // Inline-position helper — bypasses any CSS specificity uncertainty
+  // for the .swipe-scene rule. The CSS rule still applies as a
+  // fallback (and for cleanup hook via classList), but inline styles
+  // always win.
+  function _absoluteSwipeScene(el) {
+    el.classList.add('swipe-scene');
+    el.style.position = 'absolute';
+    el.style.top = '0';
+    el.style.left = '0';
+    el.style.right = '0';
+  }
   function _setupSceneSwipe(state) {
     var sceneStack = document.getElementById('scene-stack');
     var mainEl = document.getElementById('main');
     var settingsEl = document.getElementById('settings-view');
-    if (!sceneStack || !mainEl || !settingsEl) return;
+    if (!sceneStack || !mainEl || !settingsEl) return false;
     var vw = window.innerWidth || 360;
     // Day-to-day preview leaves `state.prevPanel`/`state.nextPanel`
     // pointing at .day siblings; explicit null here so the
@@ -12421,9 +12429,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var lockH = Math.max(
         mainEl.offsetHeight, settingsEl.offsetHeight, window.innerHeight);
       sceneStack.style.minHeight = lockH + 'px';
-      mainEl.classList.add('swipe-scene');
+      _absoluteSwipeScene(mainEl);
       mainEl.style.transform = 'translateX(0)';
-      settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
+      _absoluteSwipeScene(settingsEl);
+      settingsEl.classList.add('subtabs-unsticky');
       settingsEl.style.transform = 'translateX(' + vw + 'px)';
       // Hide the trailing storage-note during the swipe (same reason
       // as subtab preview: in-flow sibling that'd shift up under the
@@ -12445,10 +12454,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var target = resolvedFeedTarget();
       state.sceneTarget = target;
       var banner = document.getElementById('all-week-heading');
+      // Can't preview an all-week feed if we're not actually in
+      // stacked mode or the banner isn't in DOM. Fall back to a
+      // day-mode feed via lastDayTab. NEVER call _swipeCancel here
+      // — it nulls _swipeState mid-_swipeMove and the next code line
+      // crashes on the null reference.
       if (target.kind === 'all-week' &&
           (!viewState.showAllDays || banner == null)) {
-        _swipeCancel();
-        return;
+        var fallbackSlug = lastDayTab || viewState.lastDayTab;
+        if (!fallbackSlug) {
+          var firstDayBtn = document.querySelector('.day-tab[data-tab]');
+          fallbackSlug = firstDayBtn ? firstDayBtn.dataset.tab : null;
+        }
+        if (fallbackSlug) {
+          target = { kind: 'day', slug: fallbackSlug };
+          state.sceneTarget = target;
+        } else {
+          return false;  // no destination — caller bails to subtab swipe.
+        }
       }
       // Capture pre-reveal hidden state for cancel restore. Without
       // this, cancelling a Settings→AllWeek swipe leaves the day
@@ -12481,9 +12504,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var lockHBack = Math.max(
         mainEl.offsetHeight, settingsEl.offsetHeight, window.innerHeight);
       sceneStack.style.minHeight = lockHBack + 'px';
-      settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
+      _absoluteSwipeScene(settingsEl);
+      settingsEl.classList.add('subtabs-unsticky');
       settingsEl.style.transform = 'translateX(0)';
-      mainEl.classList.add('swipe-scene');
+      _absoluteSwipeScene(mainEl);
       mainEl.style.transform = 'translateX(-' + vw + 'px)';
     }
     state.previewArmed = true;
@@ -12491,6 +12515,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     state.sceneMain = mainEl;
     state.sceneSettings = settingsEl;
     state.viewportWidth = vw;
+    return true;
   }
   // syntheticSettingsExit — animated tap-out-of-Settings. Mirrors
   // the swipe-right-from-Watchlist gesture: Settings slides RIGHT off-
@@ -13245,7 +13270,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           _swipeState.scope = 'scene';
           _swipeState.sceneDirection = 'forward';
           _swipeState.nextEntry = { kind: 'settings' };
-          _setupSceneSwipe(_swipeState);
+          var fwdOk = _setupSceneSwipe(_swipeState);
+          if (!fwdOk) {
+            _swipeState.scope = 'day';
+            _swipeState.sceneDirection = null;
+            _setupSwipePreview(_swipeState);
+          }
         } else {
           // Day-to-day preview (no-op for non-day boundary cases).
           _setupSwipePreview(_swipeState);
@@ -13257,7 +13287,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           // to the previous feed view.
           _swipeState.scope = 'scene';
           _swipeState.sceneDirection = 'backward';
-          _setupSceneSwipe(_swipeState);
+          var sceneOk = _setupSceneSwipe(_swipeState);
+          if (!sceneOk) {
+            // Setup couldn't produce a destination — fall back to
+            // subtab preview. Reset scope so cleanup paths read it
+            // correctly.
+            _swipeState.scope = 'subtab';
+            _swipeState.sceneDirection = null;
+            _setupSubtabPreview(_swipeState);
+          }
         } else {
           // Within-Settings subtab swipe with iPhone-home-screen
           // preview. Active subtab panel becomes state.panel; prev/
