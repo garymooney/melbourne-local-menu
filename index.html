@@ -96,15 +96,15 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
-/* Belt-and-suspenders lock against horizontal page scrolling:
-   - overflow-x: clip prevents content overflow from being scrollable.
-   - max-width: 100vw constrains the actual layout box.
-   - overscroll-behavior-x: none disables browser's back-swipe/
-     bounce-out gestures.
-   - body touch-action: pan-y disables the browser's default
-     horizontal touch-pan globally.
-   Elements that need horizontal scroll (the tab-row + subtab strip)
-   override with touch-action: pan-x. */
+/* Horizontal page-scroll lock:
+   - overflow-x: clip clips content overflow.
+   - max-width: 100vw constrains the layout box.
+   - overscroll-behavior-x: none disables browser back-swipe/bounce.
+   Body intentionally has NO touch-action override — keeping it
+   default lets per-element touch-action rules (.day etc) plus our
+   touchstart/touchmove preventDefault listeners cleanly own gesture
+   interpretation. A body-level touch-action: pan-y was blocking
+   preventDefault from fully claiming the gesture on Chrome/Safari. */
 html, body {
   overflow-x: clip;
   max-width: 100vw;
@@ -117,9 +117,7 @@ body {
   margin: 0;
   padding: 0;
   line-height: 1.45;
-  touch-action: pan-y;
 }
-.tabs-row, .settings-subtabs { touch-action: pan-x; }
 .container {
   max-width: 900px;
   margin: 0 auto;
@@ -12122,7 +12120,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
                                  // — small threshold so the gesture
                                  // engages quickly, including when
                                  // the page is mid-momentum-scroll.
-  var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
+  // Edge zone where we PREEMPT the browser's back-swipe by calling
+  // preventDefault on touchstart. Larger than the historical
+  // exclude-zone so iOS Safari's back-gesture region is fully covered.
+  var SWIPE_EDGE_PREEMPT = 40;
   var SWIPE_COMMIT_MS = 200;     // commit animation duration
   var SWIPE_CANCEL_MS = 160;     // snap-back animation duration
   // Mid-swipe vertical-pivot threshold — very lenient now so
@@ -12402,6 +12403,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     el.style.left = '0';
     el.style.right = '0';
   }
+  // Centralized "make DOM match activeTab + viewState" function. Used
+  // as the FINAL step of every swipe cleanup (cancel, silent-bail,
+  // commit completion). Idempotent — running it always lands the
+  // DOM in the correct end state regardless of any intermediate mess
+  // (reveal calls, snapshot diffs, half-applied transitions). This
+  // is the single source of truth for "which panels should be
+  // visible right now"; everything else is just animation prep.
+  function _syncDomToActiveTab() {
+    var dayPanels = document.querySelectorAll('.day');
+    var banner = document.getElementById('all-week-heading');
+    var settingsEl = document.getElementById('settings-view');
+    var stackedView = !!viewState.showAllDays && activeTab !== 'settings';
+    if (activeTab === 'settings') {
+      for (var i = 0; i < dayPanels.length; i++) dayPanels[i].hidden = true;
+      if (banner) banner.hidden = true;
+      if (settingsEl) settingsEl.hidden = false;
+    } else if (stackedView) {
+      for (var j = 0; j < dayPanels.length; j++) dayPanels[j].hidden = false;
+      if (banner) banner.hidden = false;
+      if (settingsEl) settingsEl.hidden = true;
+    } else {
+      var targetId = 'day-' + activeTab;
+      for (var k = 0; k < dayPanels.length; k++) {
+        dayPanels[k].hidden = dayPanels[k].id !== targetId;
+      }
+      if (banner) banner.hidden = true;
+      if (settingsEl) settingsEl.hidden = true;
+    }
+  }
   function _setupSceneSwipe(state) {
     var sceneStack = document.getElementById('scene-stack');
     var mainEl = document.getElementById('main');
@@ -12416,17 +12446,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     state.nextPanel = null;
     if (state.sceneDirection === 'forward') {
       // AllWeek → Settings. Settings slides in from the right.
-      // Capture pre-stage panel state by SLUG (not element ref) so
-      // restoration on cancel survives any Settings DOM rebuild.
+      // Snapshot subtab-panel visibility by SLUG (not element ref) so
+      // a cancel restores the correct subtab even if the Settings
+      // DOM rebuilds during the swipe.
       state.subtabPanelSnapshot = Array.prototype.slice.call(
         document.querySelectorAll('.settings-panel')
       ).map(function (p) {
         return { slug: p.dataset.subtab, hidden: p.hidden };
       });
-      // Capture settingsEl's hidden state BEFORE we un-hide it so
-      // _swipeCancel can restore (otherwise a cancelled forward
-      // swipe leaves Settings revealed on top of the all-week feed).
-      state.preRevealState = { settingsHidden: settingsEl.hidden };
       _stageSubtabPanel('watchlist');
       // Forward (AllWeek→Settings): mainEl has live all-week content,
       // settingsEl just became visible. Lock to the larger of the
@@ -12480,24 +12507,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           return false;  // no destination — caller bails to subtab swipe.
         }
       }
-      // Capture pre-reveal hidden state for cancel restore. Without
-      // this, cancelling a Settings→AllWeek swipe leaves the day
-      // panels revealed AND Settings visible (both flow children of
-      // .scene-stack after the .swipe-scene class is removed),
-      // looking like "stuck halfway".
-      var preBanner = document.getElementById('all-week-heading');
-      var prePanels = document.querySelectorAll('.day');
-      var preSnapshot = {
-        bannerHidden: preBanner ? preBanner.hidden : true,
-        dayPanels: [],
-      };
-      for (var pi = 0; pi < prePanels.length; pi++) {
-        preSnapshot.dayPanels.push({
-          id: prePanels[pi].id,
-          hidden: prePanels[pi].hidden,
-        });
-      }
-      state.preRevealState = preSnapshot;
+      // Reveal the destination scene's content so it has something to
+      // animate with. Cleanup paths call _syncDomToActiveTab to
+      // restore the correct state regardless of what we revealed.
       if (target.kind === 'all-week') {
         _revealAllWeekContent();
       } else {
@@ -12831,26 +12843,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           viewState.showAllDays) {
         weekPillBtn.setAttribute('aria-pressed', 'true');
       }
-      // Restore pre-reveal visibility (same fix as _swipeCancel; see
-      // commentary there). Must run BEFORE _resetSwipeArtifacts since
-      // it nulls _swipeState.
-      var snap = s.preRevealState;
-      if (snap) {
-        if (s.sceneDirection === 'forward') {
-          if (snap.settingsHidden) {
-            var sv = document.getElementById('settings-view');
-            if (sv) sv.hidden = true;
-          }
-        } else {
-          var bnr = document.getElementById('all-week-heading');
-          if (bnr) bnr.hidden = snap.bannerHidden;
-          for (var bi = 0; bi < snap.dayPanels.length; bi++) {
-            var bp = document.getElementById(snap.dayPanels[bi].id);
-            if (bp) bp.hidden = snap.dayPanels[bi].hidden;
-          }
-        }
-      }
-      _resetSwipeArtifacts();  // nulls _swipeState + cleans classes
+      _resetSwipeArtifacts();
+      _syncDomToActiveTab();
       return;
     }
     // Day-to-day / subtab path — class + min-height cleanup mirrors
@@ -12890,35 +12884,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         sc.sceneMain.style.transition = 'transform ' + dur + 'ms ease-out';
         sc.sceneMain.style.transform = 'translateX(' + (-vwS) + 'px)';
       }
-      // Capture the pre-reveal snapshot here — the setTimeout fires
-      // AFTER _swipeState is potentially nulled by _resetSwipeArtifacts,
-      // so we close over the snapshot rather than reading it later.
-      var restoreSnapshot = sc.preRevealState;
-      var sceneDirCancel = sc.sceneDirection;
-      var settingsElCancel = sc.sceneSettings;
       setTimeout(function () {
-        // Restore pre-reveal visibility. Without this, the day
-        // panels (revealed at setup for the cancelled swipe's
-        // preview) stay hidden=false; after _resetSwipeArtifacts
-        // removes the .swipe-scene class, both #main and #settings-
-        // view return to in-flow and stack vertically with both
-        // revealed → "stuck halfway" symptom.
-        if (restoreSnapshot) {
-          if (sceneDirCancel === 'forward') {
-            if (restoreSnapshot.settingsHidden && settingsElCancel) {
-              settingsElCancel.hidden = true;
-            }
-          } else {
-            var bannerR = document.getElementById('all-week-heading');
-            if (bannerR) bannerR.hidden = restoreSnapshot.bannerHidden;
-            for (var ri = 0; ri < restoreSnapshot.dayPanels.length; ri++) {
-              var pR = document.getElementById(
-                restoreSnapshot.dayPanels[ri].id);
-              if (pR) pR.hidden = restoreSnapshot.dayPanels[ri].hidden;
-            }
-          }
-        }
+        // Single source of truth: derive DOM from activeTab. activeTab
+        // didn't change (this is a cancel), so syncing returns the
+        // page to exactly the pre-swipe state. _resetSwipeArtifacts
+        // removes .swipe-scene classes and inline transforms; the
+        // sync handles hidden/visible flags.
         _resetSwipeArtifacts();
+        _syncDomToActiveTab();
       }, dur + 40);
       return;
     }
@@ -13048,6 +13021,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           }
         }
         _resetSwipeArtifacts();
+        // Defensive sync: regardless of which commit path ran above,
+        // ensure DOM matches the final activeTab + showAllDays state.
+        // Catches edge cases where activate() or manual sync left
+        // stray hidden flags.
+        _syncDomToActiveTab();
       }, dur);
       return;
     }
@@ -13207,7 +13185,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // is swipe-locked regardless of where the touch landed — the user
     // is mid-typing and a swipe-out would dump the input.
     if (document.querySelector('input[data-watch-editing]')) return;
-    if (e.clientX < SWIPE_EDGE_EXCLUDE) return; // iOS back-swipe
+    // Edge swipes are NOT excluded anymore — we preempt the browser's
+    // back-gesture via touchstart preventDefault (see touchstart
+    // listener below). Letting the gesture engage here means edge-
+    // swipes navigate within the app instead of going back/forward.
     if (e.target.closest && e.target.closest('[data-no-swipe]')) return;
     // Stop any in-flight inertial vertical scroll. When the user
     // touches down during momentum, the browser's first job is to
@@ -13298,24 +13279,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         }
       } else {
         _swipeState.subtabStart = _swipeCurrentSubtab();
-        if (_swipeState.subtabStart === 'watchlist' && dx > 0) {
-          // Swiping right out of Watchlist subtab → cross-scene back
-          // to the previous feed view.
+        if (dx > 0) {
+          // Right swipe from ANY subtab → cross-scene back to the
+          // feed. Consistent "right = back/exit" mental model
+          // (matches iOS swipe-back). Within-Settings subtab
+          // navigation is still available via pill taps.
           _swipeState.scope = 'scene';
           _swipeState.sceneDirection = 'backward';
           var sceneOk = _setupSceneSwipe(_swipeState);
           if (!sceneOk) {
-            // Setup couldn't produce a destination — fall back to
-            // subtab preview. Reset scope so cleanup paths read it
-            // correctly.
+            // Couldn't produce a destination — fall back to subtab
+            // preview so the swipe doesn't die silently.
             _swipeState.scope = 'subtab';
             _swipeState.sceneDirection = null;
             _setupSubtabPreview(_swipeState);
           }
         } else {
-          // Within-Settings subtab swipe with iPhone-home-screen
-          // preview. Active subtab panel becomes state.panel; prev/
-          // next panels slide in alongside.
+          // Left swipe = subtab-to-subtab navigation (forward in the
+          // subtab ladder; rubber-band at the rightmost subtab).
           _setupSubtabPreview(_swipeState);
         }
       }
@@ -13471,6 +13452,40 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     });
     window.addEventListener('blur', _swipeCancel);
   }
+  // ----- Touch event preempts ------------------------------------
+  // Two listeners with { passive: false } to enable preventDefault:
+  //
+  // 1) touchstart on left/right edge — preempt iOS Safari's
+  //    back/forward swipe gesture. preventDefault here prevents the
+  //    browser from claiming the touch sequence; pointer events still
+  //    fire for our swipe machinery.
+  // 2) touchmove while a swipe is armed — prevent the browser from
+  //    interpreting subsequent touch movements as scroll/pan once
+  //    we've claimed the gesture. Particularly important during
+  //    momentum-stop transitions where the browser may otherwise
+  //    re-engage scroll handling mid-swipe.
+  document.addEventListener('touchstart', function (e) {
+    if (!e.touches || !e.touches[0]) return;
+    var t = e.touches[0];
+    var vw = window.innerWidth || 360;
+    if (t.clientX < SWIPE_EDGE_PREEMPT || t.clientX > vw - SWIPE_EDGE_PREEMPT) {
+      // Only preempt for touches inside swipeable surfaces — don't
+      // disable tap-to-focus / tap-to-stop-scroll for header buttons.
+      var inSurface = e.target.closest && (
+        e.target.closest('#settings-view') ||
+        e.target.closest('.day') ||
+        e.target.closest('#all-week-heading')
+      );
+      if (inSurface) {
+        try { e.preventDefault(); } catch (_) {}
+      }
+    }
+  }, { passive: false });
+  document.addEventListener('touchmove', function (e) {
+    if (_swipeState && _swipeState.armed) {
+      try { e.preventDefault(); } catch (_) {}
+    }
+  }, { passive: false });
   // Width-only resize handler — re-pads the centred strips but does
   // NOT autoCentre (background renders preserve user-dragged strip
   // position; only navigation re-centres). Snapshot innerWidth and
