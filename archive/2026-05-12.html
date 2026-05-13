@@ -96,6 +96,14 @@
 }
 * { box-sizing: border-box; }
 html { scroll-behavior: smooth; }
+/* overflow-x: clip prevents the whole document from being panned
+   horizontally when an in-flight scene swipe transforms a child
+   past the viewport edge. Without this the user can drag the
+   entire page (including the brand header) sideways on some
+   browsers, which both looks broken and lets a stray gesture
+   land on a different .day origin than intended. clip on <html>
+   AND <body> covers iOS Safari quirks. */
+html, body { overflow-x: clip; }
 body {
   font-family: var(--body-font);
   color: var(--dark);
@@ -1114,7 +1122,14 @@ body:has(#first-visit-nudge) .day {
   overflow-x: clip;
   clip-path: inset(0);
 }
-.scene-stack > .swipe-scene {
+/* ID selectors here are deliberate — #main carries a base
+   `position: relative` rule (specificity 100) that would otherwise
+   override the generic .swipe-scene class rule (specificity 20),
+   leaving #main in flow while #settings-view goes absolute. With
+   both in flow, the two scenes stack VERTICALLY during a scene
+   swipe instead of overlapping, breaking the slide animation. */
+.scene-stack > #main.swipe-scene,
+.scene-stack > #settings-view.swipe-scene {
   position: absolute;
   top: 0;
   left: 0;
@@ -12375,10 +12390,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // scope is 'scene'.
     state.prevPanel = null;
     state.nextPanel = null;
-    // Simplified height lock — viewport height is a safe lower bound
-    // and avoids a synchronous tree-walk measurement of the Settings
-    // DOM on every arm (~30-80ms jank on low-end Android otherwise).
-    var lockH = Math.max(mainEl.offsetHeight, window.innerHeight);
     if (state.sceneDirection === 'forward') {
       // AllWeek → Settings. Settings slides in from the right.
       // Capture pre-stage panel state by SLUG (not element ref) so
@@ -12389,10 +12400,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         return { slug: p.dataset.subtab, hidden: p.hidden };
       });
       _stageSubtabPanel('watchlist');
+      // Forward (AllWeek→Settings): mainEl has live all-week content,
+      // settingsEl just became visible. Lock to the larger of the
+      // two natural heights so the absolute-positioned scene-stack
+      // doesn't clip the destination Settings content.
+      settingsEl.hidden = false;
+      var lockH = Math.max(
+        mainEl.offsetHeight, settingsEl.offsetHeight, window.innerHeight);
       sceneStack.style.minHeight = lockH + 'px';
       mainEl.classList.add('swipe-scene');
       mainEl.style.transform = 'translateX(0)';
-      settingsEl.hidden = false;
       settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
       settingsEl.style.transform = 'translateX(' + vw + 'px)';
       // Hide the trailing storage-note during the swipe (same reason
@@ -12425,7 +12442,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       } else {
         _revealDayPanel(target.slug);
       }
-      sceneStack.style.minHeight = lockH + 'px';
+      // Backward (Settings→prev feed): mainEl was display:none-style
+      // empty when Settings was active (day panels hidden). The
+      // reveal call above just un-hid its content; measure AFTER so
+      // lockH reflects the new natural height. settingsEl is still
+      // visible. Use max of both + viewport so neither scene clips.
+      var lockHBack = Math.max(
+        mainEl.offsetHeight, settingsEl.offsetHeight, window.innerHeight);
+      sceneStack.style.minHeight = lockHBack + 'px';
       settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
       settingsEl.style.transform = 'translateX(0)';
       mainEl.classList.add('swipe-scene');
@@ -13258,18 +13282,38 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var dx = e.clientX - _swipeState.x0;
     var dt = Date.now() - _swipeState.t0;
     var vp = window.innerWidth || 360;
-    var commit = (Math.abs(dx) > vp * SWIPE_DIST_FRAC) ||
+    // Stacked-mode day-direction swipes have no preview (the
+    // destination day isn't visible alongside #main during the
+    // drag), so users misjudge how far to drag and snap-back too
+    // often. Halve the commit threshold for that specific case so
+    // shorter intentional drags land cleanly.
+    var distFrac = SWIPE_DIST_FRAC;
+    var stackedDayDirection = viewState.showAllDays &&
+      _swipeState.scope === 'day';
+    if (stackedDayDirection) distFrac = 0.2;
+    var commit = (Math.abs(dx) > vp * distFrac) ||
                  (Math.abs(_swipeState.vel) > SWIPE_VEL_PX_MS && dt < 600);
     if (!commit) { _swipeCancel(); return; }
     var dir = dx < 0 ? -1 : 1;
     if (_swipeState.scope === 'day') {
       var idx = _swipeState.idx;
-      var nextIdx = idx + (dir < 0 ? 1 : -1);
-      if (nextIdx < 0 || nextIdx >= _swipeState.ladder.length) {
-        _swipeCancel();
-        return;
+      // Stacked-mode + swipe right: the strip-adjacent destination
+      // is Sunday (right-end of the day list, immediately left of
+      // the Week pill in the strip), but users rarely mean "Sunday"
+      // — they mean "the day I was viewing before stacked". Prefer
+      // lastDayTab when it's still in the strip, fall back to the
+      // ladder if not.
+      if (viewState.showAllDays && dir > 0 && lastDayTab &&
+          document.querySelector('[data-tab="' + lastDayTab + '"]')) {
+        _swipeState.nextEntry = { kind: 'day', slug: lastDayTab };
+      } else {
+        var nextIdx = idx + (dir < 0 ? 1 : -1);
+        if (nextIdx < 0 || nextIdx >= _swipeState.ladder.length) {
+          _swipeCancel();
+          return;
+        }
+        _swipeState.nextEntry = _swipeState.ladder[nextIdx];
       }
-      _swipeState.nextEntry = _swipeState.ladder[nextIdx];
     } else {
       var curSub = _swipeState.subtabStart;
       var sIdx = SUBTAB_LADDER.indexOf(curSub);
