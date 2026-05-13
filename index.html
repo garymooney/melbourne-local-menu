@@ -12092,6 +12092,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
   var SWIPE_COMMIT_MS = 200;     // commit animation duration
   var SWIPE_CANCEL_MS = 160;     // snap-back animation duration
+  // Mid-swipe vertical-pivot threshold. If the user starts horizontal,
+  // arms the swipe, then pivots to vertical, the snap-back animation
+  // visually fights the user's vertical scroll. When dy outgrows dx by
+  // this margin AFTER arming, we silently bail (instant transform
+  // reset, no animated snap) so the page's native vertical scroll
+  // continues without a horizontal jiggle.
+  var SWIPE_VERTICAL_PIVOT = 30;
   var _swipeState = null;
   var _swipeBail = null;         // safety timer to clear stale state
   // Numeric cooldown — `_swipeStart` bails while performance.now() is
@@ -12701,6 +12708,47 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       swH[sI].classList.remove('swipe-hidden');
     }
   }
+  // Silent bail — used when the user pivots from horizontal to
+  // vertical mid-swipe. Instant transform reset (no animated snap-
+  // back) so the page's native vertical scroll continues without a
+  // visible horizontal jiggle. Sets cooldown so a fresh _swipeStart
+  // doesn't immediately re-engage from the same diagonal trajectory.
+  function _swipeBailSilent() {
+    _swipeClearTimer();
+    _swipeCooldownUntil = performance.now() + 200;
+    if (!_swipeState) return;
+    var s = _swipeState;
+    function clearInstant(el) {
+      if (!el) return;
+      el.style.transition = 'none';
+      el.style.transform = '';
+      // Defer transition clear so a stale transition doesn't fire
+      // when the inline `transform = ''` change settles into the
+      // CSS-driven layout next frame.
+      requestAnimationFrame(function () {
+        if (el) el.style.transition = '';
+      });
+    }
+    clearInstant(s.panel);
+    clearInstant(s.prevPanel);
+    clearInstant(s.nextPanel);
+    if (s.scope === 'scene') {
+      clearInstant(s.sceneMain);
+      clearInstant(s.sceneSettings);
+      // Restore Week pill aria if a forward scene-swipe armed it down.
+      if (s.sceneDirection === 'forward' && weekPillBtn &&
+          viewState.showAllDays) {
+        weekPillBtn.setAttribute('aria-pressed', 'true');
+      }
+      _resetSwipeArtifacts();  // nulls _swipeState + cleans classes
+      return;
+    }
+    // Day-to-day / subtab path — class + min-height cleanup mirrors
+    // _swipeCleanupPreviewState but runs synchronously (no setTimeout).
+    var snap_s = s;
+    _swipeState = null;
+    _swipeCleanupPreviewState(snap_s);
+  }
   function _swipeCancel() {
     _swipeClearTimer();
     var dur = _swipeReducedMotion() ? 0 : SWIPE_CANCEL_MS;
@@ -13069,6 +13117,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       }
       if (Math.abs(dx) < SWIPE_ACTIVATE_DIST) return;
       _swipeState.armed = true;
+      // Track the arm-time dy so the in-flight pivot check below can
+      // measure how much MORE vertical movement happened post-arm.
+      // Compares total dy against dx so a brief diagonal flick that
+      // settles into vertical scroll bails cleanly.
+      _swipeState.armDy = dy;
       // Setup ladder / target lookup once the gesture is real.
       // Arm-time scope elevation: dx sign is known now so we can
       // detect cross-scene transitions (AllWeek↔Settings) and route
@@ -13113,6 +13166,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       _swipeState.vel = (e.clientX - _swipeState.lastX) / dt;
       _swipeState.lastX = e.clientX;
       _swipeState.lastT = now;
+    }
+    // In-flight vertical pivot — user armed horizontally but has now
+    // moved significantly more vertical than horizontal. Bail
+    // silently (no animated snap-back) so their vertical scroll
+    // continues without a horizontal jiggle. Measures the dy DELTA
+    // since arm so a swipe that already commenced horizontally
+    // doesn't bail on later mild vertical drift.
+    var dyPostArm = Math.abs(dy - (_swipeState.armDy || 0));
+    if (dyPostArm > Math.abs(dx) + SWIPE_VERTICAL_PIVOT) {
+      _swipeBailSilent();
+      return;
     }
     // Translate the panel; rubber-band at edges where there's no
     // neighbour in the swipe direction.
