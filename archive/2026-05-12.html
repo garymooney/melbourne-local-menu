@@ -299,7 +299,9 @@ body {
   display: flex;
   align-items: center;
   margin: 0 -1em;
-  padding: 4px 1em 10px;
+  /* Vertical padding only; horizontal padding is set inline by
+     recomputeStripEdgePad so any pill can be centred via scrollLeft. */
+  padding: 4px 0 10px;
   overflow-x: auto;
   scrollbar-width: thin;
   -webkit-overflow-scrolling: touch;
@@ -1098,20 +1100,50 @@ body:has(#first-visit-nudge) .day {
 .day, #settings-view, #all-week-heading { touch-action: pan-y; }
 /* Clip the swipe area to the viewport so a translated panel never
    spills out the right/left side past the .container padding strips.
-   #main holds every day panel + settings + all-week banner.
-   position: relative is the anchor for the day-to-day swipe preview
-   pattern (prev/current/next .day siblings get absolute-positioned
-   relative to #main during the gesture). */
+   #main holds every day panel + all-week banner; #settings-view is a
+   sibling inside .scene-stack so each scene can be transformed
+   independently during a cross-scene swipe. */
 #main { overflow-x: clip; position: relative; }
+/* .scene-stack — relative anchor for cross-scene preview. Both
+   children (#main, #settings-view) become absolute siblings during
+   scope:'scene' swipes via the .swipe-scene class. iOS 15 doesn't
+   honour `overflow-x: clip`; `clip-path` provides the equivalent
+   horizontal clipping as a fallback. */
+.scene-stack {
+  position: relative;
+  overflow-x: clip;
+  clip-path: inset(0);
+}
+.scene-stack > .swipe-scene {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+}
+/* During scope:'scene' swipes, the subtab strip's sticky positioning
+   would resolve against the absolute-positioned #settings-view and
+   jitter; this override forces relative so the strip moves with the
+   scene during the animation. */
+.settings-subtabs.subtabs-unsticky {
+  position: relative !important;
+  top: auto;
+}
 /* During a day-to-day swipe, prev / current / next .day siblings all
    sit absolute at the same top so they translate in lockstep. The
    inline top is set per swipe based on the current panel's offsetTop
    (varies with leading siblings: nudge, all-week banner). */
-.day.swipe-preview {
+.day.swipe-preview,
+.settings-panel.swipe-preview {
   position: absolute;
   left: 0;
   right: 0;
   width: 100%;
+}
+/* Day-tab strip in Settings — visually de-emphasised (the tab is a
+   "back" affordance, not the primary focus) but stays tappable. Tap
+   triggers an animated backward scene-swipe out of Settings. */
+.tabs-row--settings-mode {
+  opacity: 0.85;
 }
 /* Subtab strip + day-tab strip opt out of swipe entirely via
    [data-no-swipe] (JS check); they keep their own overflow-x scroll
@@ -2276,7 +2308,9 @@ body.has-banner > *:not(.deep-link-banner) {
   flex-wrap: nowrap;
   gap: 4px;
   margin: 0.4em 0 1em;
-  padding: 4px 8px;
+  /* Vertical padding only; horizontal is set inline by
+     recomputeStripEdgePad so the active subtab can centre. */
+  padding: 4px 0;
   border-bottom: 2px solid var(--rule);
   position: sticky;
   top: var(--header-offset, 120px);
@@ -3659,9 +3693,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 <div class="indicator-banner indicator-banner--search indicator-collapsed" id="active-search-indicator"></div>
 <div class="indicator-banner indicator-banner--filters indicator-collapsed" id="active-filters-indicator"></div>
 </header>
-<main id="main">
+<div class="scene-stack" id="scene-stack">
+<main id="main"></main>
 <section id="settings-view" role="tabpanel" aria-labelledby="tab-settings" hidden></section>
-</main>
+</div>
 <p class="site-byline">Built &amp; curated by Gary Mooney</p>
 <p class="site-byline feedback-byline"><a class="feedback-link" href="#" data-feedback-trigger role="button">Send feedback</a></p>
 <footer class="acknowledgement" role="contentinfo">
@@ -3720,8 +3755,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return {
         showAllDays: !!parsed.showAllDays,
         searchPanelOpen: !!parsed.searchPanelOpen,
+        // lastSubtab — slug of the user's last visited Settings subtab.
+        // Tap-Settings restores to it; swipe-into-Settings forces
+        // Watchlist without touching it (so memory survives swipe entry).
+        lastSubtab: typeof parsed.lastSubtab === 'string' ? parsed.lastSubtab : null,
+        // lastFeedView — 'day' | 'all-week'. Set when leaving a day or
+        // entering all-week; NOT touched by Settings entry. Used by
+        // swipe-right-from-Watchlist to decide which scene to preview.
+        lastFeedView: parsed.lastFeedView === 'all-week' ? 'all-week'
+                    : parsed.lastFeedView === 'day' ? 'day' : null,
       };
-    } catch (_) { return { showAllDays: false, searchPanelOpen: false }; }
+    } catch (_) {
+      return {
+        showAllDays: false, searchPanelOpen: false,
+        lastSubtab: null, lastFeedView: null,
+      };
+    }
   }
   var viewState = loadViewState();
   function saveViewState() {
@@ -3729,9 +3778,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var out = {
         showAllDays: !!viewState.showAllDays,
         searchPanelOpen: !!viewState.searchPanelOpen,
+        lastSubtab: viewState.lastSubtab || null,
+        lastFeedView: viewState.lastFeedView || null,
       };
       localStorage.setItem(VIEW_STORAGE_KEY, JSON.stringify(out));
     } catch (_) {}
+  }
+  // resolvedFeedTarget — which "previous feed" should the user land on
+  // when swiping right out of Settings's Watchlist subtab? Slug-presence
+  // is the only staleness check; the strip itself is the source of
+  // truth for which days are reachable. (No date math, no timestamp.)
+  function resolvedFeedTarget() {
+    if (viewState.lastFeedView === 'all-week') return { kind: 'all-week' };
+    var slug = viewState.lastDayTab || lastDayTab;
+    if (!slug) return { kind: 'all-week' };
+    if (!document.querySelector('[data-tab="' + slug + '"]')) {
+      return { kind: 'all-week' };
+    }
+    return { kind: 'day', slug: slug };
   }
 
   // Search state — current input value (lowercased), token list, and
@@ -7691,6 +7755,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // CSS doesn't know the values, so we set left/right inline.
     var ageRow = view.querySelector('.age-range-row');
     if (ageRow) updateAgeFillBar(ageRow);
+    // Recompute centred-strip edge padding for the freshly-rendered
+    // subtab strip. autoCentre fires on navigation, not on render.
+    var subStrip = view.querySelector('.settings-subtabs');
+    if (subStrip) recomputeStripEdgePad(subStrip);
   }
 
   // Refresh the per-tab modified dots without re-rendering settings.
@@ -7741,6 +7809,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (settingsResizeTimer) clearTimeout(settingsResizeTimer);
     settingsResizeTimer = setTimeout(function () {
       settingsResizeTimer = null;
+      // Skip while a swipe is in flight or while #settings-view is
+      // mid-cross-scene-translation. Hint measurements there read the
+      // unclipped layout and would land wrong; defer until cleanup.
+      if (_swipeState != null) return;
+      var svEl = document.getElementById('settings-view');
+      if (svEl && svEl.classList.contains('swipe-scene')) return;
       measureSettingsHints();
     }, SETTINGS_RESIZE_DEBOUNCE);
   }
@@ -7757,6 +7831,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
 
   function rerenderSettingsPreservingSubtab() {
+    // Swipe-gate: deferred via _swipeState.pendingSettingsRerender.
+    // Otherwise a chip toggle mid-swipe would destroy the snapshot
+    // panel references the cross-scene swipe is animating.
+    if (_swipeState != null) {
+      _swipeState.pendingSettingsRerender = true;
+      return;
+    }
     // renderSettingsView rebuilds the whole Settings DOM with
     // Subcategories as the hard-coded default; snapshot whichever
     // sub-tab is currently visible and re-activate it afterwards so
@@ -7935,6 +8016,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (tabName !== 'settings') {
       lastDayTab = tabName;
       try { sessionStorage.setItem(SESSION_LAST_DAY, tabName); } catch (_) {}
+      // lastFeedView memory — track which top-level surface the user
+      // last reached (a specific day vs the stacked all-week feed). Used
+      // by swipe-right-out-of-Settings to pick the preview destination.
+      // Note: setAllWeekActive(true) sets 'all-week'; this branch fires
+      // for non-settings activations, so it captures the day case.
+      // viewState.showAllDays may still be true here if user is going to
+      // a specific day from all-week mode — that's handled by the click
+      // path which flips showAllDays before activate.
+      if (!viewState.showAllDays) {
+        viewState.lastDayTab = tabName;
+        viewState.lastFeedView = 'day';
+        saveViewState();
+      }
     }
     // Settings handlers defer renderAll while Settings is up; flush
     // here so the day panels reflect the user's pending tweaks before
@@ -7988,9 +8082,47 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // day panel leaves the Settings view scrolled too — the subtab
     // strip ends up off-screen and the user has to scroll back up.
     // skipScroll: true is passed by deep-link / back-button restores
-    // where the URL's intent is "preserve scroll".
+    // where the URL's intent is "preserve scroll", and by cross-scene
+    // swipe-in (the animation has already landed the panel in viewport).
     if (tabName === 'settings' && !opts.skipScroll) {
       window.scrollTo({ top: 0, behavior: 'auto' });
+    }
+    // Subtab routing on Settings entry:
+    //  - fromSwipe (cross-scene swipe-in from All-week): force
+    //    Watchlist, silently — staged Watchlist is the panel the user
+    //    saw during the slide-in. silent:true preserves lastSubtab
+    //    memory so tap-Settings later still returns to the user's
+    //    last tap-driven destination.
+    //  - else (tap on the icon, deep-link, etc): restore lastSubtab,
+    //    defaulting to Watchlist on first-ever entry.
+    if (tabName === 'settings') {
+      if (opts.fromSwipe) {
+        switchSubtab('watchlist', { silent: true });
+      } else if (opts.restoreSubtab !== false) {
+        switchSubtab(viewState.lastSubtab || 'watchlist', { silent: false });
+      }
+    }
+    // Day-strip-in-Settings: visually de-emphasised (opacity 0.85),
+    // counts visible, still tappable. Tap-day-while-in-Settings
+    // triggers a synthetic backward scene-swipe (see
+    // syntheticSettingsExit). Class ownership lives in activate.
+    var tabsRowEl = document.querySelector('.tabs-row');
+    if (tabsRowEl) {
+      if (tabName === 'settings') {
+        tabsRowEl.classList.add('tabs-row--settings-mode');
+      } else {
+        tabsRowEl.classList.remove('tabs-row--settings-mode');
+      }
+    }
+    // Part D autoCentre — drive the strip's scrollLeft so the active
+    // pill sits at viewport centre (clamped near the edges via
+    // recomputeStripEdgePad). Only on explicit navigation; never on
+    // background renders.
+    if (tabsRowEl && tabName !== 'settings') {
+      var activePill = tabsRowEl.querySelector(
+        '[data-tab="' + tabName + '"]') ||
+        (viewState.showAllDays ? tabsRowEl.querySelector('.week-pill') : null);
+      if (activePill) autoCentre(tabsRowEl, activePill, { smooth: true });
     }
     // Expanding the header (no resize event) would otherwise leave
     // --header-offset stale; recompute after any activation in case
@@ -8196,7 +8328,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (existingBanner) existingBanner.remove();
     renderFirstVisitNudge(mainEl);
     renderScoreChipMovedNotice(mainEl);
-    var settingsView = document.getElementById('settings-view');
     var tpl = document.createElement('div');
     var stacked = !!viewState.showAllDays;
     var firstDayInsertedBefore = null;
@@ -8233,11 +8364,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           heading.parentNode.insertBefore(bg, heading);
         }
       }
-      if (settingsView && settingsView.parentNode === mainEl) {
-        mainEl.insertBefore(dayEl, settingsView);
-      } else {
-        mainEl.appendChild(dayEl);
-      }
+      // #settings-view now lives outside #main (in .scene-stack);
+      // unconditional appendChild is sufficient.
+      mainEl.appendChild(dayEl);
       if (firstDayInsertedBefore === null) firstDayInsertedBefore = dayEl;
       if (firstDayIso === null) firstDayIso = days[j];
       lastDayIso = days[j];
@@ -8399,12 +8528,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
 
   function renderAll(opts) {
+    opts = opts || {};
+    // Defer if a swipe is in flight. Without this gate, a pin /
+    // search / filter / 8pm-rollover triggered renderAll could rip
+    // .day panels out from under `_swipeState.panel` mid-animation.
+    // _resetSwipeArtifacts flushes the queued render after cleanup
+    // with _suppressTailActivate set so the swipe's own destination
+    // activation wins.
+    if (_swipeState != null) {
+      _swipeState.pendingRender = _mergeRenderOpts(
+        _swipeState.pendingRender, opts);
+      return;
+    }
     // Any open popover is anchored to a card / button that's about to
     // be replaced — close them up front so we don't leave detached
     // DOM hanging in OPEN_POPOVERS or stale aria-expanded on a
     // re-rendered button.
     closeAllPopovers();
-    if (!opts || !opts.preserveScores) scoreVersion++;
+    if (!opts.preserveScores) scoreVersion++;
     var ranking = buildRanking(profile);
     lastRanking = ranking;
     // Display window: every day from the crop anchor (today in Melbourne,
@@ -8437,6 +8578,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var renderActive = viewState.showAllDays ? null : activeTab;
       tabsEl.innerHTML = renderTabsHtml(days, dayCounts, renderActive);
     }
+    // Recompute the centred-strip padding after the pill set is
+    // rebuilt. NOTE: deliberately don't call autoCentre here —
+    // background renders preserve user-dragged strip position.
+    // autoCentre fires only on explicit navigation (activate/
+    // switchSubtab/orientationchange/initial boot).
+    var tabsRow = document.querySelector('.tabs-row');
+    if (tabsRow) recomputeStripEdgePad(tabsRow);
     if (weekPillBtn) {
       weekPillBtn.setAttribute(
         'aria-pressed', viewState.showAllDays ? 'true' : 'false');
@@ -8517,7 +8665,32 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         target = firstAvailableDayTab();
       }
     }
-    activate(target, {});
+    // _suppressTailActivate is set when a swipe-deferred renderAll is
+    // flushed by _resetSwipeArtifacts after the swipe-commit's activate
+    // has already landed. Without suppression, this tail activate
+    // would override the swipe destination (e.g. switchSubtab(lastSubtab)
+    // would clobber the forced Watchlist on a swipe-into-Settings).
+    if (!opts._suppressTailActivate) activate(target, {});
+  }
+
+  // mergeRenderOpts — coalesce opts when a deferred renderAll
+  // receives a second queued call before flush. preserveScores wins
+  // false (any caller that wants a rescore beats one that doesn't).
+  function _mergeRenderOpts(prev, next) {
+    if (!prev) return next || {};
+    if (!next) return prev;
+    var out = {};
+    for (var k in prev) {
+      if (Object.prototype.hasOwnProperty.call(prev, k)) out[k] = prev[k];
+    }
+    for (var k2 in next) {
+      if (Object.prototype.hasOwnProperty.call(next, k2)) out[k2] = next[k2];
+    }
+    // preserveScores: false (or missing-and-meaning-false) wins.
+    if (!prev.preserveScores || !next.preserveScores) {
+      out.preserveScores = false;
+    }
+    return out;
   }
 
   // ============================================================
@@ -8624,6 +8797,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function setAllWeekActive(active) {
     if (viewState.showAllDays === active) return;
     viewState.showAllDays = active;
+    if (active) viewState.lastFeedView = 'all-week';
     saveViewState();
     if (weekPillBtn) {
       weekPillBtn.setAttribute('aria-pressed', active ? 'true' : 'false');
@@ -8799,12 +8973,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       'No events match “<strong>' + escapeHtml(searchQueryRaw) + '</strong>”. ' +
       '<button type="button" class="indicator-clear" data-search-clear>' +
       'Clear search</button>';
-    var settingsView = document.getElementById('settings-view');
-    if (settingsView && settingsView.parentNode === mainEl) {
-      mainEl.insertBefore(div, settingsView);
-    } else {
-      mainEl.appendChild(div);
-    }
+    // #settings-view is no longer a child of #main; append the empty-
+    // state directly.
+    mainEl.appendChild(div);
   }
 
 
@@ -9125,7 +9296,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     requestRenderAll();
   }
 
-  function switchSubtab(name) {
+  function switchSubtab(name, opts) {
+    opts = opts || {};
+    if (opts.staged) {
+      // Stage the subtab panel WITHOUT touching the strip's
+      // aria-selected (preserves a11y until the panel is actually
+      // visible) and WITHOUT writing lastSubtab. Used by cross-scene
+      // swipe setup to pre-show Watchlist behind the swipe-in animation.
+      var panelsStaged = document.querySelectorAll('.settings-panel');
+      for (var s = 0; s < panelsStaged.length; s++) {
+        panelsStaged[s].hidden = panelsStaged[s].dataset.subtab !== name;
+      }
+      return;
+    }
     var subtabs = document.querySelectorAll('.settings-subtab');
     for (var i = 0; i < subtabs.length; i++) {
       subtabs[i].setAttribute('aria-selected',
@@ -9135,9 +9318,28 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var j = 0; j < panels.length; j++) {
       panels[j].hidden = panels[j].dataset.subtab !== name;
     }
-    // Hidden panels report 0 scrollWidth/clientWidth, so re-measure
-    // once the activated panel is visible. Cheap (one O(rows) walk).
-    measureSettingsHints();
+    // silent: skip the lastSubtab write. Used by `fromSwipe` activation
+    // so swipe-into-Settings (which forces Watchlist) doesn't clobber
+    // the user's prior-subtab memory.
+    if (!opts.silent) {
+      viewState.lastSubtab = name;
+      saveViewState();
+    }
+    // Hidden panels report 0 scrollWidth/clientWidth; re-measure once
+    // visible. Gated on swipe state — mid-swipe the panel may be
+    // mid-animation inside a .swipe-scene-positioned settings view, in
+    // which case the measurements are wrong (clientWidth reflects
+    // un-clipped layout) and we should defer until cleanup completes.
+    var svEl = document.getElementById('settings-view');
+    if (_swipeState == null &&
+        !(svEl && svEl.classList.contains('swipe-scene'))) {
+      measureSettingsHints();
+    }
+    // Centre the destination subtab pill in its strip.
+    var subStrip = document.querySelector('.settings-subtabs');
+    var pill = document.querySelector(
+      '.settings-subtab[data-subtab="' + name + '"]');
+    if (subStrip && pill) autoCentre(subStrip, pill, { smooth: true });
   }
 
   function toggleShowMore(btn) {
@@ -10913,6 +11115,38 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (opts && typeof opts.onPostRender === 'function') opts.onPostRender();
       return;
     }
+    // Swipe-gate: defer the whole animated render so the FLIP's pre-
+    // rects are captured against a non-translated DOM. Capturing them
+    // NOW preserves the intended animation; capturing at flush would
+    // see post-commit positions and produce a 0px-delta no-op.
+    // Accumulate IDs across multiple pin clicks during the same swipe;
+    // the first call captures rects (subsequent rect captures would
+    // see post-prior-pin positions and animate the wrong delta).
+    if (_swipeState != null) {
+      var prevQ = document.querySelectorAll('.event[id^="event-"]');
+      cancelInFlightFlip(prevQ);
+      var pending = _swipeState.pendingAnimatedRender;
+      if (!pending) {
+        var firstRects = {};
+        for (var p = 0; p < prevQ.length; p++) {
+          firstRects[flipKey(prevQ[p])] = prevQ[p].getBoundingClientRect();
+        }
+        _swipeState.pendingAnimatedRender = {
+          highlightIds: highlightId ? [highlightId] : [],
+          opts: opts || {},
+          oldRects: firstRects,
+        };
+      } else {
+        // Subsequent pin during the same swipe: just accumulate the
+        // highlight target.
+        if (highlightId && pending.highlightIds.indexOf(highlightId) === -1) {
+          pending.highlightIds.push(highlightId);
+        }
+        // Coalesce opts via the renderAll merge rule.
+        pending.opts = _mergeRenderOpts(pending.opts, opts || {});
+      }
+      return;
+    }
     var prev = document.querySelectorAll('.event[id^="event-"]');
     cancelInFlightFlip(prev);
     var oldRects = {};
@@ -11273,7 +11507,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return;
     }
     var allDays = e.target.closest && e.target.closest('[data-toggle-all-days]');
-    if (allDays) { toggleAllDays(); return; }
+    if (allDays) {
+      // Tap Week pill from Settings → animated backward scene-swipe
+      // (Settings slides right, stacked feed slides in from left).
+      if (activeTab === 'settings') {
+        syntheticSettingsExit({ kind: 'all-week' });
+        return;
+      }
+      toggleAllDays();
+      return;
+    }
     var searchBtn = e.target.closest && e.target.closest('[data-toggle-search]');
     if (searchBtn) { toggleSearchPanel(); return; }
     var catChip = e.target.closest && e.target.closest('[data-category-chip]');
@@ -11293,6 +11536,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (tab.dataset.tab === 'settings') {
         dismissFirstVisitNudge();
         if (viewState.searchPanelOpen) toggleSearchPanel(false);
+      }
+      // Tap a day pill while in Settings → animated backward scene-
+      // swipe out. Same visual direction as the swipe-right-from-
+      // Watchlist gesture for a consistent mental model.
+      if (activeTab === 'settings' && tab.dataset.tab !== 'settings' &&
+          tab.classList.contains('day-tab')) {
+        syntheticSettingsExit({ kind: 'day', slug: tab.dataset.tab });
+        return;
       }
       // Tab semantics: clicking ANY tab while stacked EXITS stacked
       // mode (whether the destination is a day tab or Settings). Set
@@ -11686,6 +11937,80 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   });
 
   // ============================================================
+  //  Strip centring — both the day-tab strip and the Settings subtab
+  //  strip keep their currently-selected pill at the horizontal centre
+  //  of the viewport (where feasible — edge pills clamp to the strip
+  //  edge with a JS-set padding so they can still reach near-centre).
+  //
+  //  autoCentre is called ONLY on explicit navigation events
+  //  (activate/switchSubtab/orientationchange). Background renders
+  //  preserve user-dragged strip position so a filter change doesn't
+  //  yank the strip the user just peeked at.
+  // ============================================================
+  function _stripPills(stripEl) {
+    if (!stripEl) return [];
+    if (stripEl.classList.contains('tabs-row')) {
+      var arr = Array.prototype.slice.call(
+        stripEl.querySelectorAll('.day-tab'));
+      // Include the inner .week-pill (NOT .week-pill-wrap — the wrap's
+      // bounding box includes the separator and would land the centre
+      // math off the visible pill).
+      var week = stripEl.querySelector('.week-pill');
+      if (week) arr.push(week);
+      return arr;
+    }
+    return Array.prototype.slice.call(
+      stripEl.querySelectorAll('.settings-subtab'));
+  }
+  function recomputeStripEdgePad(stripEl) {
+    var pills = _stripPills(stripEl);
+    if (!pills.length) return;
+    var vw = stripEl.clientWidth;
+    // Fraction-with-fixed-ceiling: at 375px → cap = 94px; at 1024px
+    // → cap = 120px. Mobile keeps the soft mid-strip compromise;
+    // tablet/landscape don't degrade further than 120px max gutter.
+    var cap = Math.min(vw / 4, 120);
+    var first = pills[0], last = pills[pills.length - 1];
+    stripEl.style.paddingLeft  = Math.min(cap,
+      Math.max(0, vw / 2 - first.offsetWidth / 2)) + 'px';
+    stripEl.style.paddingRight = Math.min(cap,
+      Math.max(0, vw / 2 - last.offsetWidth / 2)) + 'px';
+  }
+  function centrePillInStrip(stripEl, pillEl, opts) {
+    if (!pillEl || !stripEl) return;
+    var target = pillEl.offsetLeft + pillEl.offsetWidth / 2 -
+                 stripEl.clientWidth / 2;
+    // Browser clamps scrollLeft to [0, scrollWidth-clientWidth].
+    if (opts && opts.smooth) {
+      try { stripEl.scrollTo({ left: target, behavior: 'smooth' }); }
+      catch (_) { stripEl.scrollLeft = target; }
+    } else {
+      stripEl.scrollLeft = target;
+    }
+  }
+  // autoCentre — convenience wrapper used by navigation paths.
+  // Background renders deliberately don't call this; user-dragged
+  // strip position survives them.
+  function autoCentre(stripEl, pillEl, opts) {
+    centrePillInStrip(stripEl, pillEl, opts);
+  }
+  function _currentActivePill() {
+    // Settings active → no day pill is aria-selected (in tabs-row);
+    // fall back to lastDayTab / Week pill for the centring target.
+    var sel = document.querySelector(
+      '.day-tab[aria-selected="true"], .week-pill[aria-pressed="true"]');
+    if (sel) return sel;
+    var fallback = lastDayTab && document.querySelector(
+      '.day-tab[data-tab="' + lastDayTab + '"]');
+    return fallback || document.querySelector('.day-tab');
+  }
+  function _currentActiveSubtabPill() {
+    return document.querySelector(
+      '.settings-subtab[aria-selected="true"]') ||
+      document.querySelector('.settings-subtab');
+  }
+
+  // ============================================================
   //  Mobile swipe — between day tabs (incl. All-week + Settings)
   //  and between Settings subtabs. Pointer-events based; one code
   //  path for touch + mouse + trackpad. Skips when:
@@ -11699,8 +12024,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
   var SWIPE_EDGE_EXCLUDE = 20;   // iOS back-swipe zone, px from left
   var SWIPE_COMMIT_MS = 200;     // commit animation duration
+  var SWIPE_CANCEL_MS = 160;     // snap-back animation duration
   var _swipeState = null;
   var _swipeBail = null;         // safety timer to clear stale state
+  // Numeric cooldown — `_swipeStart` bails while performance.now() is
+  // below this timestamp. Set in commit/cancel BEFORE the early-return
+  // guards so stale bail timers can't sneak past it. Replaces the v5
+  // inline-style sniffing which blocked legitimate post-animation
+  // taps for ~200ms (fast double-swipes were dropped on the floor).
+  var _swipeCooldownUntil = 0;
 
   function _swipeLadderForDay() {
     // [Mon..Sun, all-week, settings]. Day slugs read from the DOM
@@ -11837,6 +12169,388 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       state.pillSpan = pillSpan;
     }
   }
+  // ============================================================
+  //  Subtab swipe preview — prev/current/next .settings-panel
+  //  siblings translate in lockstep, mirroring the day-to-day
+  //  pattern. Active panel is repurposed as `state.panel` so the
+  //  existing previewArmed branch in _swipeMove translates it
+  //  correctly. Subtab strip's scrollLeft also slides proportionally
+  //  during the swipe; the autoCentre on commit (from switchSubtab)
+  //  lands the destination pill at viewport centre.
+  // ============================================================
+  function _setupSubtabPreview(state) {
+    var idx = SUBTAB_LADDER.indexOf(state.subtabStart);
+    if (idx < 0) return;
+    var activePanel = document.querySelector(
+      '.settings-panel[data-subtab="' + state.subtabStart + '"]');
+    if (!activePanel) return;
+    var prevPanel = idx > 0 ? document.querySelector(
+      '.settings-panel[data-subtab="' + SUBTAB_LADDER[idx - 1] + '"]') : null;
+    var nextPanel = idx + 1 < SUBTAB_LADDER.length ? document.querySelector(
+      '.settings-panel[data-subtab="' + SUBTAB_LADDER[idx + 1] + '"]') : null;
+    // Edge case: no neighbour either direction (shouldn't happen with
+    // current 7-subtab ladder, but defensive).
+    if (!prevPanel && !nextPanel) return;
+    var parent = activePanel.parentNode;
+    if (!parent) return;
+    var panelTop = activePanel.offsetTop;
+    var panelH = activePanel.offsetHeight;
+    var vw = window.innerWidth || 360;
+    parent.style.minHeight = (panelTop + panelH) + 'px';
+    activePanel.classList.add('swipe-preview');
+    activePanel.style.top = panelTop + 'px';
+    function setupNeighbour(el, dir) {
+      if (!el) return;
+      el.hidden = false;
+      el.classList.add('swipe-preview');
+      el.style.top = panelTop + 'px';
+      el.style.transform = 'translateX(' + (dir * vw) + 'px)';
+    }
+    setupNeighbour(prevPanel, -1);
+    setupNeighbour(nextPanel, 1);
+    // Repurpose state.panel as the active subtab panel — the existing
+    // previewArmed branch in _swipeMove translates state.panel, which
+    // we want to be the active subtab panel during preview (NOT the
+    // whole #settings-view).
+    state.panel = activePanel;
+    state.prevPanel = prevPanel;
+    state.nextPanel = nextPanel;
+    state.previewParent = parent;
+    state.previewArmed = true;
+    state.viewportWidth = vw;
+    // Subtab strip scrollLeft sync.
+    var subStrip = document.querySelector('.settings-subtabs');
+    if (subStrip) {
+      var pillSpan = 0;
+      var activePill = subStrip.querySelector(
+        '.settings-subtab[aria-selected="true"]');
+      if (activePill) {
+        if (nextPanel) {
+          var nextPill = subStrip.querySelector(
+            '.settings-subtab[data-subtab="' + SUBTAB_LADDER[idx + 1] + '"]');
+          if (nextPill) pillSpan = Math.abs(
+            nextPill.offsetLeft - activePill.offsetLeft);
+        }
+        if (!pillSpan && prevPanel) {
+          var prevPill = subStrip.querySelector(
+            '.settings-subtab[data-subtab="' + SUBTAB_LADDER[idx - 1] + '"]');
+          if (prevPill) pillSpan = Math.abs(
+            activePill.offsetLeft - prevPill.offsetLeft);
+        }
+      }
+      state.tabsRow = subStrip;
+      state.tabsScroll0 = subStrip.scrollLeft;
+      state.pillSpan = pillSpan;
+    }
+  }
+
+  // ============================================================
+  //  Cross-scene swipe (scope: 'scene') — AllWeek ↔ Settings.
+  //  Distinct from 'day' (day-to-day preview) and 'subtab' (subtab-
+  //  to-subtab preview). Translates the entire #main scene and the
+  //  entire #settings-view scene in lockstep so the user sees the
+  //  destination slide in from one side.
+  // ============================================================
+  function _revealAllWeekContent() {
+    var banner = document.getElementById('all-week-heading');
+    if (banner) banner.hidden = false;
+    var panels = document.querySelectorAll('.day');
+    for (var i = 0; i < panels.length; i++) panels[i].hidden = false;
+  }
+  function _revealDayPanel(slug) {
+    var panels = document.querySelectorAll('.day');
+    var targetId = 'day-' + slug;
+    for (var i = 0; i < panels.length; i++) {
+      panels[i].hidden = panels[i].id !== targetId;
+    }
+    var banner = document.getElementById('all-week-heading');
+    if (banner) banner.hidden = true;
+  }
+  function _stageSubtabPanel(name) {
+    var panels = document.querySelectorAll('.settings-panel');
+    for (var i = 0; i < panels.length; i++) {
+      panels[i].hidden = panels[i].dataset.subtab !== name;
+    }
+  }
+  function _setupSceneSwipe(state) {
+    var sceneStack = document.getElementById('scene-stack');
+    var mainEl = document.getElementById('main');
+    var settingsEl = document.getElementById('settings-view');
+    if (!sceneStack || !mainEl || !settingsEl) return;
+    var vw = window.innerWidth || 360;
+    // Day-to-day preview leaves `state.prevPanel`/`state.nextPanel`
+    // pointing at .day siblings; explicit null here so the
+    // previewArmed branch in _swipeMove can't claim the move when
+    // scope is 'scene'.
+    state.prevPanel = null;
+    state.nextPanel = null;
+    // Simplified height lock — viewport height is a safe lower bound
+    // and avoids a synchronous tree-walk measurement of the Settings
+    // DOM on every arm (~30-80ms jank on low-end Android otherwise).
+    var lockH = Math.max(mainEl.offsetHeight, window.innerHeight);
+    if (state.sceneDirection === 'forward') {
+      // AllWeek → Settings. Settings slides in from the right.
+      // Capture pre-stage panel state by SLUG (not element ref) so
+      // restoration on cancel survives any Settings DOM rebuild.
+      state.subtabPanelSnapshot = Array.prototype.slice.call(
+        document.querySelectorAll('.settings-panel')
+      ).map(function (p) {
+        return { slug: p.dataset.subtab, hidden: p.hidden };
+      });
+      _stageSubtabPanel('watchlist');
+      sceneStack.style.minHeight = lockH + 'px';
+      mainEl.classList.add('swipe-scene');
+      mainEl.style.transform = 'translateX(0)';
+      settingsEl.hidden = false;
+      settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
+      settingsEl.style.transform = 'translateX(' + vw + 'px)';
+    } else {
+      // Settings → previous feed. Sanity-check showAllDays against
+      // banner presence; if either signals desync, bail to plain
+      // cancel rather than animate into an unrenderable destination.
+      var target = resolvedFeedTarget();
+      state.sceneTarget = target;
+      var banner = document.getElementById('all-week-heading');
+      if (target.kind === 'all-week' &&
+          (!viewState.showAllDays || banner == null)) {
+        _swipeCancel();
+        return;
+      }
+      if (target.kind === 'all-week') {
+        _revealAllWeekContent();
+      } else {
+        _revealDayPanel(target.slug);
+      }
+      sceneStack.style.minHeight = lockH + 'px';
+      settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
+      settingsEl.style.transform = 'translateX(0)';
+      mainEl.classList.add('swipe-scene');
+      mainEl.style.transform = 'translateX(-' + vw + 'px)';
+    }
+    state.previewArmed = true;
+    state.sceneStack = sceneStack;
+    state.sceneMain = mainEl;
+    state.sceneSettings = settingsEl;
+    state.viewportWidth = vw;
+  }
+  // syntheticSettingsExit — animated tap-out-of-Settings. Mirrors
+  // the swipe-right-from-Watchlist gesture: Settings slides RIGHT off-
+  // screen, destination scene slides in from the LEFT. Regardless of
+  // which day was tapped, the direction is constant so users build a
+  // single "Settings exits to the right" mental model. Toast is
+  // dismissed inside this function (round-6 review fix — without it,
+  // tap-day-from-Settings would leak the stale toast across scenes).
+  function syntheticSettingsExit(target) {
+    if (_swipeState != null) return;
+    if (performance.now() < _swipeCooldownUntil) return;
+    var sceneStack = document.getElementById('scene-stack');
+    var mainEl = document.getElementById('main');
+    var settingsEl = document.getElementById('settings-view');
+    if (!sceneStack || !mainEl || !settingsEl) {
+      // Defensive — fall through to a non-animated activate so the
+      // tap doesn't appear to do nothing.
+      if (target.kind === 'all-week') {
+        if (activeTab === 'settings') {
+          activeTab = lastDayTab || firstAvailableDayTab() || activeTab;
+        }
+        setAllWeekActive(true);
+      } else {
+        if (viewState.showAllDays) setAllWeekActive(false);
+        activate(target.slug, { updateHash: true });
+      }
+      return;
+    }
+    var vw = window.innerWidth || 360;
+    var dur = _swipeReducedMotion() ? 0 : SWIPE_COMMIT_MS;
+    dismissToast();
+    // Reveal destination DOM behind the Settings panel.
+    if (target.kind === 'all-week') {
+      _revealAllWeekContent();
+    } else {
+      if (viewState.showAllDays) {
+        // Coming from stacked → leaving Settings to a specific day
+        // requires flipping out of stacked mode and rebuilding the
+        // panel. That's a renderAll's worth of work. Skip the
+        // animation and fall through to a direct activate.
+        if (activeTab === 'settings') {
+          // activate handles the mode flip via its tail.
+        }
+        setAllWeekActive(false);
+        activate(target.slug, { updateHash: true });
+        _swipeCooldownUntil = performance.now() + dur + 50;
+        return;
+      }
+      _revealDayPanel(target.slug);
+    }
+    sceneStack.style.minHeight =
+      Math.max(mainEl.offsetHeight, window.innerHeight) + 'px';
+    mainEl.classList.add('swipe-scene');
+    settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
+    mainEl.style.transform = 'translateX(' + (-vw) + 'px)';
+    settingsEl.style.transform = 'translateX(0)';
+    // Force layout so the next transform change animates.
+    void mainEl.offsetWidth;
+    mainEl.style.transition = 'transform ' + dur + 'ms ease-out';
+    settingsEl.style.transition = 'transform ' + dur + 'ms ease-out';
+    mainEl.style.transform = 'translateX(0)';
+    settingsEl.style.transform = 'translateX(' + vw + 'px)';
+    _swipeCooldownUntil = performance.now() + dur + 50;
+    setTimeout(function () {
+      // Finalise state. For all-week, manually flip the bits
+      // setAllWeekActive(true) would normally update (it's idempotent
+      // when showAllDays is already true, so the aria/activeTab
+      // updates wouldn't fire otherwise).
+      if (target.kind === 'all-week') {
+        viewState.showAllDays = true;
+        viewState.lastFeedView = 'all-week';
+        saveViewState();
+        if (weekPillBtn) weekPillBtn.setAttribute('aria-pressed', 'true');
+        if (activeTab === 'settings') {
+          activeTab = lastDayTab || firstAvailableDayTab();
+        }
+        var sv = document.getElementById('settings-view');
+        if (sv) sv.hidden = true;
+        var trEl = document.querySelector('.tabs-row');
+        if (trEl) trEl.classList.remove('tabs-row--settings-mode');
+        var dts = document.querySelectorAll('.day-tab');
+        for (var ii = 0; ii < dts.length; ii++) {
+          dts[ii].setAttribute('aria-selected', 'false');
+          dts[ii].tabIndex = -1;
+        }
+      } else {
+        activate(target.slug, { updateHash: true });
+      }
+      _resetSwipeArtifactsLight();
+    }, dur);
+  }
+  function _swipeMoveScene(dx) {
+    var s = _swipeState;
+    if (!s) return;
+    var vw = s.viewportWidth || (window.innerWidth || 360);
+    var dxClamped = Math.max(-vw, Math.min(vw, dx));
+    if (s.sceneDirection === 'forward') {
+      // AllWeek scene shifts left by dx (dx is negative); Settings,
+      // parked at +vw, follows along to (vw + dx).
+      s.sceneMain.style.transform = 'translateX(' + dxClamped + 'px)';
+      s.sceneSettings.style.transform =
+        'translateX(' + (vw + dxClamped) + 'px)';
+    } else {
+      // Settings → prev: Settings translates right by dx (dx is
+      // positive); main, parked at -vw, follows to (-vw + dx).
+      s.sceneSettings.style.transform = 'translateX(' + dxClamped + 'px)';
+      s.sceneMain.style.transform = 'translateX(' + (-vw + dxClamped) + 'px)';
+    }
+  }
+
+  // applyFlipWithRects — extracted FLIP-apply loop, parameterised on
+  // input rects. Used by both the normal renderAllAnimated path and
+  // by the deferred-via-swipe flush in _resetSwipeArtifacts.
+  function _applyFlipWithRects(oldRects, highlightIds) {
+    var next = document.querySelectorAll('.event[id^="event-"]');
+    for (var hi = 0; hi < (highlightIds || []).length; hi++) {
+      var hel = document.getElementById('event-' + highlightIds[hi]);
+      if (hel) hel.style.zIndex = 10;
+    }
+    for (var j = 0; j < next.length; j++) {
+      var el = next[j];
+      var oldRect = oldRects[flipKey(el)];
+      if (!oldRect) continue;
+      var newRect = el.getBoundingClientRect();
+      if ((oldRect.width === 0 && oldRect.height === 0) ||
+          (newRect.width === 0 && newRect.height === 0)) continue;
+      var dx = oldRect.left - newRect.left;
+      var dy = oldRect.top - newRect.top;
+      if (dx === 0 && dy === 0) continue;
+      el.animate(
+        [
+          { transform: 'translate(' + dx + 'px, ' + dy + 'px)' },
+          { transform: 'translate(0, 0)' },
+        ],
+        { duration: 360, easing: 'cubic-bezier(.22, .61, .36, 1)' }
+      );
+    }
+  }
+
+  // _resetSwipeArtifacts — single comprehensive cleanup. Clears every
+  // inline style + class the swipe machinery applies, restores the
+  // subtab-panel snapshot if one was captured, and flushes any
+  // deferred render. Critical ordering: null _swipeState BEFORE
+  // calling renderAll/etc so the swipe-gate doesn't re-queue.
+  function _resetSwipeArtifacts() {
+    var s = _swipeState;
+    _swipeState = null;  // null BEFORE flush so renderAll's gate
+                         // doesn't re-queue into a now-dead state.
+    // Wipe classes + inline styles on every swipe-targeted element.
+    var els = document.querySelectorAll('.swipe-preview, .swipe-scene');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      el.classList.remove('swipe-preview', 'swipe-scene', 'subtabs-unsticky');
+      el.style.transform = '';
+      el.style.transition = '';
+      el.style.top = '';
+      el.style.position = '';
+      el.style.left = '';
+      el.style.right = '';
+      el.style.width = '';
+    }
+    // Also clear the subtab strip's swipe override (it's not a child
+    // of any .swipe-scene since it lives inside #settings-view).
+    var subStrip = document.querySelector('.settings-subtabs');
+    if (subStrip) subStrip.classList.remove('subtabs-unsticky');
+    // Clear .scene-stack inline min-height.
+    var sceneStack = document.getElementById('scene-stack');
+    if (sceneStack) sceneStack.style.minHeight = '';
+    // Restore subtab panel snapshot if captured (cross-scene cancel).
+    // Query by slug so we tolerate any DOM rebuild that happened
+    // between stage and restore.
+    if (s && s.subtabPanelSnapshot) {
+      var snap = s.subtabPanelSnapshot;
+      for (var k = 0; k < snap.length; k++) {
+        var p = document.querySelector(
+          '.settings-panel[data-subtab="' + snap[k].slug + '"]');
+        if (p) p.hidden = snap[k].hidden;
+      }
+    }
+    // Flush deferred renders. pendingAnimatedRender wins (preserves
+    // FLIP animation); pendingRender flushes with _suppressTailActivate
+    // so it doesn't override the swipe destination's activate; settings
+    // re-render flushes last.
+    if (s && s.pendingAnimatedRender) {
+      var qa = s.pendingAnimatedRender;
+      renderAll(qa.opts);
+      _applyFlipWithRects(qa.oldRects, qa.highlightIds);
+    } else if (s && s.pendingRender) {
+      var r = s.pendingRender;
+      r._suppressTailActivate = true;
+      renderAll(r);
+    }
+    if (s && s.pendingSettingsRerender) {
+      rerenderSettingsPreservingSubtab();
+    }
+  }
+  // _resetSwipeArtifactsLight — class/style cleanup only. Used by the
+  // synthetic backward scene-swipe (syntheticSettingsExit) which
+  // animates without ever populating _swipeState, so there's no
+  // snapshot / deferred render to flush.
+  function _resetSwipeArtifactsLight() {
+    var els = document.querySelectorAll('.swipe-preview, .swipe-scene');
+    for (var i = 0; i < els.length; i++) {
+      var el = els[i];
+      el.classList.remove('swipe-preview', 'swipe-scene', 'subtabs-unsticky');
+      el.style.transform = '';
+      el.style.transition = '';
+      el.style.top = '';
+      el.style.position = '';
+      el.style.left = '';
+      el.style.right = '';
+      el.style.width = '';
+    }
+    var subStrip = document.querySelector('.settings-subtabs');
+    if (subStrip) subStrip.classList.remove('subtabs-unsticky');
+    var sceneStack = document.getElementById('scene-stack');
+    if (sceneStack) sceneStack.style.minHeight = '';
+  }
+
   function _swipeCleanupPreviewState(s) {
     if (!s) return;
     function clearPanel(el) {
@@ -11860,8 +12574,32 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
   function _swipeCancel() {
     _swipeClearTimer();
+    var dur = _swipeReducedMotion() ? 0 : SWIPE_CANCEL_MS;
+    // Stamp cooldown BEFORE the early-return guard so a stale
+    // _swipeBail timeout (firing 5s after a commit nulled _swipeState)
+    // still extends the no-swipe window correctly.
+    _swipeCooldownUntil = performance.now() + dur + 50;
     if (!_swipeState) return;
-    var dur = _swipeReducedMotion() ? 0 : 160;
+    // Scene-scope cancel — animate both scenes back to their start
+    // positions; restore the subtab-panel snapshot via slug-based
+    // re-query (survives any Settings DOM rebuild during the swipe).
+    if (_swipeState.scope === 'scene' && _swipeState.previewArmed) {
+      var sc = _swipeState;
+      var vwS = sc.viewportWidth || (window.innerWidth || 360);
+      if (sc.sceneDirection === 'forward') {
+        sc.sceneMain.style.transition = 'transform ' + dur + 'ms ease-out';
+        sc.sceneMain.style.transform = 'translateX(0)';
+        sc.sceneSettings.style.transition = 'transform ' + dur + 'ms ease-out';
+        sc.sceneSettings.style.transform = 'translateX(' + vwS + 'px)';
+      } else {
+        sc.sceneSettings.style.transition = 'transform ' + dur + 'ms ease-out';
+        sc.sceneSettings.style.transform = 'translateX(0)';
+        sc.sceneMain.style.transition = 'transform ' + dur + 'ms ease-out';
+        sc.sceneMain.style.transform = 'translateX(' + (-vwS) + 'px)';
+      }
+      setTimeout(_resetSwipeArtifacts, dur + 40);
+      return;
+    }
     if (_swipeState.previewArmed) {
       // Snap-back: active to 0, prev to -100%, next to +100%.
       var s = _swipeState;
@@ -11874,6 +12612,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       snap(s.panel, 'translateX(0)');
       snap(s.prevPanel, 'translateX(' + (-vw) + 'px)');
       snap(s.nextPanel, 'translateX(' + vw + 'px)');
+      // Strip-scroll snap-back: restore the position the user started
+      // the swipe at. (No autoCentre on cancel — the active tab didn't
+      // change, so nothing to recentre on. User-dragged strip position
+      // before the swipe is what we restore.)
       if (s.tabsRow != null && s.tabsScroll0 != null) {
         try { s.tabsRow.scrollTo({ left: s.tabsScroll0, behavior: 'smooth' }); }
         catch (_) { s.tabsRow.scrollLeft = s.tabsScroll0; }
@@ -11895,10 +12637,85 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
   function _swipeCommit(direction) {
     _swipeClearTimer();
+    var dur = _swipeReducedMotion() ? 0 : SWIPE_COMMIT_MS;
+    // Stamp cooldown BEFORE early-return guard (see _swipeCancel for
+    // the same pattern).
+    _swipeCooldownUntil = performance.now() + dur + 50;
     if (!_swipeState) return;
     var s = _swipeState;
     var width = window.innerWidth || 360;
-    var dur = _swipeReducedMotion() ? 0 : SWIPE_COMMIT_MS;
+    // Scene-scope commit (AllWeek↔Settings).
+    if (s.scope === 'scene' && s.previewArmed) {
+      var sceneDir = s.sceneDirection;
+      var target = s.sceneTarget;
+      // Dismiss any active toast on scene change — toast context is
+      // anchored to the scene the user is leaving; carrying it across
+      // an animated transition makes Undo's behaviour seem broken.
+      dismissToast();
+      if (sceneDir === 'forward') {
+        // Active sceneMain slides to -vw; Settings (parked at +vw + dx
+        // ~ 0) lands at 0.
+        s.sceneMain.style.transition = 'transform ' + dur + 'ms ease-out';
+        s.sceneMain.style.transform = 'translateX(' + (-width) + 'px)';
+        s.sceneSettings.style.transition = 'transform ' + dur + 'ms ease-out';
+        s.sceneSettings.style.transform = 'translateX(0)';
+      } else {
+        // Settings slides to +vw; main (parked at -vw + dx ~ 0) lands at 0.
+        s.sceneSettings.style.transition = 'transform ' + dur + 'ms ease-out';
+        s.sceneSettings.style.transform = 'translateX(' + width + 'px)';
+        s.sceneMain.style.transition = 'transform ' + dur + 'ms ease-out';
+        s.sceneMain.style.transform = 'translateX(0)';
+      }
+      // Clear the snapshot BEFORE _resetSwipeArtifacts runs — on
+      // commit, the staged Watchlist is the user's destination, not
+      // a state to restore.
+      _swipeState.subtabPanelSnapshot = null;
+      setTimeout(function () {
+        if (sceneDir === 'forward') {
+          // fromSwipe: true → activate calls switchSubtab('watchlist',
+          // {silent: true}) so lastSubtab memory isn't overwritten.
+          // skipScroll: true → scene animation already landed in
+          // viewport, no need for the window.scrollTo(0).
+          activate('settings', {
+            fromSwipe: true, skipScroll: true, updateHash: true,
+          });
+        } else {
+          if (target && target.kind === 'all-week') {
+            // Re-synchronise stacked-mode state. setAllWeekActive(true)
+            // is a no-op (showAllDays already true precondition), so
+            // we manually flip the bits activate() doesn't manage in
+            // stacked mode.
+            viewState.showAllDays = true;
+            saveViewState();
+            if (weekPillBtn) {
+              weekPillBtn.setAttribute('aria-pressed', 'true');
+            }
+            activeTab = lastDayTab || firstAvailableDayTab();
+            var sv = document.getElementById('settings-view');
+            if (sv) sv.hidden = true;
+            var tabsRowEl = document.querySelector('.tabs-row');
+            if (tabsRowEl) {
+              tabsRowEl.classList.remove('tabs-row--settings-mode');
+            }
+            // Day-tabs strip: no day pill aria-selected (stacked mode).
+            var dts = document.querySelectorAll('.day-tab');
+            for (var ii = 0; ii < dts.length; ii++) {
+              dts[ii].setAttribute('aria-selected', 'false');
+              dts[ii].tabIndex = -1;
+            }
+            // Flush any Settings-pending changes through the renderAll
+            // gate (which queues onto pendingRender; _resetSwipeArtifacts
+            // flushes with _suppressTailActivate so the tail activate()
+            // doesn't override our manual state flips above).
+            if (settingsDirty) flushSettingsDirty();
+          } else if (target) {
+            activate(target.slug, { updateHash: true });
+          }
+        }
+        _resetSwipeArtifacts();
+      }, dur);
+      return;
+    }
     // Identify whether the commit direction has a preview panel; if
     // not, fall back to the single-panel slide.
     var hasPreviewTarget = s.previewArmed && (
@@ -11925,11 +12742,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         other.style.transform =
           'translateX(' + (direction < 0 ? -2 * width : 2 * width) + 'px)';
       }
-      if (s.tabsRow != null && s.pillSpan && s.tabsScroll0 != null) {
-        var finalScroll = s.tabsScroll0 - direction * s.pillSpan;
-        try { s.tabsRow.scrollTo({ left: finalScroll, behavior: 'smooth' }); }
-        catch (_) { s.tabsRow.scrollLeft = finalScroll; }
-      }
+      // No commit-time tabsRow.scrollTo here — activate() → autoCentre
+      // owns the post-commit pill centring. Two competing smooth-
+      // scrolls (commit's + activate's) race on iOS Safari; the v6
+      // design unifies on a single source of truth.
       var prevPanel = s.prevPanel;
       var nextPanel = s.nextPanel;
       var activePanel = s.panel;
@@ -11940,6 +12756,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         // post-commit world before we clear inline styles.
         if (scope === 'day') {
           _swipeActivateLadderEntry(nextEntry);
+        } else if (scope === 'subtab') {
+          // switchSubtab will hide non-active .settings-panel siblings
+          // via [hidden]=true. autoCentre call inside switchSubtab
+          // slides the subtab strip so the destination pill lands at
+          // viewport centre.
+          switchSubtab(subtab);
         }
         // Clear inline overrides on every previewed panel.
         function clearOne(el) {
@@ -11952,7 +12774,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         clearOne(activePanel);
         clearOne(prevPanel);
         clearOne(nextPanel);
-        // activate() already set hidden flags; nothing else to do.
+        // activate() / switchSubtab already set hidden flags.
         if (parent) parent.style.minHeight = '';
       }, dur);
       return;
@@ -12018,6 +12840,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   function _swipeStart(e) {
     if (e.button !== undefined && e.button !== 0) return;
+    // Re-entrancy guard. Block during a previous swipe's commit/cancel
+    // animation window so the second swipe doesn't race the
+    // still-animating first one's cleanup.
+    if (_swipeState != null) return;
+    if (performance.now() < _swipeCooldownUntil) return;
     // If any watchlist row is currently in edit mode, the whole page
     // is swipe-locked regardless of where the touch landed — the user
     // is mid-typing and a swipe-out would dump the input.
@@ -12072,13 +12899,40 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (Math.abs(dx) < SWIPE_ACTIVATE_DIST) return;
       _swipeState.armed = true;
       // Setup ladder / target lookup once the gesture is real.
+      // Arm-time scope elevation: dx sign is known now so we can
+      // detect cross-scene transitions (AllWeek↔Settings) and route
+      // through _setupSceneSwipe instead of day-to-day or subtab
+      // preview.
       if (_swipeState.scope === 'day') {
         _swipeState.ladder = _swipeLadderForDay();
         _swipeState.idx = _swipeCurrentDayIdx(_swipeState.ladder);
-        // Set up day-to-day preview panels (no-op for boundary cases).
-        _setupSwipePreview(_swipeState);
+        var atAllWeek = _swipeState.idx >= 0 &&
+          _swipeState.ladder[_swipeState.idx].kind === 'all-week';
+        if (atAllWeek && dx < 0 &&
+            _swipeState.idx + 1 < _swipeState.ladder.length &&
+            _swipeState.ladder[_swipeState.idx + 1].kind === 'settings') {
+          _swipeState.scope = 'scene';
+          _swipeState.sceneDirection = 'forward';
+          _swipeState.nextEntry = { kind: 'settings' };
+          _setupSceneSwipe(_swipeState);
+        } else {
+          // Day-to-day preview (no-op for non-day boundary cases).
+          _setupSwipePreview(_swipeState);
+        }
       } else {
         _swipeState.subtabStart = _swipeCurrentSubtab();
+        if (_swipeState.subtabStart === 'watchlist' && dx > 0) {
+          // Swiping right out of Watchlist subtab → cross-scene back
+          // to the previous feed view.
+          _swipeState.scope = 'scene';
+          _swipeState.sceneDirection = 'backward';
+          _setupSceneSwipe(_swipeState);
+        } else {
+          // Within-Settings subtab swipe with iPhone-home-screen
+          // preview. Active subtab panel becomes state.panel; prev/
+          // next panels slide in alongside.
+          _setupSubtabPreview(_swipeState);
+        }
       }
     }
     // Velocity (px/ms) over the last 60ms slot for the commit gate.
@@ -12102,6 +12956,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (sIdx === SUBTAB_LADDER.length - 1 && dx < 0) atEdge = true;
       // Left edge: NOT rubber-band — Watchlist wraps back to All-week
       // (per user choice). Treated as a normal commit, not an edge.
+    }
+    // Scene-scope swipe — translate #main and #settings-view together
+    // (one slides off, the other slides in). MUST come before the
+    // day-to-day previewArmed branch so the scope check claims the
+    // move first.
+    if (_swipeState.scope === 'scene' && _swipeState.previewArmed) {
+      _swipeMoveScene(dx);
+      return;
     }
     // Preview path: if a preview armed in this direction, translate
     // active + neighbour in lockstep. Atedge for the previewed side
@@ -12200,6 +13062,56 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     });
     window.addEventListener('blur', _swipeCancel);
   }
+  // Width-only resize handler — re-pads the centred strips but does
+  // NOT autoCentre (background renders preserve user-dragged strip
+  // position; only navigation re-centres). Snapshot innerWidth and
+  // bail when unchanged so iOS URL-bar grow/shrink doesn't twitch
+  // pills during a normal vertical scroll.
+  var _lastInnerWidth = window.innerWidth;
+  function _snapshotInnerWidth() { _lastInnerWidth = window.innerWidth; }
+  function _onViewportResize() {
+    if (window.innerWidth === _lastInnerWidth) return;
+    _lastInnerWidth = window.innerWidth;
+    var tabsRow = document.querySelector('.tabs-row');
+    if (tabsRow) recomputeStripEdgePad(tabsRow);
+    var subStrip = document.querySelector('.settings-subtabs');
+    if (subStrip) recomputeStripEdgePad(subStrip);
+  }
+  var _resizeDebounced = (function () {
+    var t = null;
+    return function () {
+      if (t) clearTimeout(t);
+      t = setTimeout(function () { t = null; _onViewportResize(); }, 100);
+    };
+  })();
+  if (window.visualViewport) {
+    window.visualViewport.addEventListener('resize', _resizeDebounced);
+  } else {
+    window.addEventListener('resize', _resizeDebounced);
+  }
+  // Rotation is a fresh layout — re-centre once on the active pill.
+  // Cancel any in-flight swipe first (can't reliably animate through
+  // an orientation transition).
+  window.addEventListener('orientationchange', function () {
+    _snapshotInnerWidth();
+    if (_swipeState != null) _swipeCancel();
+    var tabsRow = document.querySelector('.tabs-row');
+    if (tabsRow) {
+      recomputeStripEdgePad(tabsRow);
+      autoCentre(tabsRow, _currentActivePill(), { smooth: true });
+    }
+    if (activeTab === 'settings') {
+      var subStrip = document.querySelector('.settings-subtabs');
+      if (subStrip) {
+        recomputeStripEdgePad(subStrip);
+        autoCentre(subStrip, _currentActiveSubtabPill(), { smooth: true });
+      }
+    }
+  });
+  // pageshow: re-snapshot innerWidth so a deep-link load that boots
+  // while the on-screen keyboard is showing doesn't capture a stale
+  // baseline (which would then fail the "unchanged width? bail" check).
+  window.addEventListener('pageshow', _snapshotInnerWidth);
 
   // :has() fallback for the score-breakdown tooltip on .event.extra cards.
   // Older Safari (<15.4), Firefox (<121), and Android WebView don't honour
