@@ -1145,6 +1145,16 @@ body:has(#first-visit-nudge) .day {
 .tabs-row--settings-mode {
   opacity: 0.85;
 }
+/* swipe-hidden — applied during a cross-scene or subtab swipe to
+   in-flow siblings of the .settings-panel set (e.g. the trailing
+   .settings-storage-note). Once the active panel goes absolute, these
+   siblings would shift up into the now-empty space and visibly leak
+   through the swipe animation. visibility:hidden (not display:none)
+   so the locked min-height calculation stays valid. Cleared by
+   _resetSwipeArtifacts when the swipe completes. */
+.swipe-hidden {
+  visibility: hidden;
+}
 /* Subtab strip + day-tab strip opt out of swipe entirely via
    [data-no-swipe] (JS check); they keep their own overflow-x scroll
    so the active pill stays scrollable into view. */
@@ -8586,8 +8596,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var tabsRow = document.querySelector('.tabs-row');
     if (tabsRow) recomputeStripEdgePad(tabsRow);
     if (weekPillBtn) {
+      // Week pill is "pressed" only when stacked mode is active AND
+      // we're not currently in Settings — Settings is the active scene
+      // so no day-strip pill should read as selected.
       weekPillBtn.setAttribute(
-        'aria-pressed', viewState.showAllDays ? 'true' : 'false');
+        'aria-pressed',
+        (viewState.showAllDays && activeTab !== 'settings')
+          ? 'true' : 'false');
       // Sum the per-day counts for the All-week pill's badge so it
       // mirrors the day pills' .tab-count treatment.
       var weekTotal = 0;
@@ -8741,8 +8756,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     activeSearchEl  = document.getElementById('active-search-indicator');
 
     // Restore persisted view state — Week pill pressed, search panel open.
+    // Same Settings-active suppression as in renderAll.
     if (weekPillBtn) {
-      weekPillBtn.setAttribute('aria-pressed', viewState.showAllDays ? 'true' : 'false');
+      weekPillBtn.setAttribute('aria-pressed',
+        (viewState.showAllDays && activeTab !== 'settings')
+          ? 'true' : 'false');
     }
     if (searchIconBtn) {
       searchIconBtn.setAttribute('aria-expanded', viewState.searchPanelOpen ? 'true' : 'false');
@@ -12009,6 +12027,55 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       '.settings-subtab[aria-selected="true"]') ||
       document.querySelector('.settings-subtab');
   }
+  // _flipTabAriaImmediate / _flipSubtabAriaImmediate — called from
+  // _swipeCommit BEFORE the 200ms commit animation so the destination
+  // pill's highlight updates straight away (the user sees the new tab
+  // selected as the swipe commits, not 200ms later). activate() /
+  // switchSubtab() re-flip after the animation; the duplicate is a
+  // no-op.
+  function _flipTabAriaImmediate(slug) {
+    if (!slug) return;
+    var allTabs = document.querySelectorAll('[data-tab]');
+    var stackedActive = !!viewState.showAllDays && slug !== 'settings';
+    for (var i = 0; i < allTabs.length; i++) {
+      var t = allTabs[i];
+      var match = t.dataset.tab === slug;
+      var dayTab = t.classList.contains('day-tab');
+      var selected = stackedActive && dayTab ? false : match;
+      t.setAttribute('aria-selected', selected ? 'true' : 'false');
+      t.tabIndex = selected ? 0 : -1;
+    }
+    var tabsRowEl = document.querySelector('.tabs-row');
+    if (tabsRowEl && slug !== 'settings') {
+      var pill = tabsRowEl.querySelector('[data-tab="' + slug + '"]');
+      if (pill) autoCentre(tabsRowEl, pill, { smooth: true });
+    }
+  }
+  function _flipWeekPillImmediate(pressed) {
+    if (weekPillBtn) {
+      weekPillBtn.setAttribute('aria-pressed', pressed ? 'true' : 'false');
+    }
+    if (pressed) {
+      // No specific day-tab is "selected" when Week is the active pill.
+      var dts = document.querySelectorAll('.day-tab');
+      for (var i = 0; i < dts.length; i++) {
+        dts[i].setAttribute('aria-selected', 'false');
+        dts[i].tabIndex = -1;
+      }
+    }
+  }
+  function _flipSubtabAriaImmediate(slug) {
+    if (!slug) return;
+    var subtabs = document.querySelectorAll('.settings-subtab');
+    for (var i = 0; i < subtabs.length; i++) {
+      subtabs[i].setAttribute('aria-selected',
+        subtabs[i].dataset.subtab === slug ? 'true' : 'false');
+    }
+    var subStrip = document.querySelector('.settings-subtabs');
+    var pill = document.querySelector(
+      '.settings-subtab[data-subtab="' + slug + '"]');
+    if (subStrip && pill) autoCentre(subStrip, pill, { smooth: true });
+  }
 
   // ============================================================
   //  Mobile swipe — between day tabs (incl. All-week + Settings)
@@ -12018,7 +12085,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   //    - within 20px of the screen's left edge (iOS back-swipe)
   //    - active watchlist drag is already underway
   // ============================================================
-  var SWIPE_DIST_FRAC = 0.5;     // commit if |dx| > 50% of viewport
+  var SWIPE_DIST_FRAC = 0.4;     // commit if |dx| > 40% of viewport
   var SWIPE_VEL_PX_MS = 0.3;     // OR velocity > 0.3 px/ms
   var SWIPE_AXIS_BIAS = 15;      // vertical wins if |dy| > |dx| + 15
   var SWIPE_ACTIVATE_DIST = 8;   // arm swipe after 8px of horizontal
@@ -12196,7 +12263,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var panelTop = activePanel.offsetTop;
     var panelH = activePanel.offsetHeight;
     var vw = window.innerWidth || 360;
-    parent.style.minHeight = (panelTop + panelH) + 'px';
+    // Lock #settings-view to its NATURAL height (includes the trailing
+    // .settings-storage-note + any other in-flow siblings). Locking to
+    // panelTop + panelH alone misses the storage-note's height; the
+    // note would then shift up into the active-panel slot when panels
+    // go absolute and visibly leak through the swipe.
+    parent.style.minHeight = parent.offsetHeight + 'px';
+    // Hide the .settings-storage-note during the swipe — it's a flow
+    // sibling of the panels, so once panels are absolute it'd float
+    // up directly under the sticky subtab strip and show under the
+    // translating panel. Restored on cleanup.
+    var notes = parent.querySelectorAll('.settings-storage-note');
+    for (var nI = 0; nI < notes.length; nI++) {
+      notes[nI].classList.add('swipe-hidden');
+    }
     activePanel.classList.add('swipe-preview');
     activePanel.style.top = panelTop + 'px';
     function setupNeighbour(el, dir) {
@@ -12304,6 +12384,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       settingsEl.hidden = false;
       settingsEl.classList.add('swipe-scene', 'subtabs-unsticky');
       settingsEl.style.transform = 'translateX(' + vw + 'px)';
+      // Hide the trailing storage-note during the swipe (same reason
+      // as subtab preview: in-flow sibling that'd shift up under the
+      // sticky strip once panels are absolute).
+      var snFwd = settingsEl.querySelectorAll('.settings-storage-note');
+      for (var sn1 = 0; sn1 < snFwd.length; sn1++) {
+        snFwd[sn1].classList.add('swipe-hidden');
+      }
+      // Flip Week pill aria-pressed to false immediately — user is
+      // leaving the all-week view, the pill should de-highlight as
+      // the swipe progresses, not after the animation completes.
+      if (weekPillBtn) {
+        weekPillBtn.setAttribute('aria-pressed', 'false');
+      }
     } else {
       // Settings → previous feed. Sanity-check showAllDays against
       // banner presence; if either signals desync, bail to plain
@@ -12365,6 +12458,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     dismissToast();
     // Reveal destination DOM behind the Settings panel.
     if (target.kind === 'all-week') {
+      // If showAllDays wasn't already true, the day panels in #main
+      // were rendered per-day (not stacked). Animating them in would
+      // show wrong layout. Skip the animation and re-render via
+      // setAllWeekActive(true).
+      if (!viewState.showAllDays) {
+        if (activeTab === 'settings') {
+          activeTab = lastDayTab || firstAvailableDayTab() || activeTab;
+        }
+        setAllWeekActive(true);
+        _swipeCooldownUntil = performance.now() + dur + 50;
+        return;
+      }
       _revealAllWeekContent();
     } else {
       if (viewState.showAllDays) {
@@ -12497,6 +12602,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // of any .swipe-scene since it lives inside #settings-view).
     var subStrip = document.querySelector('.settings-subtabs');
     if (subStrip) subStrip.classList.remove('subtabs-unsticky');
+    // Clear .swipe-hidden from any in-flow siblings (settings-storage-
+    // note) we hid during the swipe.
+    var hidden = document.querySelectorAll('.swipe-hidden');
+    for (var hI = 0; hI < hidden.length; hI++) {
+      hidden[hI].classList.remove('swipe-hidden');
+    }
+    // Clear inline min-height we may have set on #main, #settings-view.
+    var mainEl = document.getElementById('main');
+    if (mainEl) mainEl.style.minHeight = '';
+    var settingsEl = document.getElementById('settings-view');
+    if (settingsEl) settingsEl.style.minHeight = '';
     // Clear .scene-stack inline min-height.
     var sceneStack = document.getElementById('scene-stack');
     if (sceneStack) sceneStack.style.minHeight = '';
@@ -12547,6 +12663,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     var subStrip = document.querySelector('.settings-subtabs');
     if (subStrip) subStrip.classList.remove('subtabs-unsticky');
+    var hidden = document.querySelectorAll('.swipe-hidden');
+    for (var hI = 0; hI < hidden.length; hI++) {
+      hidden[hI].classList.remove('swipe-hidden');
+    }
+    var mainEl = document.getElementById('main');
+    if (mainEl) mainEl.style.minHeight = '';
+    var settingsEl = document.getElementById('settings-view');
+    if (settingsEl) settingsEl.style.minHeight = '';
     var sceneStack = document.getElementById('scene-stack');
     if (sceneStack) sceneStack.style.minHeight = '';
   }
@@ -12571,6 +12695,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     clearPanel(s.prevPanel);
     clearPanel(s.nextPanel);
     if (s.previewParent) s.previewParent.style.minHeight = '';
+    // Restore swipe-hidden siblings (.settings-storage-note in subtab).
+    var swH = document.querySelectorAll('.swipe-hidden');
+    for (var sI = 0; sI < swH.length; sI++) {
+      swH[sI].classList.remove('swipe-hidden');
+    }
   }
   function _swipeCancel() {
     _swipeClearTimer();
@@ -12591,6 +12720,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         sc.sceneMain.style.transform = 'translateX(0)';
         sc.sceneSettings.style.transition = 'transform ' + dur + 'ms ease-out';
         sc.sceneSettings.style.transform = 'translateX(' + vwS + 'px)';
+        // Restore Week pill aria-pressed — we de-highlighted it on
+        // setup so the user saw the de-emphasis as they began the
+        // swipe. Since they cancelled, restore to match showAllDays.
+        if (weekPillBtn && viewState.showAllDays) {
+          weekPillBtn.setAttribute('aria-pressed', 'true');
+        }
       } else {
         sc.sceneSettings.style.transition = 'transform ' + dur + 'ms ease-out';
         sc.sceneSettings.style.transform = 'translateX(0)';
@@ -12652,6 +12787,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       // anchored to the scene the user is leaving; carrying it across
       // an animated transition makes Undo's behaviour seem broken.
       dismissToast();
+      // Immediate aria-flip on the destination — user sees the
+      // highlight update at commit time, not after the 200ms animation
+      // completes. activate()/manual logic in the setTimeout re-flips
+      // (idempotent).
+      if (sceneDir === 'forward') {
+        _flipTabAriaImmediate('settings');
+      } else if (target) {
+        if (target.kind === 'all-week') {
+          _flipWeekPillImmediate(true);
+        } else {
+          _flipTabAriaImmediate(target.slug);
+        }
+      }
       if (sceneDir === 'forward') {
         // Active sceneMain slides to -vw; Settings (parked at +vw + dx
         // ~ 0) lands at 0.
@@ -12726,6 +12874,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var nextEntry = s.nextEntry;
     var subtab = s.subtab;
     if (hasPreviewTarget) {
+      // Immediate aria-flip + autoCentre for the destination pill.
+      // User sees the new tab highlight at commit time, not after the
+      // 200ms animation. Same for subtab swipes.
+      if (scope === 'day' && nextEntry) {
+        if (nextEntry.kind === 'all-week') _flipWeekPillImmediate(true);
+        else if (nextEntry.slug) _flipTabAriaImmediate(nextEntry.slug);
+      } else if (scope === 'subtab' && subtab) {
+        _flipSubtabAriaImmediate(subtab);
+      }
       var to = direction < 0 ? -width : width;
       // Active slides off-screen in the swipe direction; the
       // destination neighbour slides to 0.
@@ -12776,12 +12933,26 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         clearOne(nextPanel);
         // activate() / switchSubtab already set hidden flags.
         if (parent) parent.style.minHeight = '';
+        // Restore any siblings we hid for visual clarity during the
+        // swipe (e.g. .settings-storage-note in the subtab case).
+        var swH = document.querySelectorAll('.swipe-hidden');
+        for (var sI = 0; sI < swH.length; sI++) {
+          swH[sI].classList.remove('swipe-hidden');
+        }
       }, dur);
       return;
     }
     // Single-panel commit (boundary cases: day↔all-week, day↔settings,
     // subtab↔subtab — and preview-armed swipes that commit toward a
     // non-day ladder entry).
+    // Immediate aria-flip for the destination.
+    if (scope === 'day' && nextEntry) {
+      if (nextEntry.kind === 'all-week') _flipWeekPillImmediate(true);
+      else if (nextEntry.kind === 'settings') _flipTabAriaImmediate('settings');
+      else if (nextEntry.slug) _flipTabAriaImmediate(nextEntry.slug);
+    } else if (scope === 'subtab' && subtab) {
+      _flipSubtabAriaImmediate(subtab);
+    }
     var panel = s.panel;
     var to2 = direction < 0 ? -width : width;
     if (panel) {
