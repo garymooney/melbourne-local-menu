@@ -12140,6 +12140,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // inline-style sniffing which blocked legitimate post-animation
   // taps for ~200ms (fast double-swipes were dropped on the floor).
   var _swipeCooldownUntil = 0;
+  // Track the most recent scroll event so _swipeStart can detect
+  // touchdowns that land while the page has inertial scroll
+  // momentum. Scroll fires throughout the inertia, so a recent
+  // timestamp = momentum was still active.
+  var _lastScrollAt = 0;
+  window.addEventListener('scroll', function () {
+    _lastScrollAt = performance.now();
+  }, { passive: true });
 
   function _swipeLadderForDay() {
     // [Mon..Sun, all-week, settings]. Day slugs read from the DOM
@@ -13214,6 +13222,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var stackedOrBanner = !!inAllWeek || (scope === 'day' && viewState.showAllDays);
     var panel = inSettings ||
       (stackedOrBanner ? document.getElementById('main') : inDayPanel);
+    // Momentum-scroll detection: any scroll event in the last 250ms
+    // means the page is mid-inertia. When user touches down during
+    // inertia, the browser eats the first ~50ms of touch events as
+    // "scroll cancellation" — so we'd never see the gesture's first
+    // few px and miss the arm threshold. Flag this state so
+    // _swipeMove can arm at the very first horizontal pixel instead
+    // of waiting for SWIPE_ACTIVATE_DIST.
+    var inMomentum = performance.now() - _lastScrollAt < 250;
     _swipeState = {
       scope: scope,
       panel: panel,
@@ -13226,6 +13242,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       pointerId: e.pointerId,
       armed: false,
       cancelled: false,
+      inMomentum: inMomentum,
     };
     // Safety net for iOS pointercancel not firing on some
     // interruptions: 5s max swipe duration.
@@ -13238,13 +13255,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var dx = e.clientX - _swipeState.x0;
     var dy = e.clientY - _swipeState.y0;
     if (!_swipeState.armed) {
-      // Axis arbitration: vertical bias wins by 15px so a deliberate
-      // vertical scroll never triggers a horizontal swipe gesture.
+      // Axis arbitration: vertical bias wins by SWIPE_AXIS_BIAS so a
+      // deliberate vertical scroll never triggers a horizontal swipe.
       if (Math.abs(dy) > Math.abs(dx) + SWIPE_AXIS_BIAS) {
         _swipeState.cancelled = true;
         return;
       }
-      if (Math.abs(dx) < SWIPE_ACTIVATE_DIST) return;
+      // Activate distance: smaller during momentum-stop so the
+      // gesture engages on the FIRST horizontal pixel (otherwise the
+      // ~50ms of touch-events the browser swallows on scroll-cancel
+      // means we miss the 4px threshold and the swipe never arms).
+      var activateAt = _swipeState.inMomentum ? 1 : SWIPE_ACTIVATE_DIST;
+      if (Math.abs(dx) < activateAt) return;
       _swipeState.armed = true;
       // Track the arm-time dy so the in-flight pivot check below can
       // measure how much MORE vertical movement happened post-arm.
@@ -13279,24 +13301,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         }
       } else {
         _swipeState.subtabStart = _swipeCurrentSubtab();
-        if (dx > 0) {
-          // Right swipe from ANY subtab → cross-scene back to the
-          // feed. Consistent "right = back/exit" mental model
-          // (matches iOS swipe-back). Within-Settings subtab
-          // navigation is still available via pill taps.
+        // Within-Settings: dx>0 (finger right) navigates to the
+        // PREVIOUS subtab. Only at the leftmost subtab (Watchlist)
+        // does dx>0 exit Settings via scene swipe. dx<0 (finger left)
+        // navigates to the NEXT subtab; rubber-bands at the rightmost.
+        if (_swipeState.subtabStart === 'watchlist' && dx > 0) {
           _swipeState.scope = 'scene';
           _swipeState.sceneDirection = 'backward';
           var sceneOk = _setupSceneSwipe(_swipeState);
           if (!sceneOk) {
-            // Couldn't produce a destination — fall back to subtab
-            // preview so the swipe doesn't die silently.
             _swipeState.scope = 'subtab';
             _swipeState.sceneDirection = null;
             _setupSubtabPreview(_swipeState);
           }
         } else {
-          // Left swipe = subtab-to-subtab navigation (forward in the
-          // subtab ladder; rubber-band at the rightmost subtab).
           _setupSubtabPreview(_swipeState);
         }
       }
@@ -13400,17 +13418,28 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var dx = e.clientX - _swipeState.x0;
     var dt = Date.now() - _swipeState.t0;
     var vp = window.innerWidth || 360;
-    // Stacked-mode day-direction swipes have no preview (the
-    // destination day isn't visible alongside #main during the
-    // drag), so users misjudge how far to drag and snap-back too
-    // often. Halve the commit threshold for that specific case so
-    // shorter intentional drags land cleanly.
+    // Stacked-mode day-direction swipes have no preview, so users
+    // misjudge distance and snap-back too often. Halve threshold.
     var distFrac = SWIPE_DIST_FRAC;
     var stackedDayDirection = viewState.showAllDays &&
       _swipeState.scope === 'day';
     if (stackedDayDirection) distFrac = 0.2;
-    var commit = (Math.abs(dx) > vp * distFrac) ||
-                 (Math.abs(_swipeState.vel) > SWIPE_VEL_PX_MS && dt < 600);
+    // Commit conditions:
+    //  - distance: |dx| > distFrac * viewport (40% or 20% stacked).
+    //  - velocity: |vel| > threshold AND vel direction matches dx
+    //    direction AND |dx| > minimum (60px). Without the direction
+    //    match, a quick reverse-flick (right then back to start)
+    //    would accidentally commit because of the final flick's
+    //    velocity. Without the minimum dx, tiny accidental flicks
+    //    on touchdown would commit.
+    var distCommit = Math.abs(dx) > vp * distFrac;
+    var velAligned = dx !== 0 &&
+      Math.sign(_swipeState.vel) === Math.sign(dx);
+    var velCommit = velAligned &&
+      Math.abs(_swipeState.vel) > SWIPE_VEL_PX_MS &&
+      dt < 600 &&
+      Math.abs(dx) > 60;
+    var commit = distCommit || velCommit;
     if (!commit) { _swipeCancel(); return; }
     var dir = dx < 0 ? -1 : 1;
     if (_swipeState.scope === 'day') {
@@ -13469,14 +13498,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var t = e.touches[0];
     var vw = window.innerWidth || 360;
     if (t.clientX < SWIPE_EDGE_PREEMPT || t.clientX > vw - SWIPE_EDGE_PREEMPT) {
-      // Only preempt for touches inside swipeable surfaces — don't
-      // disable tap-to-focus / tap-to-stop-scroll for header buttons.
-      var inSurface = e.target.closest && (
-        e.target.closest('#settings-view') ||
-        e.target.closest('.day') ||
-        e.target.closest('#all-week-heading')
+      // PreventDefault on edge touches UNLESS the target is clickable
+      // (button, link, etc.) — in which case the click event chain
+      // would be broken. This blocks the browser's back/forward
+      // edge-swipe across the whole document, including the brand
+      // header, while keeping tap-to-click working on header buttons.
+      var clickable = e.target.closest && e.target.closest(
+        'button, a, input, select, textarea, [role="button"], ' +
+        '[role="tab"], [data-tab], [data-toggle-all-days], ' +
+        '[data-toggle-search]'
       );
-      if (inSurface) {
+      if (!clickable) {
         try { e.preventDefault(); } catch (_) {}
       }
     }
@@ -13802,6 +13834,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   window.addEventListener('resize', function () {
     if (viewState.showAllDays) syncDayHeadingHeight();
   });
+  // ----- History trap ---------------------------------------------
+  // Push a placeholder history entry so the browser's back-gesture
+  // has somewhere to land WITHIN this page. On popstate (back button
+  // / edge-swipe consumed), repush so the user stays here. Net
+  // effect: the back gesture animation may briefly engage but
+  // returns nowhere. Combined with overscroll-behavior-x: none and
+  // touchstart preventDefault, this should suppress the visible
+  // "swipe-to-go-back" preview entirely.
+  try {
+    history.pushState({ swipeTrap: true }, '');
+    window.addEventListener('popstate', function (e) {
+      // Repush so back gesture has another entry to consume next time.
+      try { history.pushState({ swipeTrap: true }, ''); } catch (_) {}
+    });
+  } catch (_) {}
 })();
 
 </script>
