@@ -12175,8 +12175,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (!_SWIPELOG) return;
     try {
       if (data === undefined) console.log('[swipe] ' + label);
-      else console.log('[swipe] ' + label, data);
-    } catch (_) {}
+      // JSON.stringify so the line copies as flat text in DevTools.
+      else console.log('[swipe] ' + label + ' ' + JSON.stringify(data));
+    } catch (_) {
+      try { console.log('[swipe] ' + label, data); } catch (__) {}
+    }
+  }
+  function _elInfo(el) {
+    if (!el) return null;
+    var r = null;
+    try { r = el.getBoundingClientRect(); } catch (_) {}
+    var cs = null;
+    try { cs = window.getComputedStyle(el); } catch (_) {}
+    return {
+      cls: el.className || '',
+      inT: el.style.transform || '',
+      inP: el.style.position || '',
+      inTop: el.style.top || '',
+      inMinH: el.style.minHeight || '',
+      hidden: !!el.hidden,
+      compT: cs ? cs.transform : null,
+      compPos: cs ? cs.position : null,
+      compZ: cs ? cs.zIndex : null,
+      compDisp: cs ? cs.display : null,
+      compVis: cs ? cs.visibility : null,
+      rect: r ? {
+        x: Math.round(r.left), y: Math.round(r.top),
+        w: Math.round(r.width), h: Math.round(r.height),
+      } : null,
+    };
   }
   function _snapshotScene(tag) {
     if (!_SWIPELOG) return;
@@ -12185,25 +12212,26 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var st = document.getElementById('scene-stack');
     var bn = document.getElementById('all-week-heading');
     var dayHidden = 0, dayTotal = 0;
+    var dayStates = [];
     var dps = document.querySelectorAll('.day');
     for (var i = 0; i < dps.length; i++) {
       dayTotal++;
       if (dps[i].hidden) dayHidden++;
+      else dayStates.push(dps[i].id);
     }
-    _swipeLog('[' + tag + '] state', {
+    _swipeLog(tag, {
       activeTab: activeTab,
       showAllDays: viewState.showAllDays,
-      mainCls: m ? m.className : null,
-      mainTransform: m ? (m.style.transform || '') : null,
-      mainPosition: m ? (m.style.position || '') : null,
-      mainHidden: m ? m.hidden : null,
-      settingsCls: s ? s.className : null,
-      settingsTransform: s ? (s.style.transform || '') : null,
-      settingsPosition: s ? (s.style.position || '') : null,
-      settingsHidden: s ? s.hidden : null,
-      sceneStackMinH: st ? (st.style.minHeight || '') : null,
-      bannerHidden: bn ? bn.hidden : null,
-      dayHiddenCnt: dayHidden + '/' + dayTotal,
+      lastFeedView: viewState.lastFeedView,
+      lastDayTab: lastDayTab,
+      scrollY: Math.round(window.scrollY || 0),
+      windowW: window.innerWidth,
+      main: _elInfo(m),
+      settings: _elInfo(s),
+      sceneStack: _elInfo(st),
+      banner: _elInfo(bn),
+      daysVisible: dayHidden + '/' + dayTotal + ' hidden' +
+        (dayStates.length ? ' [visible: ' + dayStates.join(',') + ']' : ''),
     });
   }
 
@@ -12805,17 +12833,35 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var mainEl = document.getElementById('main');
     var settingsEl = document.getElementById('settings-view');
     var banner = document.getElementById('all-week-heading');
+    var sceneStack = document.getElementById('scene-stack');
     var leaks = [];
-    if (mainEl) {
-      if (mainEl.style.transform) leaks.push('main.transform=' + mainEl.style.transform);
-      if (mainEl.style.position) leaks.push('main.position=' + mainEl.style.position);
-      if (mainEl.classList.contains('swipe-scene')) leaks.push('main has swipe-scene class');
+    function checkInline(el, name) {
+      if (!el) return;
+      if (el.style.transform) leaks.push(name + '.style.transform=' + el.style.transform);
+      if (el.style.position) leaks.push(name + '.style.position=' + el.style.position);
+      if (el.style.top) leaks.push(name + '.style.top=' + el.style.top);
+      if (el.style.minHeight) leaks.push(name + '.style.minHeight=' + el.style.minHeight);
+      if (el.classList.contains('swipe-scene')) leaks.push(name + ' has swipe-scene class');
+      if (el.classList.contains('swipe-preview')) leaks.push(name + ' has swipe-preview class');
+      if (el.classList.contains('subtabs-unsticky')) leaks.push(name + ' has subtabs-unsticky class');
     }
-    if (settingsEl) {
-      if (settingsEl.style.transform) leaks.push('settings.transform=' + settingsEl.style.transform);
-      if (settingsEl.style.position) leaks.push('settings.position=' + settingsEl.style.position);
-      if (settingsEl.classList.contains('swipe-scene')) leaks.push('settings has swipe-scene class');
-    }
+    checkInline(mainEl, 'main');
+    checkInline(settingsEl, 'settings');
+    checkInline(sceneStack, 'sceneStack');
+    // Also check computed styles — catches "should be relative but is absolute".
+    try {
+      var mCs = mainEl && window.getComputedStyle(mainEl);
+      if (mCs && mCs.position === 'absolute') leaks.push('main.computed.position=absolute');
+      if (mCs && mCs.transform && mCs.transform !== 'none') {
+        leaks.push('main.computed.transform=' + mCs.transform);
+      }
+      var sCs = settingsEl && window.getComputedStyle(settingsEl);
+      if (sCs && sCs.position === 'absolute') leaks.push('settings.computed.position=absolute');
+      if (sCs && sCs.transform && sCs.transform !== 'none') {
+        leaks.push('settings.computed.transform=' + sCs.transform);
+      }
+    } catch (_) {}
+    // Expected DOM hidden state.
     var expectedSettingsHidden = activeTab !== 'settings';
     if (settingsEl && !!settingsEl.hidden !== expectedSettingsHidden) {
       leaks.push('settings.hidden=' + settingsEl.hidden +
@@ -12826,12 +12872,30 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       leaks.push('banner.hidden=' + banner.hidden +
         ' expected ' + expectedBannerHidden);
     }
+    // Day panel visibility — settings should hide all; stacked should
+    // show all; single-day should show only the active day.
+    var dps = document.querySelectorAll('.day');
+    var stuckVisible = [];
+    for (var i = 0; i < dps.length; i++) {
+      var p = dps[i];
+      var shouldBeHidden;
+      if (activeTab === 'settings') shouldBeHidden = true;
+      else if (viewState.showAllDays) shouldBeHidden = false;
+      else shouldBeHidden = (p.id !== 'day-' + activeTab);
+      if (!!p.hidden !== shouldBeHidden) {
+        stuckVisible.push(p.id + ' hidden=' + p.hidden + ' expected ' + shouldBeHidden);
+      }
+    }
+    if (stuckVisible.length) {
+      leaks.push('day-panel mismatch: ' + stuckVisible.join('; '));
+    }
     if (leaks.length) {
       try {
-        console.warn('[swipe] settled-state LEAK after ' + tag, leaks);
+        console.warn('[swipe] settled-state LEAK after ' + tag + ' ' +
+          JSON.stringify(leaks));
       } catch (_) {}
     } else {
-      _swipeLog('[' + tag + '] settled clean');
+      _swipeLog(tag + ':settled-clean');
     }
   }
   // _resetSwipeArtifacts — single comprehensive cleanup. Clears every
