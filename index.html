@@ -3739,6 +3739,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 (function () {
   'use strict';
 
+  // ----- Debug overlay (Eruda) -----------------------------------
+  // Load with ?debug=1 in the URL to mount an on-screen console
+  // overlay. Useful on mobile where DevTools isn't available.
+  // Lives at the very top so it boots before any of our own JS, so
+  // errors during init are captured.
+  try {
+    if (/[?&]debug=1\b/.test(location.search)) {
+      var es = document.createElement('script');
+      es.src = 'https://cdn.jsdelivr.net/npm/eruda';
+      es.onload = function () { try { window.eruda.init(); } catch (_) {} };
+      document.head.appendChild(es);
+    }
+  } catch (_) {}
+
   // ============================================================
   //  Data + active profile
   // ============================================================
