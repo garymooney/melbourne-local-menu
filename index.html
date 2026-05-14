@@ -3740,12 +3740,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   'use strict';
 
   // ----- Debug overlay (Eruda) -----------------------------------
-  // Load with ?debug=1 in the URL to mount an on-screen console
-  // overlay. Useful on mobile where DevTools isn't available.
+  // Load with ?debug=1 OR ?swipelog=1 in the URL to mount an on-screen
+  // console overlay. Useful on mobile where DevTools isn't available.
   // Lives at the very top so it boots before any of our own JS, so
-  // errors during init are captured.
+  // errors during init are captured. swipelog=1 implies debug=1 so the
+  // user only needs one query string to see the swipe state trace.
   try {
-    if (/[?&]debug=1\b/.test(location.search)) {
+    if (/[?&](debug|swipelog)=1\b/.test(location.search)) {
       var es = document.createElement('script');
       es.src = 'https://cdn.jsdelivr.net/npm/eruda';
       es.onload = function () { try { window.eruda.init(); } catch (_) {} };
@@ -12162,6 +12163,49 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   window.addEventListener('scroll', function () {
     _lastScrollAt = performance.now();
   }, { passive: true });
+  // ----- Diagnostics ----------------------------------------------
+  // Enabled by `?swipelog=1` in the URL. Mirror every state transition
+  // to the console so user-reported "stuck halfway" reports can be
+  // diagnosed without a repro session.
+  var _SWIPELOG = false;
+  try {
+    _SWIPELOG = /[?&]swipelog=1\b/.test(window.location.search);
+  } catch (_) {}
+  function _swipeLog(label, data) {
+    if (!_SWIPELOG) return;
+    try {
+      if (data === undefined) console.log('[swipe] ' + label);
+      else console.log('[swipe] ' + label, data);
+    } catch (_) {}
+  }
+  function _snapshotScene(tag) {
+    if (!_SWIPELOG) return;
+    var m = document.getElementById('main');
+    var s = document.getElementById('settings-view');
+    var st = document.getElementById('scene-stack');
+    var bn = document.getElementById('all-week-heading');
+    var dayHidden = 0, dayTotal = 0;
+    var dps = document.querySelectorAll('.day');
+    for (var i = 0; i < dps.length; i++) {
+      dayTotal++;
+      if (dps[i].hidden) dayHidden++;
+    }
+    _swipeLog('[' + tag + '] state', {
+      activeTab: activeTab,
+      showAllDays: viewState.showAllDays,
+      mainCls: m ? m.className : null,
+      mainTransform: m ? (m.style.transform || '') : null,
+      mainPosition: m ? (m.style.position || '') : null,
+      mainHidden: m ? m.hidden : null,
+      settingsCls: s ? s.className : null,
+      settingsTransform: s ? (s.style.transform || '') : null,
+      settingsPosition: s ? (s.style.position || '') : null,
+      settingsHidden: s ? s.hidden : null,
+      sceneStackMinH: st ? (st.style.minHeight || '') : null,
+      bannerHidden: bn ? bn.hidden : null,
+      dayHiddenCnt: dayHidden + '/' + dayTotal,
+    });
+  }
 
   function _swipeLadderForDay() {
     // [Mon..Sun, all-week, settings]. Day slugs read from the DOM
@@ -12458,8 +12502,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var sceneStack = document.getElementById('scene-stack');
     var mainEl = document.getElementById('main');
     var settingsEl = document.getElementById('settings-view');
-    if (!sceneStack || !mainEl || !settingsEl) return false;
+    if (!sceneStack || !mainEl || !settingsEl) {
+      _swipeLog('setup:abort-missing-elements', {
+        sceneStack: !!sceneStack, mainEl: !!mainEl, settingsEl: !!settingsEl,
+      });
+      return false;
+    }
     var vw = window.innerWidth || 360;
+    _swipeLog('setup:enter', {
+      direction: state.sceneDirection, vw: vw,
+      activeTab: activeTab, showAllDays: viewState.showAllDays,
+    });
+    _snapshotScene('setup:pre');
     // Day-to-day preview leaves `state.prevPanel`/`state.nextPanel`
     // pointing at .day siblings; explicit null here so the
     // previewArmed branch in _swipeMove can't claim the move when
@@ -12503,6 +12557,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (weekPillBtn) {
         weekPillBtn.setAttribute('aria-pressed', 'false');
       }
+      // Match the staged Watchlist panel: flip the subtab pill so the
+      // strip's highlight tracks the visible content during the slide.
+      // (silent equivalent — no lastSubtab write since we're staging.)
+      _flipSubtabAriaImmediate('watchlist');
     } else {
       // Settings → previous feed. Sanity-check showAllDays against
       // banner presence; if either signals desync, bail to plain
@@ -12556,6 +12614,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     state.sceneMain = mainEl;
     state.sceneSettings = settingsEl;
     state.viewportWidth = vw;
+    _snapshotScene('setup:post');
     return true;
   }
   // syntheticSettingsExit — animated tap-out-of-Settings. Mirrors
@@ -12708,6 +12767,73 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
   }
 
+  // Unconditional cleanup of the scene-stack elements + subtab strip.
+  // Runs BEFORE the class-query loop in _resetSwipeArtifacts so even if
+  // a stale cleanup elsewhere stripped the `.swipe-scene` class without
+  // resetting inline styles (rare, but possible if a future code path
+  // forgets), mainEl/settingsEl/sceneStack are guaranteed to land in
+  // a clean state. Idempotent.
+  function _forceClearSceneStyles() {
+    var mainEl = document.getElementById('main');
+    var settingsEl = document.getElementById('settings-view');
+    var sceneStack = document.getElementById('scene-stack');
+    var subStrip = document.querySelector('.settings-subtabs');
+    var targets = [mainEl, settingsEl];
+    for (var i = 0; i < targets.length; i++) {
+      var el = targets[i];
+      if (!el) continue;
+      el.classList.remove('swipe-preview', 'swipe-scene', 'subtabs-unsticky');
+      el.style.transform = '';
+      el.style.transition = '';
+      el.style.top = '';
+      el.style.position = '';
+      el.style.left = '';
+      el.style.right = '';
+      el.style.width = '';
+      el.style.minHeight = '';
+    }
+    if (subStrip) subStrip.classList.remove('subtabs-unsticky');
+    if (sceneStack) sceneStack.style.minHeight = '';
+  }
+  // Settled-state assertion — runs at the very end of _resetSwipeArtifacts.
+  // Compares actual DOM state against what _syncDomToActiveTab SHOULD have
+  // produced for the current activeTab + viewState. Any mismatch indicates
+  // a leak the cleanup didn't catch; the warning makes it obvious in the
+  // console without needing a step-through.
+  function _assertSettledState(tag) {
+    if (!_SWIPELOG) return;
+    var mainEl = document.getElementById('main');
+    var settingsEl = document.getElementById('settings-view');
+    var banner = document.getElementById('all-week-heading');
+    var leaks = [];
+    if (mainEl) {
+      if (mainEl.style.transform) leaks.push('main.transform=' + mainEl.style.transform);
+      if (mainEl.style.position) leaks.push('main.position=' + mainEl.style.position);
+      if (mainEl.classList.contains('swipe-scene')) leaks.push('main has swipe-scene class');
+    }
+    if (settingsEl) {
+      if (settingsEl.style.transform) leaks.push('settings.transform=' + settingsEl.style.transform);
+      if (settingsEl.style.position) leaks.push('settings.position=' + settingsEl.style.position);
+      if (settingsEl.classList.contains('swipe-scene')) leaks.push('settings has swipe-scene class');
+    }
+    var expectedSettingsHidden = activeTab !== 'settings';
+    if (settingsEl && !!settingsEl.hidden !== expectedSettingsHidden) {
+      leaks.push('settings.hidden=' + settingsEl.hidden +
+        ' expected ' + expectedSettingsHidden);
+    }
+    var expectedBannerHidden = activeTab === 'settings' || !viewState.showAllDays;
+    if (banner && !!banner.hidden !== expectedBannerHidden) {
+      leaks.push('banner.hidden=' + banner.hidden +
+        ' expected ' + expectedBannerHidden);
+    }
+    if (leaks.length) {
+      try {
+        console.warn('[swipe] settled-state LEAK after ' + tag, leaks);
+      } catch (_) {}
+    } else {
+      _swipeLog('[' + tag + '] settled clean');
+    }
+  }
   // _resetSwipeArtifacts — single comprehensive cleanup. Clears every
   // inline style + class the swipe machinery applies, restores the
   // subtab-panel snapshot if one was captured, and flushes any
@@ -12717,7 +12843,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var s = _swipeState;
     _swipeState = null;  // null BEFORE flush so renderAll's gate
                          // doesn't re-queue into a now-dead state.
-    // Wipe classes + inline styles on every swipe-targeted element.
+    _swipeLog('reset:entry', {
+      hadState: !!s,
+      sceneDir: s && s.sceneDirection,
+      scope: s && s.scope,
+      pendingRender: !!(s && s.pendingRender),
+      pendingAnim: !!(s && s.pendingAnimatedRender),
+      pendingSettings: !!(s && s.pendingSettingsRerender),
+      hadSnapshot: !!(s && s.subtabPanelSnapshot),
+    });
+    // First: unconditional clear of scene-stack elements. Even if a
+    // prior cleanup stripped the .swipe-scene class without clearing
+    // inline styles, this catches it.
+    _forceClearSceneStyles();
+    // Then: wipe classes + inline styles on every other swipe-targeted
+    // element (.day, .settings-panel siblings during preview).
     var els = document.querySelectorAll('.swipe-preview, .swipe-scene');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
@@ -12730,24 +12870,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       el.style.right = '';
       el.style.width = '';
     }
-    // Also clear the subtab strip's swipe override (it's not a child
-    // of any .swipe-scene since it lives inside #settings-view).
-    var subStrip = document.querySelector('.settings-subtabs');
-    if (subStrip) subStrip.classList.remove('subtabs-unsticky');
     // Clear .swipe-hidden from any in-flow siblings (settings-storage-
     // note) we hid during the swipe.
     var hidden = document.querySelectorAll('.swipe-hidden');
     for (var hI = 0; hI < hidden.length; hI++) {
       hidden[hI].classList.remove('swipe-hidden');
     }
-    // Clear inline min-height we may have set on #main, #settings-view.
-    var mainEl = document.getElementById('main');
-    if (mainEl) mainEl.style.minHeight = '';
-    var settingsEl = document.getElementById('settings-view');
-    if (settingsEl) settingsEl.style.minHeight = '';
-    // Clear .scene-stack inline min-height.
-    var sceneStack = document.getElementById('scene-stack');
-    if (sceneStack) sceneStack.style.minHeight = '';
     // Restore subtab panel snapshot if captured (cross-scene cancel).
     // Query by slug so we tolerate any DOM rebuild that happened
     // between stage and restore.
@@ -12780,12 +12908,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // every cleanup path so the day-panels-stuck-revealed bug can't
     // occur — even if a caller forgets the explicit sync.
     _syncDomToActiveTab();
+    _assertSettledState('reset');
+    _snapshotScene('reset:exit');
   }
   // _resetSwipeArtifactsLight — class/style cleanup only. Used by the
   // synthetic backward scene-swipe (syntheticSettingsExit) which
   // animates without ever populating _swipeState, so there's no
   // snapshot / deferred render to flush.
   function _resetSwipeArtifactsLight() {
+    _forceClearSceneStyles();
     var els = document.querySelectorAll('.swipe-preview, .swipe-scene');
     for (var i = 0; i < els.length; i++) {
       var el = els[i];
@@ -12798,18 +12929,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       el.style.right = '';
       el.style.width = '';
     }
-    var subStrip = document.querySelector('.settings-subtabs');
-    if (subStrip) subStrip.classList.remove('subtabs-unsticky');
     var hidden = document.querySelectorAll('.swipe-hidden');
     for (var hI = 0; hI < hidden.length; hI++) {
       hidden[hI].classList.remove('swipe-hidden');
     }
-    var mainEl = document.getElementById('main');
-    if (mainEl) mainEl.style.minHeight = '';
-    var settingsEl = document.getElementById('settings-view');
-    if (settingsEl) settingsEl.style.minHeight = '';
-    var sceneStack = document.getElementById('scene-stack');
-    if (sceneStack) sceneStack.style.minHeight = '';
+    _syncDomToActiveTab();
+    _assertSettledState('reset-light');
   }
 
   function _swipeCleanupPreviewState(s) {
@@ -12893,6 +13018,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (_swipeState.scope === 'scene' && _swipeState.previewArmed) {
       var sc = _swipeState;
       var vwS = sc.viewportWidth || (window.innerWidth || 360);
+      _swipeLog('cancel:scene', {
+        direction: sc.sceneDirection, vw: vwS, dur: dur,
+      });
       if (sc.sceneDirection === 'forward') {
         sc.sceneMain.style.transition = 'transform ' + dur + 'ms ease-out';
         sc.sceneMain.style.transform = 'translateX(0)';
@@ -12966,6 +13094,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (s.scope === 'scene' && s.previewArmed) {
       var sceneDir = s.sceneDirection;
       var target = s.sceneTarget;
+      _swipeLog('commit:scene', {
+        direction: sceneDir, target: target, dur: dur,
+      });
       // Dismiss any active toast on scene change — toast context is
       // anchored to the scene the user is leaving; carrying it across
       // an animated transition makes Undo's behaviour seem broken.
@@ -13199,6 +13330,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // still-animating first one's cleanup.
     if (_swipeState != null) return;
     if (performance.now() < _swipeCooldownUntil) return;
+    // Safety net: if any scene-stack inline styles are still around
+    // (a prior cleanup somehow failed), force-clear before starting
+    // a new gesture. _syncDomToActiveTab restores the canonical DOM
+    // state. This makes the next swipe self-healing — the user
+    // doesn't have to refresh to escape a stuck-halfway state.
+    var mEl = document.getElementById('main');
+    var sEl = document.getElementById('settings-view');
+    var stale = (mEl && (mEl.style.transform || mEl.style.position ||
+        mEl.classList.contains('swipe-scene'))) ||
+        (sEl && (sEl.style.transform || sEl.style.position ||
+        sEl.classList.contains('swipe-scene')));
+    if (stale) {
+      _swipeLog('start:stale-detected — force-cleaning before new swipe');
+      _forceClearSceneStyles();
+      _syncDomToActiveTab();
+    }
     // If any watchlist row is currently in edit mode, the whole page
     // is swipe-locked regardless of where the touch landed — the user
     // is mid-typing and a swipe-out would dump the input.
@@ -13254,6 +13401,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       cancelled: false,
       inMomentum: inMomentum,
     };
+    _swipeLog('start', {
+      scope: scope, x0: e.clientX, y0: e.clientY,
+      inMomentum: inMomentum, activeTab: activeTab,
+      showAllDays: viewState.showAllDays,
+    });
     // Safety net for iOS pointercancel not firing on some
     // interruptions: 5s max swipe duration.
     _swipeBail = setTimeout(_swipeCancel, 5000);
@@ -13293,6 +13445,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         _swipeState.idx = _swipeCurrentDayIdx(_swipeState.ladder);
         var atAllWeek = _swipeState.idx >= 0 &&
           _swipeState.ladder[_swipeState.idx].kind === 'all-week';
+        _swipeLog('arm:day', { idx: _swipeState.idx, atAllWeek: atAllWeek, dx: dx });
         if (atAllWeek && dx < 0 &&
             _swipeState.idx + 1 < _swipeState.ladder.length &&
             _swipeState.ladder[_swipeState.idx + 1].kind === 'settings') {
@@ -13300,6 +13453,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           _swipeState.sceneDirection = 'forward';
           _swipeState.nextEntry = { kind: 'settings' };
           var fwdOk = _setupSceneSwipe(_swipeState);
+          _swipeLog('arm:scene-forward', { ok: fwdOk });
           if (!fwdOk) {
             _swipeState.scope = 'day';
             _swipeState.sceneDirection = null;
@@ -13311,6 +13465,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         }
       } else {
         _swipeState.subtabStart = _swipeCurrentSubtab();
+        _swipeLog('arm:subtab', { subtabStart: _swipeState.subtabStart, dx: dx });
         // Within-Settings: dx>0 (finger right) navigates to the
         // PREVIOUS subtab. Only at the leftmost subtab (Watchlist)
         // does dx>0 exit Settings via scene swipe. dx<0 (finger left)
@@ -13319,6 +13474,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           _swipeState.scope = 'scene';
           _swipeState.sceneDirection = 'backward';
           var sceneOk = _setupSceneSwipe(_swipeState);
+          _swipeLog('arm:scene-backward', { ok: sceneOk });
           if (!sceneOk) {
             _swipeState.scope = 'subtab';
             _swipeState.sceneDirection = null;
@@ -13441,6 +13597,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // control: they see the panel position and know whether the
     // gesture will commit.
     var commit = Math.abs(dx) > vp * distFrac;
+    _swipeLog('end', {
+      dx: dx, dt: dt, vp: vp, threshold: vp * distFrac, commit: commit,
+      scope: _swipeState.scope, sceneDir: _swipeState.sceneDirection,
+    });
     if (!commit) { _swipeCancel(); return; }
     var dir = dx < 0 ? -1 : 1;
     if (_swipeState.scope === 'day') {
