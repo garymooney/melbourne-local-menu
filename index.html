@@ -12205,6 +12205,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       } : null,
     };
   }
+  // Expose a global so the user can paste `_swipeSnapshot()` into
+  // DevTools to dump the current scene state at any moment (e.g.
+  // AFTER a bug becomes visible, to see what's leaked).
+  try {
+    window._swipeSnapshot = function () { _snapshotScene('manual'); };
+  } catch (_) {}
   function _snapshotScene(tag) {
     if (!_SWIPELOG) return;
     var m = document.getElementById('main');
@@ -13675,6 +13681,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         return;
       }
       _swipeState.nextEntry = _swipeState.ladder[nextIdx];
+    } else if (_swipeState.scope === 'scene') {
+      // Scene scope is fully described by sceneDirection + sceneTarget
+      // (both set in _setupSceneSwipe). No subtab wrap-around — that
+      // logic lives strictly in the 'subtab' branch below. Falling into
+      // the subtab branch here would CLOBBER scope from 'scene' back to
+      // 'day' on the watchlist+dx>0 wrap, and _swipeCommit's scene
+      // branch (gated on scope==='scene') would then never run — leaving
+      // #main parked at position:absolute translateX(-N) with no
+      // cleanup. This was the Settings→AllWeek stuck-halfway bug.
     } else {
       var curSub = _swipeState.subtabStart;
       var sIdx = SUBTAB_LADDER.indexOf(curSub);
@@ -13686,7 +13701,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (nextSubIdx < 0) {
         // Wrap left from Watchlist → All-week (per user choice). Treat
         // as a top-level transition: animate the settings panel off,
-        // then activate All-week.
+        // then activate All-week. Only fires when scope is genuinely
+        // 'subtab' — i.e., _setupSceneSwipe didn't run (boundary case
+        // where the destination couldn't be resolved).
         _swipeState.scope = 'day';
         _swipeState.nextEntry = { kind: 'all-week' };
       } else {
