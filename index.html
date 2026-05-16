@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="format-detection" content="telephone=no, address=no, email=no, date=no">
-<title>Melbourne Local Menu - Week of 16th May 2026</title>
+<title>FlowMenu - Week of 16th May 2026</title>
 <style>
 :root {
   --accent-warm: #c4452b;
@@ -217,7 +217,9 @@ body {
   letter-spacing: var(--ls-tight);
 }
 .site-title-melbourne { color: var(--dark); }
-.site-title-localmenu { color: var(--accent-warm); margin-left: 0.3em; }
+/* "Menu" half of the FlowMenu wordmark — warm accent, no leading
+   gap so it reads as one word. */
+.site-title-localmenu { color: var(--accent-warm); }
 /* Signature asterisk glyph next to the wordmark — quiet warm accent,
    italic for the gentle flourish. Decorative only (aria-hidden). */
 .brand-asterisk {
@@ -3806,27 +3808,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 /* Heading inherits the .subcat-group-heading look set globally
    (small uppercase warm-accent + 2px bottom rule). Override layout
    so the + button sits inline next to the title rather than at the
-   row's right edge. Priority keeps the full treatment; Saved steps
-   back to a muted variant so the visual hierarchy reads
-   "Priority first, Saved is the parking lot". */
+   row's right edge. One heading per kind now ("Venues" / "Artists")
+   — watch vs saved state lives on each row's chip. */
 .watch-section__heading {
   display: flex;
   align-items: center;
   justify-content: flex-start;
   gap: 8px;
-}
-.watch-section--saved .watch-section__heading {
-  color: var(--muted);
-  border-bottom-color: color-mix(in srgb, var(--rule) 80%, transparent);
-  border-bottom-width: 1px;
-  font-weight: 600;
-  /* Slightly tighter top margin so Saved tucks under Priority's
-     visual block rather than reading as a peer section. */
-  margin-top: 0.6em;
-}
-.watch-section__icon {
-  color: var(--accent-warm);
-  font-size: 1.05em;
 }
 .watch-section-add {
   margin: 4px 0 6px;
@@ -3878,32 +3866,48 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   word-break: break-word;
   min-width: 0;
 }
-.watch-section--priority .watch-row__name { color: var(--text); }
 .watch-row__name:hover {
   text-decoration: underline;
   text-decoration-color: color-mix(in srgb, var(--accent-cool) 50%, transparent);
   text-underline-offset: 2px;
 }
-.watch-row__move {
+/* State chip — toggles the row between watching (blue) and saved
+   (grey). The label IS the state; tapping flips it. Pill-shaped to
+   read as an interactive status, not a static tag. */
+.watch-row__state {
   appearance: none;
-  background: transparent;
-  border: 1px solid color-mix(in srgb, var(--faint) 40%, transparent);
-  color: var(--muted);
   font: inherit;
-  font-size: 1.1em;
+  font-size: 0.74em;
+  font-weight: 600;
+  letter-spacing: 0.03em;
   line-height: 1;
-  width: 28px;
-  height: 28px;
+  padding: 5px 11px;
   border-radius: 999px;
   cursor: pointer;
-  display: inline-flex;
-  align-items: center;
-  justify-content: center;
+  white-space: nowrap;
+  border: 1px solid transparent;
+  transition: background 0.12s ease, color 0.12s ease,
+    border-color 0.12s ease;
 }
-.watch-row__move:hover,
-.watch-row__move:focus-visible {
+.watch-row__state--watching {
+  background: color-mix(in srgb, var(--accent-cool) 15%, transparent);
   color: var(--accent-cool);
-  border-color: var(--accent-cool);
+  border-color: color-mix(in srgb, var(--accent-cool) 45%, transparent);
+}
+.watch-row__state--watching:hover,
+.watch-row__state--watching:focus-visible {
+  background: color-mix(in srgb, var(--accent-cool) 26%, transparent);
+  outline: none;
+}
+.watch-row__state--saved {
+  background: color-mix(in srgb, var(--faint) 13%, transparent);
+  color: var(--muted);
+  border-color: color-mix(in srgb, var(--faint) 38%, transparent);
+}
+.watch-row__state--saved:hover,
+.watch-row__state--saved:focus-visible {
+  background: color-mix(in srgb, var(--faint) 22%, transparent);
+  color: var(--text);
   outline: none;
 }
 .watch-row__remove {
@@ -4189,7 +4193,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 <div class="brand-mark">
 <div class="brand-stripe" aria-hidden="true"></div>
 <div class="brand-text">
-<h1 class="site-title"><span class="site-title-melbourne">Melbourne</span><span class="site-title-localmenu">Local Menu</span><span class="brand-asterisk" aria-hidden="true">✦</span></h1>
+<h1 class="site-title"><span class="site-title-melbourne">Flow</span><span class="site-title-localmenu">Menu</span><span class="brand-asterisk" aria-hidden="true">✦</span></h1>
 <p class="site-tagline"><span class="tagline-long">What's on tonight in Melbourne's inner north</span><span class="tagline-short">Inner-north events</span></p>
 </div>
 </div>
@@ -7752,8 +7756,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // row: name (clickable to edit) + Move-to-other-bin button + ×.
   function renderWatchlistRow(kind, bin, item, idx) {
     var otherBin = bin === 'priority' ? 'saved' : 'priority';
-    var moveLabel = bin === 'priority' ? 'Move to Saved' : 'Move to Watch';
-    var moveIcon  = bin === 'priority' ? '↓' : '↑';
+    var watching = bin === 'priority';
+    var stateLabel = watching ? 'Watching' : 'Saved';
+    var stateTitle = watching
+      ? 'Watching — tap to just save'
+      : 'Saved — tap to watch';
+    // The state chip is a move button under the hood: tapping it
+    // shuttles the entry to the other bin via the existing
+    // handleWatchlistMove path, so all the auto-pin / score / undo
+    // logic stays exactly as-is. Blue = watching, grey = saved.
     return (
       '<div class="watch-row" ' +
         'data-watch-kind="' + kind + '" ' +
@@ -7762,10 +7773,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         '<button type="button" class="watch-row__name" ' +
           'data-watch-edit="' + kind + ':' + bin + ':' + idx + '" ' +
           'title="Tap to edit">' + escapeHtml(item) + '</button>' +
-        '<button type="button" class="watch-row__move" ' +
+        '<button type="button" ' +
+          'class="watch-row__state watch-row__state--' +
+            (watching ? 'watching' : 'saved') + '" ' +
           'data-watch-move="' + kind + ':' + bin + ':' + idx + ':' + otherBin + '" ' +
-          'aria-label="' + moveLabel + '" title="' + moveLabel + '">' +
-          moveIcon + '</button>' +
+          'aria-pressed="' + (watching ? 'true' : 'false') + '" ' +
+          'aria-label="' + stateLabel + ' ' + escapeHtml(item) + '. ' +
+            (watching ? 'Tap to just save.' : 'Tap to watch.') + '" ' +
+          'title="' + stateTitle + '">' +
+          stateLabel +
+        '</button>' +
         '<button type="button" class="watch-row__remove" ' +
           'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
           'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
@@ -7786,41 +7803,37 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
   }
 
-  function renderWatchlistSection(kind, bin) {
-    var items = watchlistList(kind, bin);
-    var noun = kind === 'venues' ? 'venues' : 'artists';
-    var title = (bin === 'priority' ? 'Watch ' : 'Saved ') + noun;
-    var iconHtml = bin === 'priority'
-      ? '<span class="watch-section__icon" aria-hidden="true">&#9733;</span> '
-      : '';
-    var rows = items.map(function (item, idx) {
-      return renderWatchlistRow(kind, bin, item, idx);
-    }).join('\n');
-    return (
-      '<div class="watch-section watch-section--' + bin + '" ' +
-        'data-watch-section="' + kind + ':' + bin + '">' +
-        '<h4 class="subcat-group-heading watch-section__heading">' +
-          '<span>' + iconHtml + escapeHtml(title) +
-            ' (' + items.length + ')</span>' +
-          '<button type="button" class="add-suburb-btn" ' +
-            'data-watch-section-add="' + kind + ':' + bin + '" ' +
-            'aria-expanded="false" ' +
-            'aria-label="Add to ' + escapeHtml(title) + '">+</button>' +
-        '</h4>' +
-        renderWatchlistAddInput(kind, bin) +
-        '<div class="watch-rows" ' +
-          'data-watch-rows="' + kind + ':' + bin + '">' +
-          rows +
-        '</div>' +
-      '</div>'
-    );
-  }
-
+  // One list per kind. Watched (priority) entries sort to the top,
+  // saved entries below — but it reads as a single continuous list,
+  // each row's chip flipping its own state. The add input feeds the
+  // priority bin: adding to a *watch*list implies you want to watch
+  // it, and the chip downgrades to "saved" in one tap.
   function renderWatchlistKindBlock(kind) {
+    var title = kind === 'venues' ? 'Venues' : 'Artists';
+    var noun = kind === 'venues' ? 'venue' : 'artist';
+    var prio = watchlistList(kind, 'priority');
+    var saved = watchlistList(kind, 'saved');
+    var total = prio.length + saved.length;
+    var rowsHtml = prio.map(function (item, idx) {
+      return renderWatchlistRow(kind, 'priority', item, idx);
+    }).concat(saved.map(function (item, idx) {
+      return renderWatchlistRow(kind, 'saved', item, idx);
+    })).join('\n');
     return (
       '<div class="watchlist-kind" data-watch-kind-block="' + kind + '">' +
-        renderWatchlistSection(kind, 'priority') +
-        renderWatchlistSection(kind, 'saved') +
+        '<div class="watch-section" data-watch-section="' + kind + '">' +
+          '<h4 class="subcat-group-heading watch-section__heading">' +
+            '<span>' + escapeHtml(title) + ' (' + total + ')</span>' +
+            '<button type="button" class="add-suburb-btn" ' +
+              'data-watch-section-add="' + kind + ':priority" ' +
+              'aria-expanded="false" ' +
+              'aria-label="Add a ' + noun + '">+</button>' +
+          '</h4>' +
+          renderWatchlistAddInput(kind, 'priority') +
+          '<div class="watch-rows" data-watch-rows="' + kind + ':all">' +
+            rowsHtml +
+          '</div>' +
+        '</div>' +
       '</div>'
     );
   }
@@ -8027,8 +8040,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var cur = profile[key] || [];
     if (idx < 0 || idx >= cur.length) return;
     var row = document.querySelector(
-      '[data-watch-rows="' + kind + ':' + bin + '"] ' +
-      '.watch-row[data-watch-idx="' + idx + '"]');
+      '.watchlist-kind[data-watch-kind-block="' + kind + '"] ' +
+      '.watch-row[data-watch-bin="' + bin + '"][data-watch-idx="' + idx + '"]');
     if (!row) return;
     var current = cur[idx] || '';
     // iOS Safari auto-scrolls the focused input into view above the
