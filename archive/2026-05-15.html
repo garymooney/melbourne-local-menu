@@ -5103,11 +5103,34 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return WEEKDAYS_SHORT[d.getDay()];
   }
 
+  // Surgical "Today" → "Tonight" swap at the threshold. A full
+  // renderAll() here would rebuild every day panel (rebuildDayPanels)
+  // just to change one word, discarding the DOM the user is scrolled
+  // into and snapping them to the top at 2pm. The flip only touches
+  // three text sites — today's day-tab label, today's day-eyebrow, and
+  // the week-summary today pill — every one of which reads exactly
+  // "Today" pre-flip, so an exact-text swap is precise (never matches
+  // "Tomorrow"/"Mon"/etc.). Hidden day panels still exist in the DOM,
+  // so they're patched too and read correctly once navigated to.
+  function relabelTonightInPlace() {
+    var sels = ['.day-tab .tab-weekday', '.day-eyebrow',
+                '.week-tonight-pill'];
+    for (var s = 0; s < sels.length; s++) {
+      var els = document.querySelectorAll(sels[s]);
+      for (var i = 0; i < els.length; i++) {
+        if ((els[i].textContent || '').trim() === 'Today') {
+          els[i].textContent = 'Tonight';
+        }
+      }
+    }
+  }
+
   // One-shot setTimeout that flips tonightFlipped at the threshold and
-  // re-renders so today's heading + day-tab swap from "Today" to
-  // "Tonight" exactly once per session. No-op if we're already past
-  // the threshold or if the gap exceeds 24h (cold tab left open across
-  // a day boundary — the next renderAll picks up the new "today").
+  // relabels today's day-tab + eyebrow + week pill from "Today" to
+  // "Tonight" exactly once per session, in place (no DOM rebuild — see
+  // relabelTonightInPlace). No-op if we're already past the threshold
+  // or if the gap exceeds 24h (cold tab left open across a day
+  // boundary — the next renderAll picks up the new "today").
   function scheduleTonightRelabel() {
     if (tonightFlipped) return;
     var fmt = new Intl.DateTimeFormat('en-CA', {
@@ -5126,7 +5149,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (delay <= 0 || delay > 24 * 3600 * 1000) return;
     setTimeout(function () {
       tonightFlipped = true;
-      renderAll({ preserveScores: true });
+      relabelTonightInPlace();
     }, delay);
   }
 
@@ -6463,7 +6486,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var todayIso = melbourneNowParts().iso;
     var firstIso = days[0];
     var lastIso = days[days.length - 1];
-    var dateRange = formatDayShort(firstIso) + ' — ' + formatDayShort(lastIso);
+    // Collapse the month onto the end date when the whole week sits in
+    // one month + year: "Sat 16 May — Fri 22 May" → "Sat 16 — Fri 22
+    // May". A cross-month (or cross-year) span keeps both months so it
+    // stays unambiguous ("Sat 30 May — Fri 5 Jun").
+    var _fd = new Date(firstIso + 'T12:00:00');
+    var _ld = new Date(lastIso + 'T12:00:00');
+    var _sameMonth = _fd.getFullYear() === _ld.getFullYear() &&
+      _fd.getMonth() === _ld.getMonth();
+    var dateRange =
+      WEEKDAYS_SHORT[_fd.getDay()] + ' ' + _fd.getDate() +
+      (_sameMonth ? '' : ' ' + MONTHS_SHORT[_fd.getMonth()]) +
+      ' — ' +
+      WEEKDAYS_SHORT[_ld.getDay()] + ' ' + _ld.getDate() + ' ' +
+      MONTHS_SHORT[_ld.getMonth()];
     var highlight = _pickWeekHighlight(ranking, days);
 
     var parts = [];
@@ -9141,12 +9177,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   // buildAllWeekHeading removed — the week view renders its hero from
   // renderWeekSummaryHtml directly; no separate banner element.
+  // formatDayShort removed — its only caller (the week-banner date
+  // range) now formats inline so it can collapse a same-month span.
 
-  function formatDayShort(iso) {
-    var d = new Date(iso + 'T12:00:00');
-    return WEEKDAYS_SHORT[d.getDay()] + ' ' + d.getDate() + ' ' +
-      MONTHS_SHORT[d.getMonth()];
-  }
   // syncDayHeadingHeight removed — the .day--stacked sticky-heading
   // hierarchy is gone (week view is a curated summary, not a stacked
   // feed), so the --day-heading-h CSS var has no consumer.
@@ -9241,11 +9274,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         countEl.setAttribute('aria-label', count + ' events');
       }
     }
+    // Match the Week badge to the visible day-tab strip (lastDayIsos =
+    // the 7-day display window), not every key in the wider ranked
+    // pool — same reconciliation as the renderAll path.
     var weekTotal = 0;
-    for (var k in dayCounts) {
-      if (Object.prototype.hasOwnProperty.call(dayCounts, k)) {
-        weekTotal += (dayCounts[k] || 0);
-      }
+    for (var wk = 0; wk < lastDayIsos.length; wk++) {
+      weekTotal += (dayCounts[lastDayIsos[wk]] || 0);
     }
     var weekCountEl = document.querySelector('[data-week-count]');
     if (weekCountEl) {
@@ -9316,13 +9350,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       // Week pill is "pressed" when stacked mode is active.
       weekPillBtn.setAttribute(
         'aria-pressed', viewState.showAllDays ? 'true' : 'false');
-      // Sum the per-day counts for the All-week pill's badge so it
-      // mirrors the day pills' .tab-count treatment.
+      // Sum ONLY the displayed days so the Week badge reconciles with
+      // the day-tab strip the user can see and add up. dayCounts is
+      // keyed by every day in the ranked pool (the ~10-day curation
+      // window), wider than the 7-day display strip — looping all keys
+      // over-counted the badge vs the visible tabs (and vs the Week
+      // summary view, which also only renders these `days`).
       var weekTotal = 0;
-      for (var dk in dayCounts) {
-        if (Object.prototype.hasOwnProperty.call(dayCounts, dk)) {
-          weekTotal += (dayCounts[dk] || 0);
-        }
+      for (var wdi = 0; wdi < days.length; wdi++) {
+        weekTotal += (dayCounts[days[wdi]] || 0);
       }
       var weekCountEl = weekPillBtn.querySelector('[data-week-count]');
       if (weekCountEl) {
@@ -12246,10 +12282,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var rawId = hrefVal.slice('#event-'.length);
       if (rawId) {
         try { rawId = decodeURIComponent(rawId); } catch (_) {}
+        // A multi-day run shares ONE id across every day it occurs, so
+        // a bare id is ambiguous: focusEventCard would activate an
+        // arbitrary occurrence's day and getElementById would grab the
+        // first of the duplicate cards (the earliest day, in a hidden
+        // panel → no scroll). Resolve the day from the surface the link
+        // lives on — the .day panel in day mode, or the week-summary
+        // .week-day block — so we land on the instance the user clicked.
+        var daySlugHint = null;
+        var dayPanelEl = summaryEvLink.closest &&
+          summaryEvLink.closest('.day[id^="day-"]');
+        if (dayPanelEl) {
+          daySlugHint = dayPanelEl.id.slice('day-'.length);
+        } else {
+          var wkDayEl = summaryEvLink.closest &&
+            summaryEvLink.closest('.week-day[data-day]');
+          if (wkDayEl) daySlugHint = wkDayEl.getAttribute('data-day');
+        }
         // In-page curator click: select but don't auto-pin. The event
         // is already curated in its category section and the user is
         // navigating, not bookmarking.
-        focusEventCard(rawId, { autoPin: false });
+        focusEventCard(rawId, { autoPin: false, daySlug: daySlugHint });
         // Keep the URL in sync so the link is shareable / the back
         // button still works. replaceState doesn't fire hashchange.
         if (location.hash !== hrefVal) {
@@ -13927,17 +13980,31 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       refreshPinnedSet();
       saveProfile();
     }
+    // Resolve the destination day BEFORE any render. opts.daySlug (from
+    // an in-page curator click) pins the exact occurrence the user
+    // clicked; fall back to the event's own day for hash / deep-link
+    // arrivals that carry no surface context. activate() expects a slug
+    // like "fri-1-may", not the raw ISO date — convert.
+    var targetSlug = opts.daySlug ||
+      (ev.day ? slugify(formatDayHeading(ev.day)) : null);
+    // Point activeTab at the destination BEFORE the render below.
+    // setAllWeekActive(false) and renderAll() both end with a tail
+    // activate(activeTab); if activeTab still holds a previously visited
+    // day (open Tue's occurrence → back to summary → click Wed's), that
+    // intermediate render flashes the stale day for a frame before the
+    // explicit activate(targetSlug) corrects it — same failure mode as
+    // the Week→day swipe flash fixed in _swipeActivateLadderEntry.
+    if (targetSlug) activeTab = targetSlug;
     // Re-render FIRST so the card lands in the curated list (selection
-    // bypass kicks in once SELECTED_SET contains the id). activate()
-    // expects a slug like "fri-1-may", not the raw ISO date — convert.
-    // Exit stacked mode if we're on the week summary — the day panels
-    // don't exist there, so the scroll target wouldn't be in the DOM.
+    // bypass kicks in once SELECTED_SET contains the id). Exit stacked
+    // mode if we're on the week summary — the day panels don't exist
+    // there, so the scroll target wouldn't be in the DOM.
     if (viewState.showAllDays) {
       setAllWeekActive(false);
     } else {
       renderAll();
     }
-    if (ev.day) activate(slugify(formatDayHeading(ev.day)), {});
+    if (targetSlug) activate(targetSlug, {});
     // Defer scroll so the day-panel rendering settles before measure.
     // block: 'start' aligns the card's top edge with the viewport top;
     // the .event { scroll-margin-top } CSS rule pulls it clear of the
@@ -13949,7 +14016,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // and scroll-margin-top are reliable. setTimeout is a safety net
     // for cases where rAF doesn't fire (background tabs etc).
     function _doScroll() {
-      var card = document.getElementById('event-' + idStr);
+      // Prefer the card inside the day the click came from. The same
+      // id is duplicated across every day a multi-day run occurs, so a
+      // bare getElementById returns the first (earliest, usually
+      // hidden) instance and the page never scrolls. Scope to
+      // #day-<targetSlug> so we land on the occurrence on the surface
+      // the user is looking at; fall back to the global lookup for
+      // hash deep-links that carry no day context.
+      var card = null;
+      if (targetSlug) {
+        var tPanel = document.getElementById('day-' + targetSlug);
+        if (tPanel) {
+          var cands = tPanel.querySelectorAll('[id^="event-"]');
+          for (var ci = 0; ci < cands.length; ci++) {
+            if (cands[ci].id === 'event-' + idStr) {
+              card = cands[ci];
+              break;
+            }
+          }
+        }
+      }
+      if (!card) card = document.getElementById('event-' + idStr);
       if (!card) {
         // Selection-bypass should keep the event rendering even below
         // the floor; if we land here the event's day was cropped past
