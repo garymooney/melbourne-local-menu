@@ -12714,14 +12714,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // ============================================================
   var SWIPE_DIST_FRAC = 0.4;     // commit if |dx| > 40% of viewport
   var SWIPE_VEL_PX_MS = 0.3;     // OR velocity > 0.3 px/ms
-  var SWIPE_AXIS_BIAS = 80;      // vertical wins if |dy| > |dx| + 80
-                                 // — very strong bias toward horizontal.
-                                 // Diagonals up to 1:2 (horizontal-
-                                 // to-vertical) engage the swipe.
-  var SWIPE_ACTIVATE_DIST = 4;   // arm swipe after 4px of horizontal
-                                 // — small threshold so the gesture
-                                 // engages quickly, including when
-                                 // the page is mid-momentum-scroll.
+  var SWIPE_AXIS_BIAS = 24;      // vertical wins (scroll) if
+                                 // |dy| > |dx| + 24. Was 80 — that
+                                 // leaned so hard toward horizontal a
+                                 // wobbly vertical scroll armed a
+                                 // swipe. 24 still tolerates a gentle
+                                 // diagonal swipe but lets a clearly
+                                 // vertical drag scroll.
+  var SWIPE_ACTIVATE_DIST = 12;  // arm swipe after 12px of horizontal.
+                                 // Was 4 — so eager that finger jitter
+                                 // during a scroll crossed it before
+                                 // the axis check had enough dy signal
+                                 // to tell scroll from swipe. The
+                                 // momentum-stop path below still uses
+                                 // 1px so resuming a swipe out of
+                                 // inertial scroll stays hair-trigger.
   // Edge zone where we PREEMPT the browser's back-swipe by calling
   // preventDefault on touchstart. Larger than the historical
   // exclude-zone so iOS Safari's back-gesture region is fully covered.
@@ -12985,16 +12992,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         el.hidden = false;
       }
       el.classList.add('swipe-preview');
-      // Cross-mode wraps sit at scrollY + panelTop so they appear at
-      // the viewport-y the destination will occupy post-commit (= the
-      // active panel's offsetTop in #main, which is also where the
-      // destination week-summary will land since leading siblings are
-      // the same in both modes). The source stays at its scroll
-      // position (panelTop alone), so the user doesn't see any
-      // visible snap on the page they're swiping from. Day-to-day
-      // neighbours stay at panelTop so they slide with the source as
-      // one cohesive unit.
-      el.style.top = (isCross ? (scrollYNow + panelTop) : panelTop) + 'px';
+      // EVERY neighbour — day↔day and cross-mode day↔Week — sits at
+      // scrollY + panelTop so the incoming preview shows the
+      // destination snapped to viewport-top. The source panel alone
+      // stays at panelTop (its current scroll position), so the page
+      // being swiped FROM never visibly snaps. Because the preview
+      // already sits where the destination lands post-commit, the
+      // commit-time scrollTo(0,0) in _swipeCommit is a visual no-op
+      // instead of a glitchy jump. (The redesign briefly limited this
+      // to cross-mode only, so a scrolled-down day→day swipe previewed
+      // at the old offset and snapped on commit — the regression this
+      // line restores the fix for.)
+      el.style.top = (scrollYNow + panelTop) + 'px';
       el.style.transform = 'translateX(' + (dir * vw) + 'px)';
     }
     setupNeighbour(prevPanel, -1, prevIsCross);
