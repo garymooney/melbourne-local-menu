@@ -101,16 +101,23 @@
    'auto' is what makes tab clicks snap to the top of the new view
    instead of animating up from a deep scroll position. */
 /* Horizontal page-scroll lock:
-   - overflow-x: clip clips content overflow.
    - max-width: 100vw constrains the layout box.
    - overscroll-behavior-x: none disables browser back-swipe/bounce.
+   We deliberately DON'T clip overflow-x on html/body: both are
+   ancestors of the sticky .site-header, and a clipped sticky-ancestor
+   makes mobile browsers (iOS Safari) treat that box as the header's
+   scroll container — the header then scrolls partway with content and
+   detaches, sitting partly off-screen, instead of pinning to the
+   viewport. The swipe-translated day panels (the actual horizontal-
+   overflow source) are clipped by #main's own overflow-x: clip — #main
+   is a SIBLING of .site-header, not an ancestor, so clipping there
+   contains the swipe without breaking sticky.
    Body intentionally has NO touch-action override — keeping it
    default lets per-element touch-action rules (.day etc) plus our
    touchstart/touchmove preventDefault listeners cleanly own gesture
    interpretation. A body-level touch-action: pan-y was blocking
    preventDefault from fully claiming the gesture on Chrome/Safari. */
 html, body {
-  overflow-x: clip;
   max-width: 100vw;
   overscroll-behavior-x: none;
 }
@@ -1031,7 +1038,7 @@ body {
 .week-day:first-child { border-top: none; }
 .week-day-header {
   position: sticky;
-  top: var(--header-offset, 120px);
+  top: calc(var(--header-offset, 120px) - 1px);
   z-index: 5;
   display: flex;
   align-items: baseline;
@@ -1180,7 +1187,7 @@ body {
      mid-viewport, leaving the nudge stuck at the top. z-index sits
      above category-header (5) but below site-header (10). */
   position: sticky;
-  top: var(--header-offset, 120px);
+  top: calc(var(--header-offset, 120px) - 1px);
   z-index: 6;
   box-shadow: 0 2px 8px rgba(0, 0, 0, 0.08);
 }
@@ -1364,7 +1371,15 @@ body:has(#first-visit-nudge) .day {
   padding: 10px 0 6px;
   margin: 0 0 0.6em;
   position: sticky;
-  top: var(--header-offset, 120px);
+  /* -1px tucks this bar's top edge 1px UNDER the sticky site-header
+     (opaque var(--bg), z-index 10 vs this 5). Two stacked position:
+     sticky bars otherwise jitter at the seam on mobile momentum scroll:
+     the browser snaps each bar's edge to device pixels independently
+     every frame, so the gap oscillates ±1px even with a sub-pixel
+     --header-offset. The overlap parks that wobble behind the opaque
+     header so the visible content edge stays rock-steady. Same tuck on
+     .week-day-header and the stacked day-heading (identical seam). */
+  top: calc(var(--header-offset, 120px) - 1px);
   z-index: 5;
 }
 .category-header .count {
@@ -8948,8 +8963,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   var siteHeader = document.querySelector('.site-header');
   function syncHeaderOffset() {
     if (!siteHeader) return;
+    // getBoundingClientRect().height is sub-pixel accurate;
+    // offsetHeight rounds to an integer. The category-header sticks at
+    // top: var(--header-offset) directly under this header — an integer
+    // offset that's ~0.x px off the header's true rendered height
+    // leaves a seam the browser re-resolves every frame during mobile
+    // momentum scroll (fractional scroll positions), which reads as a
+    // jiggle. The exact height makes the two edges coincide.
     document.documentElement.style.setProperty(
-      '--header-offset', siteHeader.offsetHeight + 'px'
+      '--header-offset', siteHeader.getBoundingClientRect().height + 'px'
     );
   }
 
