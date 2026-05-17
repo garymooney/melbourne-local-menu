@@ -1231,6 +1231,18 @@ body {
   font-size: 11px;
   margin-top: 1px;
 }
+/* Per-day Wildcard row — same compact two-column shape as the "also"
+   rows, set off by a dashed olive rule + olive label so it echoes the
+   day-view Wildcard's "outside the algorithm" identity without the
+   heavier card treatment. */
+.week-wildcard-row {
+  margin-top: 6px;
+  padding-top: 6px;
+  border-top: 1px dashed
+    color-mix(in srgb, var(--accent-wild) 35%, var(--rule));
+}
+.week-wildcard-cat { color: var(--accent-wild); }
+.week-wildcard-row .week-also-link:hover { color: var(--accent-wild); }
 
 .week-footer {
   padding: 24px 8px 16px;
@@ -6954,6 +6966,38 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
             );
           }
           parts.push('</div>');
+        }
+        // Per-day Wildcard — identical pick to the day view (highest
+        // under the inverted profile, the day's Top Pick excluded) so
+        // the summary and the day never disagree. Compact row in the
+        // week vocabulary, olive identity.
+        var wcTop = pickDayTopEvent(ranking[iso]);
+        var wcItem = pickDayWildcard(
+          ranking[iso], wcTop && wcTop.event ? wcTop.event.id : null);
+        if (wcItem && wcItem.event) {
+          var wev = wcItem.event;
+          var wVenue = cleanVenueDisplay(wev.venue, wev.suburb);
+          var wMeta = [];
+          if (wVenue) wMeta.push(escapeHtml(wVenue));
+          if (wev.suburb) wMeta.push(escapeHtml(wev.suburb));
+          parts.push(
+            '<div class="week-also-row week-wildcard-row">' +
+              '<span class="week-also-cat week-wildcard-cat">' +
+                '<span aria-hidden="true">&#8623;</span> Wildcard' +
+              '</span>' +
+              '<a class="week-also-link" href="#event-' +
+                escapeHtml(String(wev.id)) + '">' +
+                '<span class="week-also-name">' +
+                  escapeHtml(wev.title || '') +
+                '</span>' +
+                (wMeta.length
+                  ? '<span class="week-also-venue">' +
+                      wMeta.join(' · ') +
+                    '</span>'
+                  : '') +
+              '</a>' +
+            '</div>'
+          );
         }
         parts.push('</div>');
       } else {
