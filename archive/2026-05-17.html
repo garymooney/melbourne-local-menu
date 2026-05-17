@@ -12155,6 +12155,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // already cleared. Cheap visual-only update; no renderAll.
     clearSelectionVisuals();
 
+    // Stray browser text selection clears the moment the user changes
+    // surface. Done here — synchronously, FIRST, in the real click
+    // gesture — so it can't be missed by a downstream early-return or
+    // by activate() running deferred inside the swipe-commit timeout
+    // (the function-level calls still cover keyboard / swipe). Scoped
+    // to the nav controls so a manual select-then-copy elsewhere is
+    // left intact.
+    if (e.target && e.target.closest && e.target.closest(
+          '[data-tab], [data-toggle-all-days], [data-toggle-search],' +
+          ' .settings-subtab, [data-week-day-link]')) {
+      _clearTextSelection();
+    }
+
     // Score-chip tooltip closes on any click that lands outside a
     // chip — including pin/calendar/share/copy buttons. Runs at the
     // top so the early-returns from the action handlers below don't
