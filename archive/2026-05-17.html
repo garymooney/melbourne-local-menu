@@ -6500,26 +6500,47 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return best;
   }
 
+  // Facets that are locked: hidden from the Settings → Vibes panel
+  // (not user-tunable) AND held at their shipped tier in the Wildcard
+  // inversion. Without the inversion lock, avoid→neutral would let
+  // the Wildcard surface business-networking / religious / mainstream
+  // -sport / kids events as "something different", which they are not
+  // meant to be. Everything else (incl. the contemplative_inner /
+  // intimate_relational / experimental_unconventional /
+  // intellectual_academic depth facets) still flips.
+  var LOCKED_FACETS = {
+    business_professional: 1,
+    religious_spiritual: 1,
+    mainstream_sport: 1,
+    kids_family_elder: 1,
+  };
+
   // Tier inversion for the Wildcard. The whole point: surface what
   // you'd normally shrug at. love/like collapse to neutral (don't
   // re-reward expressed likes), avoid collapses to neutral (don't
   // penalise — but don't reward either), and neutral becomes love
   // (the "meh" topics get a love-level boost). So the highest score
   // under this profile is the best event sitting entirely outside
-  // your expressed taste.
+  // your expressed taste. Locked facets are passed through unchanged
+  // so a hard avoid stays a hard avoid.
   function _wildcardTier(t) {
     return (t == null || t === 'neutral') ? 'love' : 'neutral';
   }
   function _invertedProfile(p) {
     var inv = {};
     for (var k in p) inv[k] = p[k];          // shallow clone
-    function remap(src) {
-      var out = {};
-      if (src) for (var key in src) out[key] = _wildcardTier(src[key]);
-      return out;
+    var fSrc = p.facet_tiers || {};
+    var fOut = {};
+    for (var fkey in fSrc) {
+      fOut[fkey] = LOCKED_FACETS[fkey]
+        ? fSrc[fkey]                  // locked → keep shipped tier
+        : _wildcardTier(fSrc[fkey]);  // everything else flips
     }
-    inv.facet_tiers = remap(p.facet_tiers);
-    inv.subcategory_tiers = remap(p.subcategory_tiers);
+    inv.facet_tiers = fOut;
+    var sSrc = p.subcategory_tiers || {};
+    var sOut = {};
+    for (var skey in sSrc) sOut[skey] = _wildcardTier(sSrc[skey]);
+    inv.subcategory_tiers = sOut;
     return inv;
   }
 
@@ -8665,6 +8686,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var blurbs = profile.facet_blurbs || {};
     var rows = [];
     for (var name in blurbs) {
+      // Locked facets are intentionally not user-tunable — omit them.
+      if (LOCKED_FACETS[name]) continue;
       rows.push(renderFacetRow(name, blurbs[name]));
     }
     if (!rows.length) {
