@@ -20,6 +20,10 @@
   --card-bg: #ffffff;
   --bg: #f5efe3;
   --free-green: #3a9d3a;
+  /* Wildcard slot — earthy olive, deliberately off the warm/cool
+     brand axis so "something different" reads as outside the
+     algorithm's comfort zone. */
+  --accent-wild: #4a5d3a;
   --body-font: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
   --mono-font: 'SF Mono', Consolas, monospace;
   /* Type scale + weight ladder. Every text role across the site (brand,
@@ -71,6 +75,7 @@
     --accent-warm: #ff6b4a;
     --accent-cool: #5a9dff;
     --free-green: #5fbe5f;
+    --accent-wild: #9fb27e;
     --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 14%, var(--card-bg));
     --pinned-tint: color-mix(in srgb, #ff6b4a 8%, var(--card-bg));
     --day-heading-warm-stop: 32%;
@@ -89,6 +94,7 @@
   --accent-warm: #ff6b4a;
   --accent-cool: #5a9dff;
   --free-green: #5fbe5f;
+  --accent-wild: #9fb27e;
   --soft-warm-tint: color-mix(in srgb, var(--accent-warm) 14%, var(--card-bg));
   --pinned-tint: color-mix(in srgb, #ff6b4a 8%, var(--card-bg));
   --day-heading-warm-stop: 32%;
@@ -908,6 +914,71 @@ body {
   transition: transform 160ms ease;
 }
 .top-pick:hover .top-pick__arrow {
+  transform: translateY(-50%) translateX(2px);
+}
+
+/* .wildcard — bottom-of-day "something different" slot. Dashed box +
+   earthy olive accent set it apart from the warm Top Pick: it's
+   deliberately outside the algorithm's comfort zone. Teaser-links to
+   the event's real card (no duplicate pin/hide state). */
+.wildcard-section {
+  margin: 18px 0 22px;
+  border: 1px dashed color-mix(in srgb, var(--accent-wild) 55%, var(--rule));
+  border-radius: 6px;
+  overflow: hidden;
+}
+.wildcard-header {
+  padding: 9px 14px 8px;
+  background: color-mix(in srgb, var(--accent-wild) 8%, var(--card-bg));
+  border-bottom: 1px solid
+    color-mix(in srgb, var(--accent-wild) 22%, var(--rule));
+  font-size: var(--fs-1);
+  font-style: italic;
+  letter-spacing: var(--ls-normal);
+  color: var(--accent-wild);
+}
+.wildcard-header__icon { font-style: normal; margin-right: 6px; }
+.wildcard {
+  position: relative;
+  display: block;
+  padding: 12px 38px 13px 16px;
+  background: var(--card-bg);
+  color: var(--text);
+  text-decoration: none;
+}
+.wildcard:hover {
+  background: color-mix(in srgb, var(--accent-wild) 6%, var(--card-bg));
+}
+.wildcard__title {
+  font-size: var(--fs-4);
+  font-weight: var(--fw-bold);
+  letter-spacing: -0.005em;
+  line-height: 1.2;
+  color: var(--text);
+}
+.wildcard__meta {
+  margin-top: 4px;
+  font-size: var(--fs-2);
+  color: var(--muted);
+}
+.wildcard__sep { margin: 0 0.4em; color: var(--faint); opacity: 0.8; }
+.wildcard__blurb {
+  margin-top: 6px;
+  font-size: var(--fs-2);
+  font-style: italic;
+  color: var(--muted);
+  line-height: 1.4;
+}
+.wildcard__arrow {
+  position: absolute;
+  top: 50%;
+  right: 16px;
+  transform: translateY(-50%);
+  font-size: 22px;
+  color: var(--accent-wild);
+  transition: transform 160ms ease;
+}
+.wildcard:hover .wildcard__arrow {
   transform: translateY(-50%) translateX(2px);
 }
 
@@ -6428,6 +6499,58 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     return best;
   }
 
+  // Wildcard — the "anti-profile" pick: the event FURTHEST from the
+  // user's taste (lowest personalised score) that still clears a
+  // quality floor (special_event, or a context line with real
+  // substance) so it reads as genuinely off-taste, not just dull.
+  // Pinned / selected items are excluded — those are things the user
+  // explicitly wants, the opposite of "something different" — as is
+  // the day's Top Pick so the two slots never collide. Scans the
+  // expanded tail too: that's where the low-score candidates live.
+  function pickDayWildcard(byCatMap, excludeId) {
+    if (!byCatMap) return null;
+    var exId = excludeId != null ? String(excludeId) : null;
+    var pick = null;
+    for (var ck in byCatMap) {
+      var block = byCatMap[ck];
+      if (!block || !block.length) continue;
+      for (var bi = 0; bi < block.length; bi++) {
+        var it = block[bi];
+        var ev = it && it.event;
+        if (!ev) continue;
+        if (exId != null && String(ev.id) === exId) continue;
+        if (it.selected) continue;
+        if (typeof PINNED_SET !== 'undefined' && PINNED_SET &&
+            PINNED_SET.has(String(ev.id))) continue;
+        if (eventIsSoldOut(ev)) continue;
+        var special = (ev.rules_fired || []).indexOf('special_event') >= 0;
+        var ctx = (ev.context_line || '').trim();
+        if (!special && ctx.length < 30) continue;
+        var sc = it.score || 0;
+        if (!pick) {
+          pick = { it: it, sc: sc, special: special, ctxLen: ctx.length };
+          continue;
+        }
+        // Lowest score wins. Ties break toward the more distinctive
+        // pick (special, then a meatier context line, then a stable
+        // id) so the slot doesn't flicker between equal-score events.
+        if (sc < pick.sc - 1e-9) {
+          pick = { it: it, sc: sc, special: special, ctxLen: ctx.length };
+        } else if (Math.abs(sc - pick.sc) <= 1e-9) {
+          var better =
+            (special && !pick.special) ||
+            (special === pick.special && ctx.length > pick.ctxLen) ||
+            (special === pick.special && ctx.length === pick.ctxLen &&
+              String(ev.id) < String(pick.it.event.id));
+          if (better) {
+            pick = { it: it, sc: sc, special: special, ctxLen: ctx.length };
+          }
+        }
+      }
+    }
+    return pick ? pick.it : null;
+  }
+
   // ============================================================
   //  Week summary view — replaces the older stacked all-week feed.
   //
@@ -6837,6 +6960,56 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
   }
 
+  // Wildcard slot — bottom of the day, after every category. A
+  // dashed-border box flagged "↯ Something different" that links down
+  // to the picked event's real card (teaser, not a duplicate card —
+  // same no-duplicate-pin/hide-state rule as the Top Pick teaser; the
+  // reference mockup drew a full card but a second card would collide
+  // on the #event-<id> anchor + pin state). '' when the day has no
+  // off-taste candidate that clears the quality floor.
+  function renderWildcardHtml(byCatMap) {
+    var top = pickDayTopEvent(byCatMap);
+    var topId = top && top.event ? top.event.id : null;
+    var wc = pickDayWildcard(byCatMap, topId);
+    if (!wc || !wc.event) return '';
+    var ev = wc.event;
+    var metaParts = [];
+    var wcVenue = cleanVenueDisplay(ev.venue, ev.suburb);
+    if (wcVenue) metaParts.push(escapeHtml(wcVenue));
+    if (ev.suburb) metaParts.push(escapeHtml(ev.suburb));
+    if (ev.time_display) {
+      metaParts.push(escapeHtml(shortenTimeDisplay(ev.time_display)));
+    }
+    var metaHtml = metaParts.length
+      ? '<div class="wildcard__meta">' +
+        metaParts.join(
+          '<span class="wildcard__sep" aria-hidden="true">·</span>') +
+        '</div>'
+      : '';
+    var blurb = (ev.context_line || '').trim();
+    var blurbHtml = blurb
+      ? '<div class="wildcard__blurb">' + escapeHtml(blurb) + '</div>'
+      : '';
+    return (
+      '<div class="wildcard-section">' +
+        '<div class="wildcard-header">' +
+          '<span class="wildcard-header__icon" aria-hidden="true">' +
+            '&#8623;</span>' +
+          'Something different' +
+        '</div>' +
+        '<a class="wildcard" href="#event-' + escapeHtml(String(ev.id)) +
+        '" aria-label="Something different: ' + escapeHtml(ev.title) +
+          '. Jump to event card.">' +
+          '<div class="wildcard__title">' + escapeHtml(ev.title) +
+            '</div>' +
+          metaHtml +
+          blurbHtml +
+          '<span class="wildcard__arrow" aria-hidden="true">&rarr;</span>' +
+        '</a>' +
+      '</div>\n'
+    );
+  }
+
   function renderDayHtml(dayIso, byCatMap, profile, nextDayTop) {
     byCatMap = byCatMap || {};
     var heading = formatDayHeading(dayIso);
@@ -6922,6 +7095,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       renderTopPickTeaserHtml(byCatMap) +
       quietHint +
       sections.join('\n') + '\n' +
+      renderWildcardHtml(byCatMap) +
       '</section>'
     );
   }
@@ -12441,7 +12615,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // here and call focusEventCard directly so every click works
     // regardless of current hash state.
     var summaryEvLink = e.target.closest &&
-      e.target.closest('.week-summary a[href^="#event-"], .top-pick[href^="#event-"]');
+      e.target.closest('.week-summary a[href^="#event-"], .top-pick[href^="#event-"], .wildcard[href^="#event-"]');
     if (summaryEvLink) {
       e.preventDefault();
       var hrefVal = summaryEvLink.getAttribute('href') || '';
