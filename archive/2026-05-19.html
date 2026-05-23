@@ -5897,8 +5897,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var hcList = profile.hidden_categories || [];
     for (var hi = 0; hi < hcList.length; hi++) hiddenCats[hcList[hi]] = true;
     var searchTokens = getSearchTokens();
-    // Reset search stats before this pass; renderAll reads them after.
-    searchStats = { events: 0, days: {}, hiddenAlsoMatch: 0 };
+    // searchStats is initialised + populated by renderAll's post-build
+    // pass (it counts the rendered ranking, not the pre-filter pool),
+    // so resetting here is dead — kept as a no-op until verified safe
+    // to remove, now removed.
     for (var i = 0; i < events.length; i++) {
       var ev = events[i];
       var day = ev.day;
@@ -10078,6 +10080,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     updateSiteSubtitle(days[0] || cropIso);
 
     var dayCounts = computeDayCounts(ranking);
+    var prevDayIsos = lastDayIsos;
     lastDayIsos = days.slice();
 
     var tabsEl = document.querySelector('.day-tabs');
@@ -10086,7 +10089,31 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       // pass null as activeSlug — none of the day pills should render
       // selected when the whole-week feed is the current view.
       var renderActive = viewState.showAllDays ? null : activeTab;
-      tabsEl.innerHTML = renderTabsHtml(days, dayCounts, renderActive);
+      // Same day set as the prior render (the common case — only the
+      // 8pm rollover changes the strip): patch the .tab-count text in
+      // place instead of rebuilding the whole strip. Active/aria state
+      // is reapplied by activate() at the end of renderAll, so it
+      // doesn't depend on the rebuild. New-day-set or first render
+      // falls through to a full innerHTML rebuild.
+      var sameDays = prevDayIsos && prevDayIsos.length === days.length;
+      if (sameDays) {
+        for (var pi = 0; pi < days.length; pi++) {
+          if (prevDayIsos[pi] !== days[pi]) { sameDays = false; break; }
+        }
+      }
+      var existingTabs = sameDays ? tabsEl.querySelectorAll('.day-tab') : null;
+      if (existingTabs && existingTabs.length === days.length) {
+        for (var ti = 0; ti < existingTabs.length; ti++) {
+          var c = dayCounts[days[ti]] || 0;
+          var countEl = existingTabs[ti].querySelector('.tab-count');
+          if (countEl) {
+            countEl.textContent = String(c);
+            countEl.setAttribute('aria-label', c + ' events');
+          }
+        }
+      } else {
+        tabsEl.innerHTML = renderTabsHtml(days, dayCounts, renderActive);
+      }
     }
     // Tabs row uses flex:1 chips and doesn't overflow; no strip-edge
     // padding recompute needed after a render rebuild.
