@@ -10535,8 +10535,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var newLabel = 'Show ' + visExpanded + ' more';
       var isOpen = smBtn.getAttribute('aria-expanded') === 'true';
       smBtn.dataset.initialLabel = newLabel;
-      if (!isOpen) smBtn.textContent = newLabel;
       smBtn.classList.toggle('show-more-empty', visExpanded === 0);
+      // Auto-expand on active search when this bucket has matches — the
+      // user is hunting; making them click "Show N more" to reveal the
+      // matches buried in extras adds friction the unfiltered view
+      // doesn't need to imply. Only opens a currently-closed panel so a
+      // user who later collapses it during the same refinement chain
+      // isn't fought. When the panel was already open, just refresh
+      // the dataset.initialLabel (above) so a later collapse uses the
+      // current count.
+      if (active && visExpanded > 0 && !isOpen) {
+        smBtn.setAttribute('aria-expanded', 'true');
+        smPanel.removeAttribute('hidden');
+        smBtn.textContent = 'Show fewer';
+      } else if (!isOpen) {
+        smBtn.textContent = newLabel;
+      }
     }
     // Section visibility — collapse a category whose visible cards and
     // visible hidden-items both went to zero so the user doesn't see a
