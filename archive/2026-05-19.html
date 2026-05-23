@@ -10733,18 +10733,23 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     if (searchPanelEl) searchPanelEl.hidden = !next;
     if (next) {
-      // Defer to the next frame: focus() on an element whose parent
-      // was display:none until the line above silently no-ops in
-      // Chromium/WebKit because computed style hasn't recalced yet.
-      // rAF guarantees the unhide is in effect before the focus call.
-      // preventScroll: true so the page doesn't jump when the input
-      // is below the fold on a narrow viewport.
+      // Two competing constraints:
+      //  - focus() silently no-ops on Chromium/WebKit if the element's
+      //    parent is still computed display:none — and removing the
+      //    hidden attribute above doesn't recalc style until the next
+      //    flush, so a direct .focus() right after fails.
+      //  - iOS Safari ONLY opens the soft keyboard when .focus() runs
+      //    synchronously inside the user gesture handler. Deferring
+      //    via rAF/setTimeout breaks the gesture chain and leaves the
+      //    keyboard closed even though focus technically lands.
+      // Force a synchronous style+layout flush by reading offsetWidth,
+      // so the unhide is in effect before focus() — and stay inside
+      // the gesture so iOS still opens the keyboard. preventScroll
+      // keeps the page from jumping if the input is below the fold.
       if (searchInputEl) {
-        requestAnimationFrame(function () {
-          if (!searchInputEl) return;
-          try { searchInputEl.focus({ preventScroll: true }); }
-          catch (_) { try { searchInputEl.focus(); } catch (_) {} }
-        });
+        void searchInputEl.offsetWidth;
+        try { searchInputEl.focus({ preventScroll: true }); }
+        catch (_) { try { searchInputEl.focus(); } catch (_) {} }
       }
     } else if (searchIconBtn) {
       searchIconBtn.focus();
