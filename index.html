@@ -10297,22 +10297,33 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // render path ever replaces it.
     var live = document.getElementById('search-input');
     if (live && live !== searchInputEl) searchInputEl = live;
-    function _restoreSearchFocus() {
+    function _restoreSearchFocus(allowCaretReset) {
       if (!searchInputEl) return;
+      var didRefocus = false;
       if (document.activeElement !== searchInputEl) {
         try { searchInputEl.focus({ preventScroll: true }); }
         catch (_) { try { searchInputEl.focus(); } catch (_) {} }
+        didRefocus = true;
       }
-      if (caretStart != null && caretEnd != null) {
+      // Only touch the caret when (a) the sync post-render call (caret
+      // is exactly the user's pre-render position by construction), or
+      // (b) we just had to refocus on a later pass (blur lost the
+      // caret anyway). On a deferred pass with focus still intact, the
+      // user may have typed more characters in the meantime — yanking
+      // the caret back to the stale captured position would leave the
+      // cursor behind as new chars appear, which is exactly what was
+      // happening on busy re-renders.
+      if ((allowCaretReset || didRefocus)
+          && caretStart != null && caretEnd != null) {
         try { searchInputEl.setSelectionRange(caretStart, caretEnd); } catch (_) {}
       }
     }
-    _restoreSearchFocus();
+    _restoreSearchFocus(true);
     // _clearTextSelection runs a deferred second pass on setTimeout(0)
-    // to catch WebKit's lazy highlight-clear; rAF-defer a second focus
-    // restore so any async blur (that pass, or post-render reflow)
-    // doesn't strand the input.
-    requestAnimationFrame(_restoreSearchFocus);
+    // to catch WebKit's lazy highlight-clear; rAF-defer a focus check
+    // so any async blur doesn't strand the input. Caret reset is gated
+    // off here — see comment in _restoreSearchFocus.
+    requestAnimationFrame(function () { _restoreSearchFocus(false); });
   }
 
   function clearSearch() {
