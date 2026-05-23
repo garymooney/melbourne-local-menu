@@ -10752,6 +10752,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       void el.offsetWidth;
       try { el.focus({ preventScroll: true }); }
       catch (_) { try { el.focus(); } catch (_) {} }
+      // Programmatic .focus() lands "focused but inactive" on
+      // Chromium/WebKit — the :focus ring shows but the caret
+      // doesn't blink and keystrokes don't land until the user
+      // clicks the input. Explicitly setting a selection range
+      // engages text-entry mode. Position at end of any existing
+      // value so a returning user can append, not overwrite.
+      try {
+        var len = el.value ? el.value.length : 0;
+        el.setSelectionRange(len, len);
+      } catch (_) {}
     };
     doFocus();
     try { Promise.resolve().then(doFocus); } catch (_) {}
