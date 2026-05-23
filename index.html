@@ -4502,6 +4502,29 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (!searchQueryRaw) return [];
     return searchQueryRaw.toLowerCase().split(/\s+/).filter(Boolean);
   }
+  // The single source of truth for the search predicate. Used by
+  // buildRanking (visible-filter, hidden-disclosure-match, sold-out-
+  // match) AND by the highlight path (highlightSearch) AND by the
+  // forthcoming search-only fast render path — keeping them all in
+  // one function means a tweak to the haystack fields (e.g. dropping
+  // description_summary) can't leak the filter and the highlight out
+  // of sync. Empty `tokens` → true (no search = every event passes).
+  function _eventSearchHaystack(ev) {
+    return (
+      (ev.title || '') + ' ' +
+      (ev.venue || '') + ' ' +
+      (ev.suburb || '') + ' ' +
+      (ev.context_line || '')
+    ).toLowerCase();
+  }
+  function eventMatchesSearch(ev, tokens) {
+    if (!tokens || !tokens.length) return true;
+    var hay = _eventSearchHaystack(ev);
+    for (var i = 0; i < tokens.length; i++) {
+      if (hay.indexOf(tokens[i]) === -1) return false;
+    }
+    return true;
+  }
   // events / days: visible (curated + extras) matches.
   // hiddenAlsoMatch: distinct hidden events whose matches_search flag
   // is set — surfaced as the "N hidden also match" tail on the
@@ -5991,22 +6014,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         // ambient filter (free-only / suburb / hiddenCats /
         // dateIdeaOnly) regardless of search match — the user's
         // explicit hide trumps ambient preferences.
-        var matchesSearch = false;
-        if (searchTokens.length) {
-          var hayH = (
-            (ev.title || '') + ' ' +
-            (ev.venue || '') + ' ' +
-            (ev.suburb || '') + ' ' +
-            (ev.context_line || '')
-          ).toLowerCase();
-          matchesSearch = true;
-          for (var thi = 0; thi < searchTokens.length; thi++) {
-            if (hayH.indexOf(searchTokens[thi]) === -1) {
-              matchesSearch = false;
-              break;
-            }
-          }
-        }
+        // Search-active-AND-matches: eventMatchesSearch is true on
+        // empty tokens (no-search = trivially matches), so gate first.
+        var matchesSearch = searchTokens.length
+          ? eventMatchesSearch(ev, searchTokens)
+          : false;
         hiddenByDayCat[day][cat].push({
           event: ev,
           score: getCachedScore(ev, profile),
@@ -6027,22 +6039,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       if (eventIsSoldOut(ev) && !isUserPinned(ev) && !isUserSelected(ev)) {
         if (!hiddenByDayCat[day]) hiddenByDayCat[day] = {};
         if (!hiddenByDayCat[day][cat]) hiddenByDayCat[day][cat] = [];
-        var soMatches = false;
-        if (searchTokens.length) {
-          var haySO = (
-            (ev.title || '') + ' ' +
-            (ev.venue || '') + ' ' +
-            (ev.suburb || '') + ' ' +
-            (ev.context_line || '')
-          ).toLowerCase();
-          soMatches = true;
-          for (var soi = 0; soi < searchTokens.length; soi++) {
-            if (haySO.indexOf(searchTokens[soi]) === -1) {
-              soMatches = false;
-              break;
-            }
-          }
-        }
+        var soMatches = searchTokens.length
+          ? eventMatchesSearch(ev, searchTokens)
+          : false;
         hiddenByDayCat[day][cat].push({
           event: ev,
           score: getCachedScore(ev, profile),
@@ -6081,28 +6080,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       // Active filter-panel gestures — no bypass for pinned events.
       if (hiddenCats[cat]) continue;
       if (dateIdeaOnly && !ev.date_idea) continue;
-      if (searchTokens.length) {
-        // description_summary is dropped from the haystack — it's the
-        // longest noisiest field and was producing surprising matches
-        // (e.g. "desire" hitting "as desired" deep in a 200-word blurb).
-        // context_line is the curator-authored one-liner — concentrated
-        // signal — so it stays.
-        var hay = (
-          (ev.title || '') + ' ' +
-          (ev.venue || '') + ' ' +
-          (ev.suburb || '') + ' ' +
-          (ev.context_line || '')
-        ).toLowerCase();
-        var miss = false;
-        for (var ti = 0; ti < searchTokens.length; ti++) {
-          if (hay.indexOf(searchTokens[ti]) === -1) { miss = true; break; }
-        }
-        if (miss) continue;
-        // searchStats are populated from the rendered ranking instead
-        // (in renderAll), so the user-visible count matches what they
-        // actually see on screen — pre-curation counts can over-state
-        // matches that get dropped by the diversity / floor pass.
-      }
+      // Visible-side search filter. eventMatchesSearch returns true on
+      // empty tokens, so this is a no-op when no search is active.
+      // description_summary is intentionally OUT of the haystack —
+      // see comment on _eventSearchHaystack — to avoid surprising
+      // matches deep in 200-word blurbs ("desire" → "as desired").
+      // searchStats are populated from the rendered ranking in
+      // renderAll, not here, so visible counts reconcile with what the
+      // user actually sees after the diversity / floor pass.
+      if (!eventMatchesSearch(ev, searchTokens)) continue;
       if (!byDayCat[day]) byDayCat[day] = {};
       if (!byDayCat[day][cat]) byDayCat[day][cat] = [];
       byDayCat[day][cat].push({
