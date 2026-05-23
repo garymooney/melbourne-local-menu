@@ -9538,7 +9538,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (!tabName) return;
     var tabBtn = document.querySelector('[data-tab="' + tabName + '"]');
     if (!tabBtn) return;
-    _clearTextSelection();
+    // Clearing the stray text-selection is a surface-change affordance.
+    // When activate() is the tail of a renderAll triggered by something
+    // else (search-input keystroke, profile tweak, 8pm rollover), the
+    // user hasn't changed surface — clearing here would blur the input
+    // they're typing into. Only clear when the active tab actually
+    // moved.
+    if (tabName !== activeTab) _clearTextSelection();
 
     activeTab = tabName;
     lastDayTab = tabName;
@@ -10291,13 +10297,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // render path ever replaces it.
     var live = document.getElementById('search-input');
     if (live && live !== searchInputEl) searchInputEl = live;
-    if (searchInputEl && document.activeElement !== searchInputEl) {
-      try { searchInputEl.focus({ preventScroll: true }); }
-      catch (_) { try { searchInputEl.focus(); } catch (_) {} }
+    function _restoreSearchFocus() {
+      if (!searchInputEl) return;
+      if (document.activeElement !== searchInputEl) {
+        try { searchInputEl.focus({ preventScroll: true }); }
+        catch (_) { try { searchInputEl.focus(); } catch (_) {} }
+      }
+      if (caretStart != null && caretEnd != null) {
+        try { searchInputEl.setSelectionRange(caretStart, caretEnd); } catch (_) {}
+      }
     }
-    if (searchInputEl && caretStart != null && caretEnd != null) {
-      try { searchInputEl.setSelectionRange(caretStart, caretEnd); } catch (_) {}
-    }
+    _restoreSearchFocus();
+    // _clearTextSelection runs a deferred second pass on setTimeout(0)
+    // to catch WebKit's lazy highlight-clear; rAF-defer a second focus
+    // restore so any async blur (that pass, or post-render reflow)
+    // doesn't strand the input.
+    requestAnimationFrame(_restoreSearchFocus);
   }
 
   function clearSearch() {
