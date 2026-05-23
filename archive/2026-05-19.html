@@ -10723,6 +10723,41 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // toggleSearchPanel() flips the current state. Focus moves into the
   // search input on open and back to the icon-button on close so a
   // keyboard user is never stranded.
+  // Grabs focus on the search input — defensively. Three competing
+  // failure modes, each handled:
+  //   1) Chromium/WebKit silently no-op .focus() while the element's
+  //      parent is still computed display:none after unhiding
+  //      (style hasn't recalced yet). offsetWidth read forces a
+  //      synchronous style+layout flush, so the input is renderable
+  //      at the moment of focus().
+  //   2) iOS Safari only opens the soft keyboard when .focus() runs
+  //      synchronously inside the user-gesture handler. We always
+  //      attempt the focus right now (sync) — deferring would lose
+  //      the keyboard even though focus technically lands.
+  //   3) Something downstream of our click handler (post-click
+  //      browser handling, focus stealing from a freshly-rebuilt DOM,
+  //      etc.) can blur the input shortly after our sync attempt.
+  //      A second focus on the next microtask + animation frame
+  //      catches that. They won't open the iOS keyboard (gesture lost)
+  //      but they do reseat focus so typing lands in the input.
+  // Re-resolves searchInputEl from the DOM each call so a stale cache
+  // (e.g. after a render rebuild) doesn't strand a detached element.
+  function _focusSearchInputNow() {
+    var live = document.getElementById('search-input');
+    if (!live) return;
+    searchInputEl = live;
+    var doFocus = function () {
+      var el = document.getElementById('search-input');
+      if (!el) return;
+      void el.offsetWidth;
+      try { el.focus({ preventScroll: true }); }
+      catch (_) { try { el.focus(); } catch (_) {} }
+    };
+    doFocus();
+    try { Promise.resolve().then(doFocus); } catch (_) {}
+    try { requestAnimationFrame(doFocus); } catch (_) {}
+  }
+
   function toggleSearchPanel(force) {
     var next = (typeof force === 'boolean') ? force : !viewState.searchPanelOpen;
     if (next === viewState.searchPanelOpen) return;
@@ -10733,24 +10768,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     if (searchPanelEl) searchPanelEl.hidden = !next;
     if (next) {
-      // Two competing constraints:
-      //  - focus() silently no-ops on Chromium/WebKit if the element's
-      //    parent is still computed display:none — and removing the
-      //    hidden attribute above doesn't recalc style until the next
-      //    flush, so a direct .focus() right after fails.
-      //  - iOS Safari ONLY opens the soft keyboard when .focus() runs
-      //    synchronously inside the user gesture handler. Deferring
-      //    via rAF/setTimeout breaks the gesture chain and leaves the
-      //    keyboard closed even though focus technically lands.
-      // Force a synchronous style+layout flush by reading offsetWidth,
-      // so the unhide is in effect before focus() — and stay inside
-      // the gesture so iOS still opens the keyboard. preventScroll
-      // keeps the page from jumping if the input is below the fold.
-      if (searchInputEl) {
-        void searchInputEl.offsetWidth;
-        try { searchInputEl.focus({ preventScroll: true }); }
-        catch (_) { try { searchInputEl.focus(); } catch (_) {} }
-      }
+      _focusSearchInputNow();
     } else if (searchIconBtn) {
       searchIconBtn.focus();
     }
