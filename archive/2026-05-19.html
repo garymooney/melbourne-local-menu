@@ -518,6 +518,17 @@ body {
 .category.category-empty {
   display: none;
 }
+/* Top Pick and Wildcard teasers are curator surfaces that the render
+   path already suppresses while searchQueryRaw is set — but the
+   refinement fast path skips the render, so they linger in the DOM
+   from the last full renderAll. Hide them via the body class the
+   fast path toggles so they disappear the moment a search becomes
+   active and reappear (still in the DOM from the empty-search
+   render) once cleared. */
+body.search-active .top-pick,
+body.search-active .wildcard {
+  display: none;
+}
 
 /* Per-match highlight inside card titles / venue / suburb / context
    lines while a search query is active. Soft warm tint mirrors the
@@ -10429,6 +10440,44 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // existing cards + patches the bits of UI that read off the match
   // set (tab counts, Week pill total, active-search banner, hidden-
   // disclosure summary text, per-category empty visibility).
+  // Re-apply token highlights to a visible event card. Skipping the
+  // render means highlightSearch's output from the last full render is
+  // stale against the current tokens — without this, typing more
+  // characters would leave the marks frozen at the prior query.
+  function _rehighlightCard(card, ev, tokens) {
+    var titleEl = card.querySelector('.title-row > a.title');
+    if (titleEl) titleEl.innerHTML = highlightSearch(ev.title, tokens);
+    var venueRow = card.querySelector('.card-venue-row');
+    if (venueRow) {
+      var venueDisplay = cleanVenueDisplay(ev.venue, ev.suburb);
+      var locParts = [];
+      if (venueDisplay) locParts.push(highlightSearch(venueDisplay, tokens));
+      if (ev.suburb) locParts.push(highlightSearch(ev.suburb, tokens));
+      venueRow.innerHTML = locParts.join(
+        '<span class="card-venue-sep" aria-hidden="true">·</span>');
+    }
+    var descEl = card.querySelector('.description');
+    if (descEl) {
+      var blurb = ev.context_line || ev.description_summary;
+      if (blurb) descEl.innerHTML = highlightSearch(blurb, tokens);
+    }
+  }
+  function _rehighlightHiddenItem(hItem, ev, tokens) {
+    var nameEl = hItem.querySelector('.hidden-item__name');
+    if (nameEl) nameEl.innerHTML = highlightSearch(ev.title, tokens);
+    var metaEl = hItem.querySelector('.hidden-item__meta');
+    if (metaEl) {
+      var meta = [];
+      var hVenue = cleanVenueDisplay(ev.venue, ev.suburb);
+      if (hVenue) meta.push(highlightSearch(hVenue, tokens));
+      if (ev.suburb) meta.push(highlightSearch(ev.suburb, tokens));
+      if (ev.time_display) meta.push(escapeHtml(shortenTimeDisplay(ev.time_display)));
+      if (ev.price) meta.push(escapeHtml(ev.price));
+      metaEl.innerHTML = meta.join(
+        '<span class="hidden-item__sep" aria-hidden="true">·</span>');
+    }
+  }
+
   function applySearchToDom() {
     var tokens = getSearchTokens();
     var active = tokens.length > 0;
@@ -10437,13 +10486,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // Visible cards. Card id is "event-<id>"; resolve back to the
     // event via eventsById so the predicate sees the same fields the
     // buildRanking filter does (single source of truth = eventMatchesSearch).
+    // Re-highlight cards that stay visible so token marks track the
+    // current query — only the visible set matters; hidden cards keep
+    // stale marks (never seen until a renderAll repaints them).
     var cards = document.querySelectorAll('.day .event[id^="event-"]');
     for (var i = 0; i < cards.length; i++) {
       var card = cards[i];
       var ev = eventsById[card.id.substring(6)];
       if (!ev) { card.classList.remove('search-hidden'); continue; }
-      card.classList.toggle(
-        'search-hidden', active && !eventMatchesSearch(ev, tokens));
+      var hidden = active && !eventMatchesSearch(ev, tokens);
+      card.classList.toggle('search-hidden', hidden);
+      if (!hidden) _rehighlightCard(card, ev, tokens);
     }
     // Hidden-disclosure items. They don't have id="event-…" on the row
     // itself; find the event through the action button's data-event-id.
@@ -10452,9 +10505,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var hItem = hiddenEls[hi];
       var hBtn = hItem.querySelector('[data-event-id]');
       var hev = hBtn ? eventsById[hBtn.dataset.eventId] : null;
-      hItem.classList.toggle(
-        'search-hidden',
-        active && !!hev && !eventMatchesSearch(hev, tokens));
+      var hHidden = active && !!hev && !eventMatchesSearch(hev, tokens);
+      hItem.classList.toggle('search-hidden', hHidden);
+      if (hev && !hHidden) _rehighlightHiddenItem(hItem, hev, tokens);
     }
     // Section visibility — collapse a category whose visible cards and
     // visible hidden-items both went to zero so the user doesn't see a
