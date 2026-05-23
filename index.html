@@ -6962,6 +6962,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function _clearTextSelection() {
     function _drop() {
       try {
+        // Don't disturb a focused form field. The pre-existing comment
+        // claimed the window selection and the input caret are fully
+        // independent — that's the spec on modern engines, but on
+        // legacy WebKit / mobile Chromium the act of calling
+        // removeAllRanges / empty() while an <input> or <textarea> is
+        // the activeElement disengages the caret (focus ring stays,
+        // cursor stops blinking, typing falls through until the user
+        // clicks the input). Skipping when focus is on a form field
+        // keeps the original "clear stray highlight on surface change"
+        // intent (the only callers are nav-control clicks, where focus
+        // is on the nav control, not in a field).
+        var ae = document.activeElement;
+        if (ae && (ae.tagName === 'INPUT' || ae.tagName === 'TEXTAREA' ||
+                   ae.isContentEditable)) return;
         var sel = window.getSelection ? window.getSelection() : null;
         if (!sel) return;
         if (sel.removeAllRanges) sel.removeAllRanges();
