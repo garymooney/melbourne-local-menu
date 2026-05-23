@@ -503,6 +503,22 @@ body {
 /* ============================================================
    Search panel + active-search/filters indicators
    ============================================================ */
+/* Refinement-fast-path visibility classes. Toggled by
+   applySearchToDom() per-keystroke: a card whose haystack doesn't
+   contain every active token gets .search-hidden; a category section
+   whose visible cards + visible hidden-items both went to zero gets
+   .category-empty so the user doesn't see a header with nothing
+   under it. Live alongside the existing render-time filter — the
+   fast path narrows the DOM produced by the last full renderAll
+   instead of triggering a fresh one. */
+.event.search-hidden,
+.hidden-item.search-hidden {
+  display: none;
+}
+.category.category-empty {
+  display: none;
+}
+
 /* Per-match highlight inside card titles / venue / suburb / context
    lines while a search query is active. Soft warm tint mirrors the
    brand-accent vocabulary (active day-pill, pin button) so the
@@ -10273,6 +10289,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // would override the swipe destination (e.g. switchSubtab(lastSubtab)
     // would clobber the forced Watchlist on a swipe-into-Settings).
     if (!opts._suppressTailActivate) activate(target, {});
+    // Sync the refinement-fast-path's reference query. The DOM now
+    // reflects buildRanking under the current searchQueryRaw, so the
+    // next per-character onSearchInput can refinement-check against it.
+    lastRenderedSearchQuery = searchQueryRaw;
   }
 
   // mergeRenderOpts — coalesce opts when a deferred renderAll
@@ -10378,16 +10398,154 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     updateFiltersIndicator();
   }
 
+  // Refinement detection: the new query narrows (or equals) the prior
+  // rendered match set when every old token still appears as a
+  // substring of some new token — i.e., typing more chars onto an
+  // existing token, or appending a whole new token. In that case the
+  // current DOM already contains everything the new query could
+  // possibly match (its events are a superset), so we can skip the
+  // ~50-150ms full renderAll and just toggle .search-hidden on cards
+  // that no longer match. Backspace, deletion, or a totally different
+  // query fails the check → fall back to renderAll, which re-runs
+  // buildRanking with the new filter and rebuilds the DOM.
+  var lastRenderedSearchQuery = '';
+  function isSearchRefinement(newQ, oldQ) {
+    if (!oldQ) return true;
+    var oldToks = oldQ.toLowerCase().split(/\s+/).filter(Boolean);
+    var newToks = newQ.toLowerCase().split(/\s+/).filter(Boolean);
+    for (var i = 0; i < oldToks.length; i++) {
+      var found = false;
+      for (var j = 0; j < newToks.length; j++) {
+        if (newToks[j].indexOf(oldToks[i]) !== -1) { found = true; break; }
+      }
+      if (!found) return false;
+    }
+    return true;
+  }
+
+  // Search-only fast path. Runs on every per-character search keystroke
+  // when the new query refines the last rendered one — no renderAll,
+  // no buildRanking, no DOM rebuild. Just toggles .search-hidden on
+  // existing cards + patches the bits of UI that read off the match
+  // set (tab counts, Week pill total, active-search banner, hidden-
+  // disclosure summary text, per-category empty visibility).
+  function applySearchToDom() {
+    var tokens = getSearchTokens();
+    var active = tokens.length > 0;
+    document.body.classList.toggle('search-active', active);
+
+    // Visible cards. Card id is "event-<id>"; resolve back to the
+    // event via eventsById so the predicate sees the same fields the
+    // buildRanking filter does (single source of truth = eventMatchesSearch).
+    var cards = document.querySelectorAll('.day .event[id^="event-"]');
+    for (var i = 0; i < cards.length; i++) {
+      var card = cards[i];
+      var ev = eventsById[card.id.substring(6)];
+      if (!ev) { card.classList.remove('search-hidden'); continue; }
+      card.classList.toggle(
+        'search-hidden', active && !eventMatchesSearch(ev, tokens));
+    }
+    // Hidden-disclosure items. They don't have id="event-…" on the row
+    // itself; find the event through the action button's data-event-id.
+    var hiddenEls = document.querySelectorAll('.day .hidden-item');
+    for (var hi = 0; hi < hiddenEls.length; hi++) {
+      var hItem = hiddenEls[hi];
+      var hBtn = hItem.querySelector('[data-event-id]');
+      var hev = hBtn ? eventsById[hBtn.dataset.eventId] : null;
+      hItem.classList.toggle(
+        'search-hidden',
+        active && !!hev && !eventMatchesSearch(hev, tokens));
+    }
+    // Section visibility — collapse a category whose visible cards and
+    // visible hidden-items both went to zero so the user doesn't see a
+    // header with nothing under it.
+    var sections = document.querySelectorAll('.day .category');
+    for (var si = 0; si < sections.length; si++) {
+      var sec = sections[si];
+      var any = sec.querySelector(
+        '.event:not(.search-hidden), .hidden-item:not(.search-hidden)');
+      sec.classList.toggle('category-empty', !any);
+    }
+    // Per-day visible count for tab strip + Week pill total.
+    var dayPanels = document.querySelectorAll('.day[data-day-iso]');
+    var visByDay = {};
+    for (var di = 0; di < dayPanels.length; di++) {
+      var dayEl = dayPanels[di];
+      var iso = dayEl.dataset.dayIso;
+      var visList = dayEl.querySelectorAll(
+        '.event:not(.search-hidden):not(.user-hidden)');
+      visByDay[iso] = visList.length;
+    }
+    var tabs = document.querySelectorAll('.day-tabs .day-tab');
+    var weekTotal = 0;
+    for (var ti = 0; ti < tabs.length && ti < lastDayIsos.length; ti++) {
+      var isoT = lastDayIsos[ti];
+      var c = visByDay[isoT] || 0;
+      weekTotal += c;
+      var countEl = tabs[ti].querySelector('.tab-count');
+      if (countEl) {
+        countEl.textContent = String(c);
+        countEl.setAttribute('aria-label', c + ' events');
+      }
+    }
+    var weekCountEl = document.querySelector('[data-week-count]');
+    if (weekCountEl) {
+      weekCountEl.textContent = String(weekTotal);
+      weekCountEl.setAttribute('aria-label', weekTotal + ' events this week');
+    }
+    // Hidden-disclosure summary text — mirrors renderCategoryHtml's
+    // render-time format. Aria-label on the summary stays as-rendered
+    // (total hidden count) — slightly out of sync with the visible
+    // text during search, but both readings are correct (one is total,
+    // one is filtered).
+    var discs = document.querySelectorAll('.hidden-disclosure');
+    for (var dI = 0; dI < discs.length; dI++) {
+      var disc = discs[dI];
+      var allHidden = disc.querySelectorAll('.hidden-item').length;
+      var visHidden = disc.querySelectorAll('.hidden-item:not(.search-hidden)').length;
+      var summary = disc.querySelector('summary');
+      if (summary) {
+        summary.textContent = active
+          ? visHidden + ' hidden matching your search'
+          : allHidden + ' hidden';
+      }
+    }
+    // Rebuild searchStats from DOM so the active-search banner says
+    // what the user actually sees on screen, not what buildRanking
+    // computed at the last full render.
+    searchStats = { events: weekTotal, days: {}, hiddenAlsoMatch: 0 };
+    if (active) {
+      for (var k in visByDay) if (visByDay[k] > 0) searchStats.days[k] = true;
+      searchStats.hiddenAlsoMatch = document.querySelectorAll(
+        '.hidden-disclosure .hidden-item:not(.search-hidden)').length;
+    }
+    updateActiveSearchIndicator(lastDayIsos);
+  }
+
   function onSearchInput() {
     if (!searchInputEl) return;
-    searchQueryRaw = searchInputEl.value || '';
+    var newQuery = searchInputEl.value || '';
+    searchQueryRaw = newQuery;
     if (searchClearBtn) searchClearBtn.hidden = !searchQueryRaw;
     // renderAll's tail activate() runs _clearTextSelection() and
     // reflows the header — between them, focus drops off the search
     // input on every keystroke. Save the caret, rebuild, restore.
     var caretStart = null, caretEnd = null;
     try { caretStart = searchInputEl.selectionStart; caretEnd = searchInputEl.selectionEnd; } catch (_) {}
-    renderAll({ preserveScores: true });
+
+    // Fast path — applies for the common "typing more characters"
+    // case in day mode. Stacked/week-summary mode has a different DOM
+    // (.week-day blocks, not .day → .event) so it always goes through
+    // renderAll. Non-refinement queries (backspace, cleared, different)
+    // also need renderAll to re-run buildRanking with the new filter.
+    if (!viewState.showAllDays
+        && isSearchRefinement(newQuery, lastRenderedSearchQuery)) {
+      applySearchToDom();
+      lastRenderedSearchQuery = newQuery;
+    } else {
+      renderAll({ preserveScores: true });
+      // lastRenderedSearchQuery is bumped at the tail of renderAll.
+    }
     // The static page template owns #search-input so the element ref
     // is normally stable, but re-acquire defensively in case any
     // render path ever replaces it.
