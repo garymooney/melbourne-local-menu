@@ -10728,7 +10728,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     if (searchPanelEl) searchPanelEl.hidden = !next;
     if (next) {
-      if (searchInputEl) searchInputEl.focus();
+      // Defer to the next frame: focus() on an element whose parent
+      // was display:none until the line above silently no-ops in
+      // Chromium/WebKit because computed style hasn't recalced yet.
+      // rAF guarantees the unhide is in effect before the focus call.
+      // preventScroll: true so the page doesn't jump when the input
+      // is below the fold on a narrow viewport.
+      if (searchInputEl) {
+        requestAnimationFrame(function () {
+          if (!searchInputEl) return;
+          try { searchInputEl.focus({ preventScroll: true }); }
+          catch (_) { try { searchInputEl.focus(); } catch (_) {} }
+        });
+      }
     } else if (searchIconBtn) {
       searchIconBtn.focus();
     }
