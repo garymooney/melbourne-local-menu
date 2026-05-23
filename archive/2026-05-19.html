@@ -10312,7 +10312,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // the teaser-hide CSS rule. Idempotent on a fresh DOM (toggles are
     // no-ops when classes are already correct). Required because a
     // settings tweak mid-search routes through plain renderAll, which
-    // would otherwise rebuild show-mores back to closed.
+    // would otherwise rebuild show-mores back to closed. ALWAYS sync
+    // body.search-active even when the helper doesn't run — clearing
+    // the search reaches this tail with no work to do, but the body
+    // class set by an earlier fast path needs to come off or the
+    // teaser-hide CSS keeps Top Pick / Wildcard hidden.
+    document.body.classList.toggle('search-active', !!searchQueryRaw);
     if (searchQueryRaw) applySearchToDom();
     // Sync the refinement-fast-path's reference query. The DOM now
     // reflects buildRanking under the current searchQueryRaw, so the
