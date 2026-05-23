@@ -10746,26 +10746,24 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var live = document.getElementById('search-input');
     if (!live) return;
     searchInputEl = live;
-    var doFocus = function () {
-      var el = document.getElementById('search-input');
-      if (!el) return;
-      void el.offsetWidth;
-      try { el.focus({ preventScroll: true }); }
-      catch (_) { try { el.focus(); } catch (_) {} }
-      // Programmatic .focus() lands "focused but inactive" on
-      // Chromium/WebKit — the :focus ring shows but the caret
-      // doesn't blink and keystrokes don't land until the user
-      // clicks the input. Explicitly setting a selection range
-      // engages text-entry mode. Position at end of any existing
-      // value so a returning user can append, not overwrite.
-      try {
-        var len = el.value ? el.value.length : 0;
-        el.setSelectionRange(len, len);
-      } catch (_) {}
-    };
-    doFocus();
-    try { Promise.resolve().then(doFocus); } catch (_) {}
-    try { requestAnimationFrame(doFocus); } catch (_) {}
+    // Single sync call inside the click-handler's user gesture. The
+    // offsetWidth read forces a style+layout flush so the parent
+    // panel is no longer computed display:none. Critically we do NOT
+    // re-attempt via microtask/rAF: each subsequent .focus() runs
+    // outside the user gesture, and a non-gesture focus on an
+    // already-focused input can DISENGAGE the caret (focus ring
+    // stays, document.activeElement stays, caret stops blinking,
+    // typing falls through) — the exact "focus ring but no cursor"
+    // symptom. setSelectionRange after focus also engages text-entry
+    // mode in case the .focus() call landed but didn't activate the
+    // caret on its own.
+    void live.offsetWidth;
+    try { live.focus({ preventScroll: true }); }
+    catch (_) { try { live.focus(); } catch (_) {} }
+    try {
+      var len = live.value ? live.value.length : 0;
+      live.setSelectionRange(len, len);
+    } catch (_) {}
   }
 
   function toggleSearchPanel(force) {
