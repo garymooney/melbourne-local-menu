@@ -7328,6 +7328,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // non-expanded curated item across the whole day. Returns '' when
   // the day has no candidate.
   function renderTopPickTeaserHtml(byCatMap) {
+    // Curator surfaces (Top Pick / Wildcard teasers) are hidden while a
+    // search is active — they're "here's what we picked for you", not
+    // search-relevant, and surfacing them above the filtered grid
+    // crowds the result the user is hunting for.
+    if (searchQueryRaw) return '';
     var top = pickDayTopEvent(byCatMap);
     if (!top || !top.event) return '';
     var ev = top.event;
@@ -7369,6 +7374,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // on the #event-<id> anchor + pin state). '' when the day has no
   // off-taste candidate that clears the quality floor.
   function renderWildcardHtml(byCatMap) {
+    // Suppressed during active search — see comment in
+    // renderTopPickTeaserHtml.
+    if (searchQueryRaw) return '';
     var top = pickDayTopEvent(byCatMap);
     var topId = top && top.event ? top.event.id : null;
     var wc = pickDayWildcard(byCatMap, topId);
