@@ -503,6 +503,25 @@ body {
 /* ============================================================
    Search panel + active-search/filters indicators
    ============================================================ */
+/* Per-match highlight inside card titles / venue / suburb / context
+   lines while a search query is active. Soft warm tint mirrors the
+   brand-accent vocabulary (active day-pill, pin button) so the
+   highlight reads as part of the design rather than a browser default
+   <mark> yellow. Bumped opacity in dark mode for legibility. */
+.search-hl {
+  background: color-mix(in srgb, var(--accent-warm) 22%, transparent);
+  color: inherit;
+  border-radius: 2px;
+  padding: 0 1px;
+}
+@media (prefers-color-scheme: dark) {
+  :root:not([data-theme="light"]) .search-hl {
+    background: color-mix(in srgb, var(--accent-warm) 34%, transparent);
+  }
+}
+:root[data-theme="dark"] .search-hl {
+  background: color-mix(in srgb, var(--accent-warm) 34%, transparent);
+}
 /* Slim panel that drops in below the day-tabs row when the search
    icon-button is toggled open. Holds the search input, date-idea-only
    toggle, and category chips. "All days" is NOT here — that's the
@@ -4934,6 +4953,55 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       .replace(/'/g, '&#39;');
   }
 
+  // escapeHtml + highlight every active search-token match with a
+  // <mark class="search-hl"> wrapper. Token matching mirrors the
+  // buildRanking haystack: case-insensitive indexOf, per-token, all
+  // occurrences. Overlapping/adjacent matches merge so we don't emit
+  // nested marks. Escaping runs on the substring slices AFTER mark
+  // boundaries are decided, so the output stays safe HTML.
+  function highlightSearch(s, tokens) {
+    if (s == null) return '';
+    var text = String(s);
+    if (!tokens || !tokens.length) return escapeHtml(text);
+    var lo = text.toLowerCase();
+    var spans = [];
+    for (var ti = 0; ti < tokens.length; ti++) {
+      var tok = tokens[ti];
+      if (!tok) continue;
+      var tlen = tok.length;
+      var pos = 0;
+      while (pos <= lo.length - tlen) {
+        var found = lo.indexOf(tok, pos);
+        if (found < 0) break;
+        spans.push([found, found + tlen]);
+        pos = found + tlen;
+      }
+    }
+    if (!spans.length) return escapeHtml(text);
+    spans.sort(function (a, b) { return a[0] - b[0]; });
+    var merged = [[spans[0][0], spans[0][1]]];
+    for (var si = 1; si < spans.length; si++) {
+      var last = merged[merged.length - 1];
+      if (spans[si][0] <= last[1]) {
+        if (spans[si][1] > last[1]) last[1] = spans[si][1];
+      } else {
+        merged.push([spans[si][0], spans[si][1]]);
+      }
+    }
+    var out = [];
+    var cur = 0;
+    for (var mi = 0; mi < merged.length; mi++) {
+      var sStart = merged[mi][0], sEnd = merged[mi][1];
+      if (sStart > cur) out.push(escapeHtml(text.substring(cur, sStart)));
+      out.push('<mark class="search-hl">');
+      out.push(escapeHtml(text.substring(sStart, sEnd)));
+      out.push('</mark>');
+      cur = sEnd;
+    }
+    if (cur < text.length) out.push(escapeHtml(text.substring(cur)));
+    return out.join('');
+  }
+
   function slugify(s) {
     return String(s).toLowerCase()
       .replace(/[^a-z0-9]+/g, '-')
@@ -6192,10 +6260,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       '<article class="' + cls + '" ' +
       'id="event-' + escapeHtml(String(ev.id)) + '">'
     ];
+    // Active search tokens drive per-card highlighting of matching
+    // substrings. Same lowercase-token shape buildRanking uses so the
+    // highlight tracks exactly what the search predicate matched —
+    // empty array when no search is active (highlightSearch then just
+    // escapes, no marks).
+    var hlTokens = getSearchTokens();
     var cardVenue = cleanVenueDisplay(ev.venue, ev.suburb);
     var locParts = [];
-    if (cardVenue) locParts.push(escapeHtml(cardVenue));
-    if (ev.suburb) locParts.push(escapeHtml(ev.suburb));
+    if (cardVenue) locParts.push(highlightSearch(cardVenue, hlTokens));
+    if (ev.suburb) locParts.push(highlightSearch(ev.suburb, hlTokens));
     if (locParts.length) {
       parts.push('<div class="card-venue-row">' +
         locParts.join('<span class="card-venue-sep" aria-hidden="true">·</span>') +
@@ -6244,7 +6318,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     parts.push(
       '<div class="title-row">' +
         '<a class="title" href="' + escapeHtml(ev.url) + '" ' +
-        'target="_blank" rel="noopener">' + escapeHtml(ev.title) + '</a>' +
+        'target="_blank" rel="noopener">' + highlightSearch(ev.title, hlTokens) + '</a>' +
         matchMark +
         copyNameBtn +
         copyLinkBtn +
@@ -6256,7 +6330,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
     var blurb = ev.context_line || ev.description_summary;
     if (blurb) {
-      parts.push('<div class="description">' + escapeHtml(blurb) + '</div>');
+      parts.push('<div class="description">' + highlightSearch(blurb, hlTokens) + '</div>');
     }
     // DOM order: multi-day BEFORE price so the screen-reader sequence
     // (time → multi-day → price) matches the visual row order set by
@@ -6532,10 +6606,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // existing click handler still resolves the action.
   function renderHiddenItemHtml(item) {
     var ev = item.event;
+    var hlTokens = getSearchTokens();
     var meta = [];
     var hVenue = cleanVenueDisplay(ev.venue, ev.suburb);
-    if (hVenue) meta.push(escapeHtml(hVenue));
-    if (ev.suburb) meta.push(escapeHtml(ev.suburb));
+    if (hVenue) meta.push(highlightSearch(hVenue, hlTokens));
+    if (ev.suburb) meta.push(highlightSearch(ev.suburb, hlTokens));
     if (ev.time_display) meta.push(escapeHtml(shortenTimeDisplay(ev.time_display)));
     if (ev.price) meta.push(escapeHtml(ev.price));
     var metaHtml = meta.length
@@ -6544,7 +6619,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         '</div>'
       : '';
     var nameHtml = '<a class="hidden-item__name" href="' + escapeHtml(ev.url) +
-      '" target="_blank" rel="noopener">' + escapeHtml(ev.title) + '</a>';
+      '" target="_blank" rel="noopener">' + highlightSearch(ev.title, hlTokens) + '</a>';
     // Sold-out items were auto-hidden, not user-hidden — an "Unhide"
     // button would be meaningless (the sold-out rule re-hides on the
     // next render). Show a static "Sold out" tag in the action slot
