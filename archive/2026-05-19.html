@@ -518,6 +518,12 @@ body {
 .category.category-empty {
   display: none;
 }
+/* Show-more button whose expanded bucket has zero matches under the
+   active search — hide so a "Show 0 more" affordance doesn't surface
+   when the curated set still has matches but the extras don't. */
+.show-more.show-more-empty {
+  display: none;
+}
 /* Top Pick and Wildcard teasers are curator surfaces that the render
    path already suppresses while searchQueryRaw is set — but the
    refinement fast path skips the render, so they linger in the DOM
@@ -10508,6 +10514,29 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var hHidden = active && !!hev && !eventMatchesSearch(hev, tokens);
       hItem.classList.toggle('search-hidden', hHidden);
       if (hev && !hHidden) _rehighlightHiddenItem(hItem, hev, tokens);
+    }
+    // Show-more buttons — patch each "Show N more" label to reflect
+    // the *visible* (matching) count inside its expanded bucket, not
+    // the render-time total. toggleShowMore remembers the closed-state
+    // label in dataset.initialLabel; update both so a currently-open
+    // section also gets the right count when the user collapses it.
+    // Zero visible → hide the button entirely (.show-more-empty) —
+    // .category-empty doesn't catch this when curated still has
+    // matches but expanded doesn't.
+    var showMoreBtns = document.querySelectorAll('.day .category .show-more');
+    for (var sm = 0; sm < showMoreBtns.length; sm++) {
+      var smBtn = showMoreBtns[sm];
+      var smPanel = smBtn.nextElementSibling;
+      while (smPanel && !(smPanel.classList && smPanel.classList.contains('events-expanded'))) {
+        smPanel = smPanel.nextElementSibling;
+      }
+      if (!smPanel) continue;
+      var visExpanded = smPanel.querySelectorAll('.event:not(.search-hidden)').length;
+      var newLabel = 'Show ' + visExpanded + ' more';
+      var isOpen = smBtn.getAttribute('aria-expanded') === 'true';
+      smBtn.dataset.initialLabel = newLabel;
+      if (!isOpen) smBtn.textContent = newLabel;
+      smBtn.classList.toggle('show-more-empty', visExpanded === 0);
     }
     // Section visibility — collapse a category whose visible cards and
     // visible hidden-items both went to zero so the user doesn't see a
