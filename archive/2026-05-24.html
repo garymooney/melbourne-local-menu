@@ -80,10 +80,14 @@
   --s2-avoid-ink: #9A8E76;
   --s2-avoid-line: #C8BCA0;
   /* State-chip palette — tri-state semantic colours. Like is amber
-     (distinct hue from love-green, same perceived value), neutral is
-     a true mid-gray so it reads as "no opinion" instead of "blank
-     card". Avoid stays warm-red via --accent-warm. */
+     (distinct hue from love-green, same perceived value), neutral
+     is a true mid-gray so it reads as "no opinion" instead of "blank
+     card". Love/avoid get their own tokens (rather than reusing
+     --free-green / --accent-warm directly) so they can be dimmed in
+     dark mode without affecting the page-level accents. */
+  --chip-love-bg:    #3a9d3a;
   --chip-like-bg:    #c89c30;
+  --chip-avoid-bg:   #c4452b;
   --chip-neutral-bg: #d6d3cc;
   --chip-neutral-ink: #4a463f;
 }
@@ -113,7 +117,11 @@
     --s2-avoid-bg: #211D17;
     --s2-avoid-ink: #6F6655;
     --s2-avoid-line: #3A3328;
-    --chip-like-bg:    #e8b85a;
+    /* Dimmer chip palette in dark mode — the full-saturation
+       light-mode values popped too much against the warm-black bg. */
+    --chip-love-bg:    #3d7d3d;
+    --chip-like-bg:    #a8853f;
+    --chip-avoid-bg:   #b14d2c;
     --chip-neutral-bg: #3a342c;
     --chip-neutral-ink: #b5ac9b;
   }
@@ -142,7 +150,9 @@
   --s2-avoid-bg: #211D17;
   --s2-avoid-ink: #6F6655;
   --s2-avoid-line: #3A3328;
-  --chip-like-bg:    #e8b85a;
+  --chip-love-bg:    #3d7d3d;
+  --chip-like-bg:    #a8853f;
+  --chip-avoid-bg:   #b14d2c;
   --chip-neutral-bg: #3a342c;
   --chip-neutral-ink: #b5ac9b;
 }
@@ -2108,6 +2118,13 @@ body.has-banner > *:not(.deep-link-banner) {
   background: transparent;
   opacity: 0.78;
 }
+/* Pin overrides the show-more fade — a user pin is an explicit
+   commitment, so the card should read at full presence regardless
+   of where it sits in the show-more bucket. The pinned-card warm
+   tint + cool tick still come through. */
+.event.extra.pinned {
+  opacity: 1;
+}
 @media (prefers-color-scheme: dark) {
   :root:not([data-theme="light"]) .event.extra {
     border: 1px dashed rgba(255, 250, 245, 0.10);
@@ -3409,13 +3426,13 @@ body.has-banner > *:not(.deep-link-banner) {
   background: var(--chip-neutral-bg);
   color: var(--chip-neutral-ink);
 }
-.tri[aria-pressed="true"][data-value="love"]    { background: var(--free-green); color: #fff; }
+.tri[aria-pressed="true"][data-value="love"]    { background: var(--chip-love-bg); color: #fff; }
 .tri[aria-pressed="true"][data-value="like"]    { background: var(--chip-like-bg); color: #fff; }
 .tri[aria-pressed="true"][data-value="neutral"] { background: var(--chip-neutral-bg); color: var(--chip-neutral-ink); }
-.tri[aria-pressed="true"][data-value="avoid"]   { background: var(--accent-warm); color: #fff; }
-.tri[aria-pressed="true"][data-value="yes"]     { background: var(--free-green); color: #fff; }
+.tri[aria-pressed="true"][data-value="avoid"]   { background: var(--chip-avoid-bg); color: #fff; }
+.tri[aria-pressed="true"][data-value="yes"]     { background: var(--chip-love-bg); color: #fff; }
 .tri[aria-pressed="true"][data-value="curious"] { background: var(--chip-like-bg); color: #fff; }
-.tri[aria-pressed="true"][data-value="no"]      { background: var(--accent-warm); color: #fff; }
+.tri[aria-pressed="true"][data-value="no"]      { background: var(--chip-avoid-bg); color: #fff; }
 /* Rule-state values: on = active (neutral), off = inactive (faint),
    pin = active+strong (warm-accent, signals "this rule is auto-
    pinning matching events"). */
@@ -3441,7 +3458,7 @@ body.has-banner > *:not(.deep-link-banner) {
    the colour signal is consistent. avoid-soft sits between meh-gray
    and avoid-red as a mid-point. */
 .tri[aria-pressed="true"][data-tuning-color="love"] {
-  background: var(--free-green);
+  background: var(--chip-love-bg);
   color: #fff;
 }
 .tri[aria-pressed="true"][data-tuning-color="like"] {
@@ -3453,11 +3470,11 @@ body.has-banner > *:not(.deep-link-banner) {
   color: var(--chip-neutral-ink);
 }
 .tri[aria-pressed="true"][data-tuning-color="avoid-soft"] {
-  background: color-mix(in srgb, var(--accent-warm) 60%, var(--chip-neutral-bg));
+  background: color-mix(in srgb, var(--chip-avoid-bg) 60%, var(--chip-neutral-bg));
   color: #fff;
 }
 .tri[aria-pressed="true"][data-tuning-color="avoid"] {
-  background: var(--accent-warm);
+  background: var(--chip-avoid-bg);
   color: #fff;
 }
 
@@ -5290,19 +5307,20 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   font-weight: 700;
 }
 .settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="love"] {
-  background: var(--free-green);
+  background: var(--chip-love-bg);
 }
 .settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="like"] {
-  background: color-mix(in srgb, var(--free-green) 65%, var(--card-bg));
+  background: var(--chip-like-bg);
 }
 .settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="meh"] {
-  background: var(--muted);
+  background: var(--chip-neutral-bg);
+  color: var(--chip-neutral-ink);
 }
 .settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="avoid-soft"] {
-  background: color-mix(in srgb, var(--accent-warm) 60%, var(--muted));
+  background: color-mix(in srgb, var(--chip-avoid-bg) 60%, var(--chip-neutral-bg));
 }
 .settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="avoid"] {
-  background: var(--accent-warm);
+  background: var(--chip-avoid-bg);
 }
 
 /* Readout — small italic Fraunces next to the label. A middle dot
@@ -5526,9 +5544,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
    editorial cream-on-cream look but the four states are now
    distinguishable at a glance without reading the glyph. */
 .s2-chip[data-state="love"] {
-  background: var(--free-green);
+  background: var(--chip-love-bg);
   color: #fff;
-  border-color: var(--free-green);
+  border-color: var(--chip-love-bg);
 }
 .s2-chip[data-state="love"] .s2-chip__glyph {
   display: inline;
@@ -5549,16 +5567,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 }
 
 .s2-chip[data-state="avoid"] {
-  background: var(--accent-warm);
+  background: var(--chip-avoid-bg);
   color: #fff;
-  border-color: var(--accent-warm);
-  text-decoration: line-through;
-  text-decoration-thickness: 1px;
-  text-decoration-color: rgba(255, 255, 255, 0.7);
+  border-color: var(--chip-avoid-bg);
 }
 .s2-chip[data-state="avoid"] .s2-chip__glyph {
   display: inline-block;
-  text-decoration: none;
 }
 .s2-chip[data-state="avoid"] .s2-chip__glyph::before {
   content: '−';
@@ -5577,9 +5591,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
    palette: yes = green (like love), curious = soft green (like like),
    no = default neutral chip look. */
 .s2-chip--incl[data-incl-state="yes"] {
-  background: var(--free-green);
+  background: var(--chip-love-bg);
   color: #fff;
-  border-color: var(--free-green);
+  border-color: var(--chip-love-bg);
 }
 .s2-chip--incl[data-incl-state="curious"] {
   background: var(--chip-like-bg);
@@ -5587,9 +5601,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   border-color: var(--chip-like-bg);
 }
 .s2-chip--incl[data-incl-state="no"] {
-  background: var(--accent-warm);
+  background: var(--chip-avoid-bg);
   color: #fff;
-  border-color: var(--accent-warm);
+  border-color: var(--chip-avoid-bg);
 }
 
 /* ----- Facet row (Feels) -------------------------------------- */
@@ -5740,7 +5754,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 <div class="brand-stripe" aria-hidden="true"></div>
 <div class="brand-text">
 <h1 class="site-title"><span class="site-title-melbourne">Flow</span><span class="site-title-localmenu">Menu</span><span class="brand-asterisk" aria-hidden="true">✦</span></h1>
-<p class="site-tagline"><span class="tagline-long">What's on tonight in Melbourne's inner north</span><span class="tagline-short">Inner-north events</span></p>
+<p class="site-tagline"><span class="tagline-long">What's on tonight in Melbourne's inner north</span><span class="tagline-short">Melbourne's inner-north events</span></p>
 </div>
 </div>
 <div class="header-icons">
@@ -6892,14 +6906,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     }
   }
 
-  // One-shot setTimeout that flips tonightFlipped at the threshold and
-  // relabels today's day-tab + eyebrow + week pill from "Today" to
-  // "Tonight" exactly once per session, in place (no DOM rebuild — see
-  // relabelTonightInPlace). No-op if we're already past the threshold
-  // or if the gap exceeds 24h (cold tab left open across a day
-  // boundary — the next renderAll picks up the new "today").
-  function scheduleTonightRelabel() {
-    if (tonightFlipped) return;
+  // ms remaining until the next Melbourne-local clock-hour `targetHour`.
+  // Returns ms in (0, 24h]. Used by both day-boundary schedulers below.
+  function _msUntilMelbourneHour(targetHour) {
     var fmt = new Intl.DateTimeFormat('en-CA', {
       timeZone: 'Australia/Melbourne',
       hour: '2-digit', minute: '2-digit', second: '2-digit', hour12: false,
@@ -6911,12 +6920,49 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var m = parseInt(bag.minute, 10);
     var s = parseInt(bag.second, 10);
     var msSinceMidnight = ((h * 60 + m) * 60 + s) * 1000;
-    var msAtThreshold = TONIGHT_THRESHOLD_HOUR * 3600 * 1000;
-    var delay = msAtThreshold - msSinceMidnight;
-    if (delay <= 0 || delay > 24 * 3600 * 1000) return;
+    var msAtTarget = targetHour * 3600 * 1000;
+    var delay = msAtTarget - msSinceMidnight;
+    if (delay <= 0) delay += 24 * 3600 * 1000;
+    return delay;
+  }
+
+  // One-shot setTimeout that flips tonightFlipped at the 2pm threshold
+  // and relabels today's day-tab + eyebrow + week pill from "Today" to
+  // "Tonight" exactly once per session, in place (no DOM rebuild — see
+  // relabelTonightInPlace). No-op if we're already past the threshold
+  // (and still pre-5am-rollover the next day).
+  function scheduleTonightRelabel() {
+    if (tonightFlipped) return;
+    var delay = _msUntilMelbourneHour(TONIGHT_THRESHOLD_HOUR);
+    // Cap at the same-day window — don't schedule past the next 5am
+    // rollover (that scheduler will re-arm us for the day after).
+    if (delay > 24 * 3600 * 1000) return;
     setTimeout(function () {
       tonightFlipped = true;
       relabelTonightInPlace();
+    }, delay);
+  }
+
+  // One-shot setTimeout for the 5am rollover — at that moment the
+  // "today" anchor shifts to the new calendar day (sun icon moves
+  // pill, Today/Tonight label moves pill, day-eyebrow moves pill).
+  // Surgical patching across all the affected sites is fiddly, so
+  // we just kick a full renderAll — at 5am the user is rarely mid-
+  // interaction and the modest cost is fine. Re-arms scheduleTonightRelabel
+  // afterwards so the new "today" picks up its 2pm flip nine hours later.
+  function scheduleEarlyMorningRollover() {
+    var delay = _msUntilMelbourneHour(EARLY_MORNING_ROLLOVER_HOUR);
+    if (delay <= 0 || delay > 24 * 3600 * 1000) return;
+    setTimeout(function () {
+      // Recompute the tonightFlipped state from the now-current hour
+      // before the re-render so all the day-tab labels emit correctly.
+      tonightFlipped = _isTonightHour(melbourneNowParts().hour);
+      if (typeof renderAll === 'function') {
+        try { renderAll(); } catch (_) {}
+      }
+      // Re-arm both schedulers for the next cycle.
+      scheduleTonightRelabel();
+      scheduleEarlyMorningRollover();
     }, delay);
   }
 
@@ -9470,13 +9516,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     alt_lifestyle:    { label: 'Alternative lifestyle',
       hint: 'Favour alt-lifestyle events — body-based workshops, ecstatic dance, breathwork, ceremony.' },
     special_event:    { label: 'Special / rare event',
-      hint: 'Reward one-off specials, album launches, premieres, limited-run programs.' },
+      hint: 'Favour one-off specials, album launches, premieres, limited-run programs.' },
     curated_source:   { label: 'Curated source',
-      hint: 'Reward events from small, curated single-venue sources (more likely to be strong picks).' },
+      hint: 'Favour events from small, curated single-venue sources (more likely to be strong picks).' },
     date_idea:        { label: 'Date idea',
       hint: 'Love / Like: favour date-idea events; On: just show tag; Off: hide tag.' },
     free:             { label: 'Free events only',
-      hint: 'When on, hide events that cost money.' },
+      hint: 'When on, hide events that have a participation cost.' },
   };
 
   var PIN_CAPABLE_SET = {};
@@ -9603,10 +9649,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   function renderRulesPanel() {
     var defaults = defaultProfile.rule_weights || {};
-    var rows = [];
-    for (var r in defaults) {
-      rows.push(renderRuleRow(r, defaults[r]));
+    // Explicit display order — date_idea sits AFTER free events only
+    // (the simpler soft-favour rules first, then the hard filter, then
+    // the multi-state date-idea picker). Any rule that ships in
+    // defaultProfile but isn't in this list appends at the end so a
+    // new rule doesn't silently disappear if we add one server-side.
+    var preferred = ['alt_lifestyle', 'special_event',
+                     'curated_source', 'free', 'date_idea'];
+    var seen = {};
+    var ordered = [];
+    for (var i = 0; i < preferred.length; i++) {
+      if (preferred[i] in defaults) {
+        ordered.push(preferred[i]);
+        seen[preferred[i]] = true;
+      }
     }
+    for (var r in defaults) {
+      if (!seen[r]) ordered.push(r);
+    }
+    var rows = ordered.map(function (rn) {
+      return renderRuleRow(rn, defaults[rn]);
+    });
     // Age range moved out — now lives in the dedicated Identity
     // collapse (with the "Who it's for" identity facets) since it's a
     // hard demographic filter, not a soft scoring rule.
@@ -11667,8 +11730,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           name: 'identity',
           label: 'Who it’s for',
           preview: s2IdentityPreview(),
-          helper: 'Groups you belong to or want to see events for, and ' +
-            'the age band the menu should stick to.',
+          helper: 'Groups you want to see events for, and the age band ' +
+            'the menu should stick to.',
           body: renderS2IdentityBody(),
           modified: s2IdentityModified(),
           resetAction: 'reset-identity',
@@ -18379,6 +18442,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
   syncHeaderOffset();
   scheduleTonightRelabel();
+  scheduleEarlyMorningRollover();
   // (Resize re-measure of the stacked day-heading height removed
   // alongside syncDayHeadingHeight.)
   // ----- History trap ---------------------------------------------
