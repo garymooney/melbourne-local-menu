@@ -5,6 +5,9 @@
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <meta name="format-detection" content="telephone=no, address=no, email=no, date=no">
 <title>FlowMenu - Week of 24th May 2026</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:ital,opsz,wght@0,9..144,400;0,9..144,500;0,9..144,600;0,9..144,700;1,9..144,400;1,9..144,500&family=IBM+Plex+Mono:wght@400;500&family=IBM+Plex+Sans:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
 :root {
   --accent-warm: #c4452b;
@@ -60,6 +63,29 @@
      rule pick up the right stops automatically. */
   --day-heading-warm-stop: 22%;
   --day-heading-cool-stop: 22%;
+  /* Settings v2 — publication-feel typography on top of system body.
+     `--s2-serif` only applies inside the Settings modal (see
+     .settings-modal *); the rest of the site keeps system fonts. */
+  --s2-serif: 'Fraunces', Georgia, 'Times New Roman', serif;
+  --s2-sans:  'IBM Plex Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  --s2-mono:  'IBM Plex Mono', 'SF Mono', Consolas, ui-monospace, monospace;
+  /* Mockup chip palette — warm cream → brown for love/like, greyed
+     for avoid. New tokens so they can be inverted in dark mode without
+     re-styling each chip rule. */
+  --s2-love-bg:  #E8C9A5;
+  --s2-love-ink: #6B3712;
+  --s2-like-bg:  #F0E0CA;
+  --s2-like-ink: #8A4F1F;
+  --s2-avoid-bg: #E5DDCC;
+  --s2-avoid-ink: #9A8E76;
+  --s2-avoid-line: #C8BCA0;
+  /* State-chip palette — tri-state semantic colours. Like is amber
+     (distinct hue from love-green, same perceived value), neutral is
+     a true mid-gray so it reads as "no opinion" instead of "blank
+     card". Avoid stays warm-red via --accent-warm. */
+  --chip-like-bg:    #c89c30;
+  --chip-neutral-bg: #d6d3cc;
+  --chip-neutral-ink: #4a463f;
 }
 /* Auto dark mode — fires when the OS prefers dark AND the user hasn't
    explicitly chosen "light" via the Settings appearance picker. */
@@ -80,6 +106,16 @@
     --pinned-tint: color-mix(in srgb, #ff6b4a 8%, var(--card-bg));
     --day-heading-warm-stop: 32%;
     --day-heading-cool-stop: 32%;
+    --s2-love-bg:  #4A2E15;
+    --s2-love-ink: #F0C292;
+    --s2-like-bg:  #2F2418;
+    --s2-like-ink: #D4A77A;
+    --s2-avoid-bg: #211D17;
+    --s2-avoid-ink: #6F6655;
+    --s2-avoid-line: #3A3328;
+    --chip-like-bg:    #e8b85a;
+    --chip-neutral-bg: #3a342c;
+    --chip-neutral-ink: #b5ac9b;
   }
 }
 /* Manual dark override — takes effect even when the OS prefers light. */
@@ -99,6 +135,16 @@
   --pinned-tint: color-mix(in srgb, #ff6b4a 8%, var(--card-bg));
   --day-heading-warm-stop: 32%;
   --day-heading-cool-stop: 32%;
+  --s2-love-bg:  #4A2E15;
+  --s2-love-ink: #F0C292;
+  --s2-like-bg:  #2F2418;
+  --s2-like-ink: #D4A77A;
+  --s2-avoid-bg: #211D17;
+  --s2-avoid-ink: #6F6655;
+  --s2-avoid-line: #3A3328;
+  --chip-like-bg:    #e8b85a;
+  --chip-neutral-bg: #3a342c;
+  --chip-neutral-ink: #b5ac9b;
 }
 * { box-sizing: border-box; }
 /* No global smooth-scroll — every scroll path that wants smooth
@@ -801,8 +847,12 @@ body.search-active .wildcard {
   display: inline-block;
 }
 .category-chip[aria-pressed="true"] {
-  background: var(--accent-warm);
-  border-color: var(--accent-warm);
+  /* Cool-accent fill per the design convention 'warm = curation,
+     cool = user-custom' — chip pressed state is the user's own
+     filter selection, distinct from curator surfaces (TOC, pin,
+     active day chip) which carry the warm accent. */
+  background: var(--accent-cool);
+  border-color: var(--accent-cool);
   color: #fff;
 }
 .category-chip[aria-pressed="true"]::before { content: "✓"; }
@@ -1542,7 +1592,70 @@ body:has(#first-visit-nudge) .day {
 @media (prefers-reduced-motion: reduce) {
   .day-heading--flash { animation: none; }
 }
-.category { margin: 1.2em 0 1em; }
+.category {
+  margin: 1.2em 0 1em;
+  /* Smooth scroll target offset: when a .day-toc chip is tapped we
+     scrollIntoView on the section; this margin keeps the category
+     header from landing under the sticky site-header. */
+  scroll-margin-top: calc(var(--header-offset, 120px) + 8px);
+}
+
+/* Per-day table-of-contents chip strip. Sits between the day-heading
+   and the editor-note. One nav chip per category present in the day
+   (with curated-bucket count) — see renderDayTocHtml(). Visually
+   distinct from search-panel category chips (which are filter
+   toggles): cool hover tint instead of warm fill, no aria-pressed
+   state, no ✓ / ✕ glyphs. Hidden during active search because the
+   visible category list is dynamic under filtering. */
+.day-toc {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 5px;
+  margin: 8px 0 12px;
+}
+.day-toc__chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  background: transparent;
+  border: 1px solid color-mix(in srgb, var(--accent-warm) 40%, var(--rule));
+  /* Warm-accent text per the design convention 'warm = curation,
+     cool = user-custom' — the TOC is a curator-placed navigation aid
+     into curator-arranged sections. The leading ↓ glyph (::before
+     below) telegraphs 'scroll to here' so the chip reads as a
+     jump-link, not as a generic pill. */
+  color: var(--accent-warm);
+  padding: 3px 9px;
+  border-radius: 999px;
+  font-family: var(--body-font);
+  font-size: 0.82em;
+  font-weight: var(--fw-medium);
+  text-decoration: none;
+  white-space: nowrap;
+  transition: background 0.15s, color 0.15s, border-color 0.15s;
+}
+.day-toc__chip::before {
+  content: "↓";
+  font-size: 0.95em;
+  line-height: 1;
+  opacity: 0.75;
+}
+.day-toc__chip:hover {
+  background: color-mix(in srgb, var(--accent-warm) 14%, transparent);
+  border-color: color-mix(in srgb, var(--accent-warm) 70%, transparent);
+}
+.day-toc__chip:hover .day-toc__chip-label { text-decoration: underline; }
+.day-toc__chip:focus-visible {
+  outline: none;
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--accent-warm) 30%, transparent);
+}
+.day-toc__chip-count {
+  font-size: 0.85em;
+  font-weight: var(--fw-medium);
+  color: color-mix(in srgb, var(--accent-warm) 60%, var(--muted));
+  font-variant-numeric: tabular-nums;
+}
+body.search-active .day-toc { display: none; }
 /* Quiet sticky section anchor. The warm-tinted top rule lives on the
    header itself (not on .category) so it stays visible while the
    header is stuck — previously the rule scrolled away when the user
@@ -1706,26 +1819,35 @@ body:has(#first-visit-nudge) .day {
 @media (prefers-reduced-motion: reduce) {
   .panel-backdrop, .settings-modal { transition: none; }
 }
-/* Static modal header — "Settings" title on the left, close X on the
-   right. Sits above the scrollable #settings-view so both title and
-   the subtab strip stay visible while the user scrolls a long panel. */
+/* Static modal header — back arrow (left), "Settings" title, theme
+   toggle (right). Mirrors the mockup. Sits above the scrollable
+   #settings-view so the title stays visible while the user scrolls. */
 .settings-modal__header {
   display: flex;
   align-items: center;
-  justify-content: space-between;
-  padding: 14px 8px 12px 18px;
+  gap: 12px;
+  padding: 16px 14px 14px;
   border-bottom: 1px solid var(--rule);
   flex-shrink: 0;
   background: var(--bg);
 }
 .settings-modal__title {
-  font-size: 17px;
-  font-weight: var(--fw-bold);
-  letter-spacing: var(--ls-tight);
+  font-family: var(--s2-serif);
+  font-size: 22px;
+  font-weight: 500;
+  letter-spacing: -0.01em;
   margin: 0;
   color: var(--text);
+  flex: 1;
+  font-variation-settings: "SOFT" 50, "WONK" 1;
 }
-.settings-modal__close {
+.settings-modal__title em {
+  color: var(--accent-warm);
+  font-style: italic;
+  font-weight: 500;
+}
+.settings-modal__back,
+.settings-modal__theme {
   background: none;
   border: none;
   color: var(--muted);
@@ -1733,16 +1855,27 @@ body:has(#first-visit-nudge) .day {
   height: 36px;
   border-radius: 6px;
   cursor: pointer;
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: center;
   transition: background 0.15s, color 0.15s;
+  flex-shrink: 0;
+  padding: 0;
 }
-.settings-modal__close:hover {
+.settings-modal__back { margin-left: -6px; }
+.settings-modal__theme { margin-right: -6px; }
+.settings-modal__back:hover,
+.settings-modal__theme:hover {
   background: var(--soft-warm-tint);
   color: var(--text);
 }
-.settings-modal__close svg { width: 18px; height: 18px; }
+.settings-modal__back svg,
+.settings-modal__theme svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+.theme-icon[hidden] { display: none; }
 /* Static host for the subtab strip — a non-shrinking flex sibling of
    the scroll container, mirroring the header. Keeps the strip pinned
    to the top regardless of overscroll inside #settings-view. */
@@ -3249,20 +3382,46 @@ body.has-banner > *:not(.deep-link-banner) {
 }
 .tri:last-child { border-right: none; }
 .tri:hover { background: color-mix(in srgb, currentColor 8%, transparent); }
+/* Glyph that prefixes the tier label (♥/✓/−). Stays at currentColor so
+   pressed-state white inverts cleanly with the label. Margin gives a
+   small gap to the text without using a flex gap (the buttons sit in a
+   plain text flow so the glyph is just an inline prefix). */
+.tri-glyph {
+  display: inline-block;
+  margin-right: 3px;
+  font-size: 0.95em;
+  line-height: 1;
+  vertical-align: -1px;
+}
 /* Pressed-state colours route through brand vars so they stay correct
    per theme. The "Avoid" red used to be a hardcoded light-mode warm
    (#c4452b) that didn't shift in dark mode — sat next to the actual
    --accent-warm (which DOES shift) as two competing reds. */
-.tri[aria-pressed="true"][data-value="love"]  { background: var(--free-green); color: #fff; }
-.tri[aria-pressed="true"][data-value="like"]  { background: color-mix(in srgb, var(--free-green) 65%, var(--card-bg)); color: #fff; }
-.tri[aria-pressed="true"][data-value="neutral"] { background: var(--muted); color: #fff; }
-.tri[aria-pressed="true"][data-value="avoid"] { background: var(--accent-warm); color: #fff; }
-/* Inclusivity identity picker (yes/curious/no) — same palette as the
-   tier chips: yes=green (like love), curious=gray (like neutral),
-   no=orange (like avoid). */
+/* Unified tri-state palette — same colours used by the .s2-chip
+   cycling chip in Tags / Feels: love=green, like=amber, meh=gray,
+   avoid=warm-red. Inclusivity (yes/curious/no) shifts the same
+   palette one notch — yes=green, curious=amber, no=warm-red — so
+   "no" reads as rejection rather than as "no opinion". */
+/* Generic pressed-state fallback so any rule's chip value (on, off,
+   pin, etc.) renders with a visible pressed look. Specific
+   data-value rules below override with their semantic colour. */
+.tri[aria-pressed="true"] {
+  background: var(--chip-neutral-bg);
+  color: var(--chip-neutral-ink);
+}
+.tri[aria-pressed="true"][data-value="love"]    { background: var(--free-green); color: #fff; }
+.tri[aria-pressed="true"][data-value="like"]    { background: var(--chip-like-bg); color: #fff; }
+.tri[aria-pressed="true"][data-value="neutral"] { background: var(--chip-neutral-bg); color: var(--chip-neutral-ink); }
+.tri[aria-pressed="true"][data-value="avoid"]   { background: var(--accent-warm); color: #fff; }
 .tri[aria-pressed="true"][data-value="yes"]     { background: var(--free-green); color: #fff; }
-.tri[aria-pressed="true"][data-value="curious"] { background: var(--muted); color: #fff; }
+.tri[aria-pressed="true"][data-value="curious"] { background: var(--chip-like-bg); color: #fff; }
 .tri[aria-pressed="true"][data-value="no"]      { background: var(--accent-warm); color: #fff; }
+/* Rule-state values: on = active (neutral), off = inactive (faint),
+   pin = active+strong (warm-accent, signals "this rule is auto-
+   pinning matching events"). */
+.tri[aria-pressed="true"][data-value="on"]  { background: var(--chip-neutral-bg); color: var(--chip-neutral-ink); }
+.tri[aria-pressed="true"][data-value="off"] { background: var(--chip-neutral-bg); color: var(--chip-neutral-ink); opacity: 0.65; }
+.tri[aria-pressed="true"][data-value="pin"] { background: var(--accent-warm); color: #fff; }
 /* Suburb tier chips reuse .tri styling but with their own colors so
    they read as a different scale from love/like/avoid. */
 .tri[aria-pressed="true"][data-value="home"]     { background: var(--accent-warm); color: #fff; }
@@ -3278,20 +3437,23 @@ body.has-banner > *:not(.deep-link-banner) {
   background: var(--accent-warm);
   color: #fff;
 }
+/* Tuning ladder uses the same palette as the tri-state pickers so
+   the colour signal is consistent. avoid-soft sits between meh-gray
+   and avoid-red as a mid-point. */
 .tri[aria-pressed="true"][data-tuning-color="love"] {
   background: var(--free-green);
   color: #fff;
 }
 .tri[aria-pressed="true"][data-tuning-color="like"] {
-  background: color-mix(in srgb, var(--free-green) 65%, var(--card-bg));
+  background: var(--chip-like-bg);
   color: #fff;
 }
 .tri[aria-pressed="true"][data-tuning-color="meh"] {
-  background: var(--muted);
-  color: #fff;
+  background: var(--chip-neutral-bg);
+  color: var(--chip-neutral-ink);
 }
 .tri[aria-pressed="true"][data-tuning-color="avoid-soft"] {
-  background: color-mix(in srgb, var(--accent-warm) 60%, var(--muted));
+  background: color-mix(in srgb, var(--accent-warm) 60%, var(--chip-neutral-bg));
   color: #fff;
 }
 .tri[aria-pressed="true"][data-tuning-color="avoid"] {
@@ -3318,16 +3480,16 @@ body.has-banner > *:not(.deep-link-banner) {
    exploratory gesture (hover/tap to see what changed) isn't
    accidentally destructive. (Row-tint background was tried and
    dropped — the dot already reads clearly enough.) */
-.subcat-row[data-modified="true"] .subcat-name::before,
-.suburb-row[data-modified="true"] .subcat-name::before,
-.facet-row[data-modified="true"] .facet-name::before,
-.rule-row[data-modified="true"] .rule-name::before,
-.shape-row[data-modified="true"] .shape-name::before {
-  content: "● ";
+.subcat-row[data-modified="true"] .subcat-name::after,
+.suburb-row[data-modified="true"] .subcat-name::after,
+.facet-row[data-modified="true"] .facet-name::after,
+.rule-row[data-modified="true"] .rule-name::after,
+.shape-row[data-modified="true"] .shape-name::after {
+  content: " ●";
   color: var(--accent-cool);
   font-size: 0.7em;
   vertical-align: 1px;
-  margin-right: 3px;
+  margin-left: 3px;
 }
 
 /* ↺ row-reset button — always present in DOM but hidden via CSS
@@ -4414,6 +4576,1160 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   color: #2a8a3e;
 }
 
+/* ==========================================================
+   Settings v2 — single-scroll layout + Engine Room sub-view
+   ========================================================== */
+
+/* Scope the publication-feel sans + serif to the Settings modal so
+   the rest of the site keeps its system-font choice unchanged. */
+.settings-modal,
+.settings-modal #settings-view {
+  font-family: var(--s2-sans);
+}
+
+/* Always-visible section block (Watchlists, Vibe tags, Feels). */
+.s2-section {
+  padding: 18px 0 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.s2-section:first-of-type { padding-top: 8px; }
+.s2-section__label {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  margin-bottom: 14px;
+  gap: 12px;
+}
+.s2-section__name {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.s2-section__helper {
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0 0 16px;
+  font-variation-settings: "SOFT" 100;
+}
+.s2-section__reset {
+  text-transform: none;
+  letter-spacing: 0;
+  font-family: var(--mono-font);
+  font-size: 11px;
+  font-weight: 400;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--faint);
+  cursor: pointer;
+}
+.s2-section__reset:hover { color: var(--accent-warm); }
+
+/* Modified dot — small cool pill that sits beside a section label
+   when that section has any state diverging from defaults. Cool per
+   the warm-curation / cool-user-custom convention: a modification is
+   the user's own divergence from the curated default. */
+.s2-mod-dot {
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: var(--accent-cool);
+  vertical-align: 1px;
+}
+
+/* Tier-2 collapse — header + body that slides open. Open sections
+   pick up a soft warm tint + rounded card so the user reads each
+   open block as a contained unit and can't lose track of where one
+   ends and the next starts. Negative horizontal margins pull the
+   tint slightly past the modal's content padding for a true
+   edge-to-edge card feel; the bottom divider drops when open since
+   the card shape carries the boundary instead. */
+.s2-collapse {
+  border-bottom: 1px solid var(--rule);
+  transition: background 0.18s, margin 0.18s, padding 0.18s;
+}
+/* While a settings re-render is restoring open-state, kill the
+   collapse transitions so the open block doesn't visibly animate
+   from closed → open and the neighbour sections don't jump. */
+.s2-restoring .s2-collapse,
+.s2-restoring .s2-collapse__head-row,
+.s2-restoring .s2-collapse__body { transition: none !important; }
+.s2-collapse[data-open="true"] {
+  /* Open-section containment via a single stronger divider AFTER the
+     content — same role as the existing 1px hairline, just bolder so
+     the eye reads "open block ends here". Top stays as-is so opening
+     doesn't visually shove the section header around. */
+  border-bottom: 2px solid color-mix(in srgb, var(--rule) 55%, var(--text));
+  margin-bottom: 12px;
+}
+/* When a collapse is open, its header gets a subtle cool-accent
+   tint — matches the "warm = curation, cool = user-custom" palette
+   convention (an open section is the surface the user is interacting
+   with right now). Reads as calmer than the warm-cream version and
+   sits well against the page bg in both light and dark mode. */
+.s2-collapse[data-open="true"] > .s2-collapse__head-row {
+  background: color-mix(in srgb, var(--accent-cool) 7%, var(--bg));
+  margin: 0 -12px;
+  padding: 0 12px;
+  border-radius: 8px 8px 0 0;
+}
+.s2-collapse[data-open="true"] .s2-collapse__label {
+  color: var(--text);
+}
+/* Inside an open collapse, the header's hover-tint would stack on
+   top of the section tint and read as a double-wash. Clear it. */
+.s2-collapse[data-open="true"] > .s2-collapse__head-row .s2-collapse__header:hover {
+  background: transparent;
+}
+.s2-collapse__head-row {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.s2-collapse__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  padding: 13px 0;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  gap: 12px;
+  transition: background 0.12s;
+}
+.s2-collapse__header:hover {
+  background: color-mix(in srgb, var(--accent-warm) 4%, transparent);
+}
+.s2-collapse__reset-slot {
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+}
+/* Section title style — small uppercase tracked sans. Matches the
+   always-visible .s2-section__label treatment so every section header
+   in the panel reads the same way: a "category marker", typographically
+   distinct from the Fraunces setting-row labels nested inside. */
+.s2-collapse__label {
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.12em;
+  color: var(--muted);
+  flex-shrink: 0;
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+}
+.s2-collapse__preview {
+  flex: 1;
+  text-align: right;
+  font-size: 12px;
+  color: var(--faint);
+  margin-right: 4px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+.s2-collapse__chevron {
+  color: var(--faint);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.s2-collapse__chevron svg { width: 14px; height: 14px; display: block; }
+.s2-collapse[data-open="true"] .s2-collapse__chevron { transform: rotate(180deg); }
+.s2-collapse__body {
+  display: none;
+  padding: 0 0 20px;
+}
+.s2-collapse[data-open="true"] .s2-collapse__body { display: block; }
+.s2-collapse__actions { margin-top: 14px; }
+
+/* Nested subcollapse inside More tags. */
+.s2-subcollapse {
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  margin-bottom: 8px;
+  background: var(--card-bg);
+}
+.s2-subcollapse:last-child { margin-bottom: 0; }
+.s2-subcollapse__head-row {
+  display: flex;
+  align-items: center;
+  gap: 6px;
+  padding-right: 12px;
+}
+.s2-subcollapse__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex: 1;
+  min-width: 0;
+  padding: 11px 12px;
+  background: none;
+  border: none;
+  cursor: pointer;
+  text-align: left;
+  font: inherit;
+  color: inherit;
+  gap: 10px;
+}
+/* Subcollapse / Broad-style inline reset — small ↺ icon button
+   placed right after the modified dot. Always in the DOM so the
+   live updater can flip its visibility via the parent's modified
+   flag; the same flag also hides the ● dot in the title. */
+.s2-subcollapse__reset-icon {
+  background: none;
+  border: none;
+  padding: 0 0 0 6px;
+  color: var(--faint);
+  cursor: pointer;
+  font-size: 14px;
+  line-height: 1;
+  display: inline-block;
+  vertical-align: -2px;
+  transition: color 0.12s;
+}
+.s2-subcollapse__reset-icon:hover {
+  color: var(--accent-warm);
+}
+/* Hide the dot + ↺ when the category / broad group is at defaults. */
+.s2-subcollapse[data-cat-modified="false"] .s2-subcollapse__title .s2-mod-dot,
+.s2-subcollapse[data-cat-modified="false"] .s2-subcollapse__reset-icon {
+  display: none;
+}
+.s2-tags-vibe[data-broad-modified="false"] .s2-facet-subheading .s2-mod-dot,
+.s2-tags-vibe[data-broad-modified="false"] .s2-subcollapse__reset-icon {
+  display: none;
+}
+/* In the Broad-style-tags subheading the dot + ↺ are inline siblings
+   inside a plain text-flow heading (no flex gap to fall back on),
+   so bump the button's left padding to match the subcollapse header's
+   ~16px gap between dot and reset (10px flex gap + 6px padding). */
+.s2-facet-subheading .s2-subcollapse__reset-icon {
+  padding-left: 16px;
+}
+.s2-subcollapse__title {
+  font-family: var(--s2-serif);
+  font-size: 15px;
+  font-weight: 500;
+  color: var(--text);
+  flex-shrink: 0;
+}
+.s2-subcollapse__meta {
+  font-size: 12px;
+  color: var(--faint);
+  flex: 1;
+  text-align: right;
+  margin-right: 6px;
+}
+.s2-subcollapse__chevron {
+  color: var(--faint);
+  transition: transform 0.2s;
+  flex-shrink: 0;
+  display: inline-flex;
+}
+.s2-subcollapse__chevron svg { width: 12px; height: 12px; display: block; }
+.s2-subcollapse[data-open="true"] .s2-subcollapse__chevron { transform: rotate(180deg); }
+.s2-subcollapse__body {
+  display: none;
+  padding: 0 12px 12px;
+}
+.s2-subcollapse[data-open="true"] .s2-subcollapse__body { display: block; }
+
+/* Watchlist block — header + search input + combined pill list. */
+.s2-watchlist-block { margin-bottom: 18px; }
+.s2-watchlist-block:last-child { margin-bottom: 0; }
+.s2-watchlist-block__header {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+.s2-watchlist-block__title {
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+.s2-watchlist-block__meta {
+  font-size: 12px;
+  color: var(--faint);
+}
+.s2-watchlist-search {
+  width: 100%;
+  box-sizing: border-box;
+  background: var(--card-bg);
+  border: 1px solid var(--rule);
+  border-radius: 8px;
+  padding: 9px 12px;
+  font: inherit;
+  /* 16px so iOS Safari doesn't zoom on focus. */
+  font-size: 16px;
+  color: var(--text);
+  margin-bottom: 10px;
+}
+.s2-watchlist-search:focus {
+  outline: none;
+  border-color: var(--accent-cool);
+}
+
+/* Pill list + pill (combined watchlist list). */
+.s2-pill-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.s2-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  background: var(--card-bg);
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 5px 8px 5px 12px;
+  font-size: 13px;
+  color: var(--text);
+  transition: background 0.12s, border-color 0.12s;
+}
+.s2-pill:hover {
+  border-color: color-mix(in srgb, var(--accent-warm) 35%, var(--rule));
+}
+.s2-pill__label { line-height: 1.2; }
+.s2-pill__remove {
+  background: none;
+  border: none;
+  color: var(--faint);
+  cursor: pointer;
+  width: 18px;
+  height: 18px;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 14px;
+  line-height: 1;
+}
+.s2-pill__remove:hover { color: var(--accent-warm); }
+
+/* Engine Room entry link. */
+.s2-engine-link {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  width: 100%;
+  padding: 22px 0;
+  border: none;
+  border-top: 2px solid var(--rule);
+  background: var(--bg);
+  cursor: pointer;
+  text-decoration: none;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  transition: background 0.12s;
+}
+.s2-engine-link:hover {
+  background: color-mix(in srgb, var(--accent-warm) 4%, transparent);
+}
+.s2-engine-link__inner {
+  display: flex;
+  flex-direction: column;
+  gap: 3px;
+  min-width: 0;
+}
+.s2-engine-link__title {
+  font-size: 19px;
+  font-weight: 500;
+  color: var(--text);
+  font-variation-settings: "SOFT" 50;
+}
+.s2-engine-link__title em {
+  color: var(--accent-warm);
+  font-style: italic;
+  font-weight: 500;
+}
+.s2-engine-link__sub {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--faint);
+  line-height: 1.4;
+}
+.s2-engine-link__arrow {
+  color: var(--muted);
+  font-size: 1.4em;
+  margin-left: 12px;
+}
+
+/* Footer curator line. */
+.s2-footer-note {
+  padding: 24px 0 8px;
+  text-align: center;
+}
+.s2-footer-note__text {
+  font-style: italic;
+  font-size: 13px;
+  color: var(--faint);
+  font-variation-settings: "SOFT" 80;
+}
+
+/* Preamble curator note — sits at the top of the settings panel,
+   above Watchlists. Combines the privacy + persistence reassurance
+   so the user reads them as a pair on entry. */
+.s2-preamble-note {
+  padding: 4px 0 18px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 4px;
+}
+.s2-preamble-note__text {
+  font-family: var(--s2-serif);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.5;
+  color: var(--muted);
+  margin: 0;
+  font-variation-settings: "SOFT" 100;
+}
+
+/* Engine Room view — second view inside #settings-view. The title +
+   back arrow live in the modal header (shared with Settings view);
+   this sub-view only renders intro + sections. */
+.s2-view--engine[hidden] { display: none; }
+.s2-view--settings[hidden] { display: none; }
+.s2-engine-intro {
+  padding: 18px 0 14px;
+  border-bottom: 1px solid var(--rule);
+  margin-bottom: 8px;
+}
+.s2-engine-intro__text {
+  font-family: var(--s2-serif);
+  font-style: italic;
+  font-size: 14px;
+  line-height: 1.55;
+  color: var(--muted);
+  margin: 0;
+  font-variation-settings: "SOFT" 100;
+}
+.s2-engine-intro__text + .s2-engine-intro__text {
+  margin-top: 8px;
+}
+.s2-engine-intro__text em {
+  font-style: italic;
+  color: var(--accent-warm);
+  font-weight: 500;
+}
+.s2-engine-section {
+  padding: 18px 0 16px;
+  border-bottom: 1px solid var(--rule);
+}
+.s2-engine-section:last-of-type { border-bottom: none; }
+/* Subtle background shift when the modal is in Engine Room mode so the
+   user feels they’ve stepped one level deeper. Light + dark both nudge
+   the page bg one shade toward the "engine" tone. */
+.settings-modal--engine {
+  background: color-mix(in srgb, var(--bg) 92%, var(--muted));
+}
+
+/* Danger zone — stub buttons (Export / Import / Reset everything). */
+.s2-danger-zone {
+  padding: 22px 0 60px;
+}
+.s2-danger-button {
+  display: block;
+  width: 100%;
+  background: none;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  padding: 12px;
+  font: inherit;
+  font-size: 14px;
+  color: var(--muted);
+  cursor: pointer;
+  margin-bottom: 8px;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+}
+.s2-danger-button:hover {
+  background: var(--card-bg);
+  color: var(--text);
+}
+.s2-danger-button--reset:hover {
+  border-color: var(--accent-warm);
+  color: var(--accent-warm);
+}
+
+/* Stub controls — render but inert (title="Coming soon"). Slightly
+   dimmed so the user reads them as not-quite-live. */
+.s2-stub {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Compact-cards toggle (stub) in Display. */
+.s2-toggle {
+  flex-shrink: 0;
+  width: 36px;
+  height: 20px;
+  background: var(--rule);
+  border-radius: 999px;
+  position: relative;
+  cursor: pointer;
+  border: none;
+  transition: background 0.18s;
+  padding: 0;
+}
+.s2-toggle::after {
+  content: "";
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 16px;
+  height: 16px;
+  background: var(--card-bg);
+  border-radius: 50%;
+  transition: transform 0.18s, background 0.18s;
+}
+.s2-toggle[aria-checked="true"] { background: var(--accent-warm); }
+.s2-toggle[aria-checked="true"]::after {
+  transform: translateX(16px);
+  background: #fff;
+}
+
+/* ----- Sub-section markers (Tier 2 within a collapse) ---------- */
+/* One unified treatment for every sub-section divider INSIDE a
+   section collapse: Venues / Artists (Watchlists), Vibe tags / By
+   category (Tags), Home / Local / Included (Suburbs). Smaller +
+   fainter than the collapse-header section title so the hierarchy
+   reads: section title (11px muted) → sub-section marker (10px
+   faint) → serif item labels (16px). */
+.settings-modal .s2-watchlist-block__title,
+.settings-modal .s2-facet-subheading,
+.settings-modal .subcat-group-heading {
+  font-family: var(--s2-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+  /* Strip the legacy warm bottom-border + heavy weight that the old
+     Suburbs panel shipped — markers should read as quiet labels, not
+     headings. */
+  border-bottom: none;
+  padding-bottom: 0;
+  margin: 0 0 8px;
+}
+/* The "(across categories)" hint that sometimes follows a marker
+   stays inline + lower-case so the marker still reads as one word. */
+.settings-modal .subcat-group-hint {
+  font-weight: 500;
+  text-transform: none;
+  letter-spacing: 0;
+  opacity: 0.85;
+  margin-left: 4px;
+}
+
+/* ----- Rule row name — promote to item-label tier --------------- */
+/* Brings Rules row names (Free events only, Date idea boost, etc.)
+   into the same Fraunces 16/500 treatment as the Feels / Who-it's-for
+   / age-range item labels so every row the user acts on reads as a
+   peer. */
+.settings-modal .rule-name {
+  font-family: var(--s2-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+/* ----- Suburb name (row label) ------------------------------- */
+/* The per-suburb row label (Brunswick, Coburg, etc.) was rendering
+   as mono — leftover from the original Settings design. Inside the
+   v2 modal it should match every other item label: Fraunces 16/500. */
+.settings-modal .subcat-name {
+  font-family: var(--s2-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0;
+  line-height: 1.3;
+}
+
+/* ----- Theme picker — Display section ---------------------------- */
+/* Match the .tri-state chip-group pattern used by Suburbs / Rules /
+   Tuning pickers so there's ONE chip-picker visual language across
+   the panel. The data-theme-set handler is unchanged. */
+.settings-modal .theme-picker {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin: 0 0 8px;
+}
+.settings-modal .theme-picker__label {
+  font-family: var(--s2-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0;
+}
+.settings-modal .theme-picker__buttons {
+  display: inline-flex;
+  border: 1px solid var(--rule);
+  border-radius: 6px;
+  overflow: hidden;
+  flex-shrink: 0;
+  background: var(--card-bg);
+}
+.settings-modal .theme-picker__btn {
+  appearance: none;
+  background: transparent;
+  border: 0;
+  border-right: 1px solid var(--rule);
+  padding: 6px 12px;
+  font-family: var(--s2-sans);
+  font-size: 0.78em;
+  font-weight: 600;
+  letter-spacing: 0.3px;
+  color: var(--muted);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s;
+}
+.settings-modal .theme-picker__btn:last-child { border-right: 0; }
+.settings-modal .theme-picker__btn:hover {
+  background: color-mix(in srgb, currentColor 8%, transparent);
+  color: var(--text);
+}
+.settings-modal .theme-picker__btn[aria-pressed="true"] {
+  background: var(--accent-warm);
+  color: #fff;
+}
+
+/* ----- "Advanced" disclosure inside Tuning ---------------------- */
+/* Match the marker treatment used by sub-section dividers — small
+   uppercase tracked sans faint — so the Advanced label reads as a
+   group divider, not a debugging affordance. Chevron toned down to
+   the same scale as the Outside collapse for consistency. Reset
+   link sits at the right edge of the summary, padded away from the
+   label so a tap on it doesn't double-fire as a disclosure toggle. */
+.settings-modal .tuning-advanced > summary {
+  display: flex;
+  align-items: center;
+  font-family: var(--s2-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.settings-modal .tuning-advanced > summary::before {
+  font-size: 9px;
+  color: var(--faint);
+}
+.settings-modal .tuning-advanced__label {
+  flex: 1;
+  min-width: 0;
+}
+.settings-modal .tuning-advanced > summary .s2-section__reset {
+  margin-left: 8px;
+}
+
+/* ----- Numeric readouts use IBM Plex Mono --------------------- */
+/* Single mono family for every number-on-screen surface inside the
+   settings modal: score-effect badges (on tier markers), the
+   "custom: 1.5x" Tuning inline badge, the age slider readouts, and
+   the engine value cards. Avoids the system mono fallback (SF Mono /
+   Consolas) which doesn't sit cleanly next to IBM Plex Sans. */
+.settings-modal .row-score-effect,
+.settings-modal .chip-custom {
+  font-family: var(--s2-mono);
+}
+.settings-modal .age-range-readout {
+  font-family: var(--s2-mono);
+  font-size: 13px;
+  color: var(--muted);
+}
+
+/* ----- Tuning chip ladder — numeric, muted unselected ------------- */
+/* Labels are now 1..N numbers (higher = stronger effect). Chips are
+   narrow + transparent until pressed; only the pressed chip carries
+   the colour cue (data-tuning-color). The friendly name rides as a
+   small readout next to the row label so the user knows what their
+   pick means without the chips themselves spelling it out. */
+.settings-modal .s2-engine-section .tri[data-tuning-chip] {
+  background: transparent;
+  color: var(--faint);
+  font-family: var(--s2-mono);
+  font-size: 12px;
+  font-weight: 500;
+  min-width: 24px;
+  padding: 5px 6px;
+  border-right: 1px solid var(--rule);
+}
+.settings-modal .s2-engine-section .tri[data-tuning-chip]:hover {
+  background: color-mix(in srgb, var(--accent-warm) 6%, transparent);
+  color: var(--text);
+}
+/* Pressed chip gets the full data-tuning-color treatment — re-stated
+   inside the scoped block at higher specificity so the muted base
+   rule above doesn't strip the colour off the active chip. */
+.settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"] {
+  background: var(--accent-warm);
+  color: #fff;
+  font-weight: 700;
+}
+.settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="love"] {
+  background: var(--free-green);
+}
+.settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="like"] {
+  background: color-mix(in srgb, var(--free-green) 65%, var(--card-bg));
+}
+.settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="meh"] {
+  background: var(--muted);
+}
+.settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="avoid-soft"] {
+  background: color-mix(in srgb, var(--accent-warm) 60%, var(--muted));
+}
+.settings-modal .s2-engine-section .tri[data-tuning-chip][aria-pressed="true"][data-tuning-color="avoid"] {
+  background: var(--accent-warm);
+}
+
+/* Readout — small italic Fraunces next to the label. A middle dot
+   separator + a touch of breathing room sit between the row title
+   and the readout so the two read as "title · effect" rather than
+   running together. */
+.settings-modal .tuning-readout {
+  font-family: var(--s2-serif);
+  font-style: italic;
+  font-size: 13px;
+  color: var(--muted);
+  font-weight: 400;
+  margin-left: 10px;
+}
+.settings-modal .tuning-readout::before {
+  content: '·';
+  margin-right: 8px;
+  color: var(--faint);
+  font-style: normal;
+  font-weight: 600;
+}
+.settings-modal .tuning-readout--custom {
+  font-style: normal;
+  font-family: var(--s2-mono);
+  font-size: 12px;
+  color: var(--faint);
+}
+
+/* ----- Engine Room shape rows — compact vertical rhythm ---------- */
+.settings-modal .s2-engine-section .shape-row {
+  padding: 6px 2px;
+}
+/* Mobile inside Engine Room: label sits alone on line 1, chips +
+   reset (or slider + reset) share line 2. The base mobile rule
+   stacks every child vertically, which split chips and reset onto
+   separate lines; flex-wrap row keeps controls together. The
+   --inline variant (Show scores) opts OUT — its toggle stays on
+   the same line as the label since there's no chip ladder taking
+   up width. */
+@media (max-width: 640px) {
+  .settings-modal .s2-engine-section .shape-row,
+  .settings-modal .s2-engine-section .rule-row:not(.rule-row--inline) {
+    display: flex;
+    flex-direction: row;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 6px 8px;
+  }
+  .settings-modal .s2-engine-section .shape-row > .shape-text,
+  .settings-modal .s2-engine-section .rule-row:not(.rule-row--inline) > .rule-text {
+    flex-basis: 100%;
+  }
+  /* Sliders fill the remaining width on the controls line so the
+     reset button sits flush at the right edge. */
+  .settings-modal .s2-engine-section .shape-row .shape-input,
+  .settings-modal .s2-engine-section .shape-row .suburb-weight-input {
+    flex: 1;
+    min-width: 0;
+    width: auto;
+  }
+}
+.settings-modal .s2-engine-section .shape-row .tuning-chips,
+.settings-modal .s2-engine-section .shape-row .shape-input,
+.settings-modal .s2-engine-section .shape-row .suburb-weight-input {
+  margin-top: 2px;
+}
+.settings-modal .s2-engine-section .shape-name {
+  line-height: 1.2;
+}
+.settings-modal .s2-engine-section .shape-hint {
+  margin-top: 2px;
+  line-height: 1.3;
+}
+.settings-modal .s2-engine-section .tuning-advanced {
+  margin-top: 12px;
+  padding-top: 8px;
+}
+
+/* ----- Hint text wraps instead of clipping/truncating ----------- */
+/* The original .rule-hint / .shape-hint / .facet-blurb used
+   `white-space: nowrap` + ellipsis + a measure-and-flip fallback to
+   a `?` popover. That truncated long Advanced-row hints (Subcategory
+   spread, Home/Local bonus etc.) so the user couldn't read them in
+   the modal. Inside the settings panel, let the hint flow onto as
+   many lines as it needs. The `?` popover affordance stays attached
+   to every row (CSS gates its visibility on data-hint-mode), but
+   we now keep hint-mode at "visible" forever so the inline hint is
+   always present. */
+.settings-modal .shape-row[data-hint-mode="visible"] .shape-hint,
+.settings-modal .rule-row[data-hint-mode="visible"] .rule-hint,
+.settings-modal .facet-row[data-hint-mode="visible"] .facet-blurb {
+  white-space: normal;
+  overflow: visible;
+  text-overflow: clip;
+  max-width: 100%;
+  line-height: 1.4;
+}
+
+/* ----- Row reset (↺) relocated inline next to the label ---------- */
+/* The reset button is moved into .shape-text by JS so it sits next to
+   the label's modified-dot ::after marker. The label was display:block
+   though — which pushed the next sibling button onto a new line.
+   Convert .shape-text into a wrap-flex row + force the hint span to
+   take its own line via flex-basis:100%. Label + dot + reset now all
+   share line 1; hint flows to line 2; everything stays in the
+   .shape-text column. */
+/* Age-range-row keeps the legacy inline label + reset pattern
+   inside .shape-text so the reset sits next to the row title (the
+   slider lives on a wrapped 2nd row below the header). */
+.settings-modal .age-range-row > .shape-text {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  column-gap: 6px;
+  row-gap: 2px;
+}
+.settings-modal .age-range-row .shape-name {
+  display: inline;
+}
+.settings-modal .age-range-row .shape-hint {
+  flex-basis: 100%;
+  margin-top: 0;
+}
+.settings-modal .shape-row .row-reset-btn,
+.settings-modal .rule-row .row-reset-btn,
+.settings-modal .suburb-row .row-reset-btn,
+.settings-modal .age-range-row .row-reset-btn {
+  width: 18px;
+  height: 18px;
+  font-size: 0.85em;
+}
+/* Three-column grids: label | chips | reset (shape / rule rows in
+   Engine Room) or label | reset | chips (suburb rows). The reset
+   sits pinned to the chip cluster either way, not pinned to the
+   label. */
+.settings-modal .shape-row[data-modified="true"],
+.settings-modal .rule-row[data-modified="true"],
+.settings-modal .shape-row,
+.settings-modal .rule-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 8px;
+}
+.settings-modal .suburb-row[data-modified="true"],
+.settings-modal .suburb-row {
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  column-gap: 8px;
+}
+/* Inline-variant rule row (Show scores): just label + toggle, no
+   chip cluster. Stays a 2-col grid on every viewport so the toggle
+   pins to the right edge of the label line. */
+.settings-modal .rule-row--inline,
+.settings-modal .rule-row--inline[data-modified="true"] {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  column-gap: 12px;
+}
+
+/* ----- Outside (collapsible tier inside Suburbs) ----------------- */
+/* Outside is the same tier-level as Home / Local / Included so it
+   reads as a marker — but it's collapsed for length, so the chevron
+   prefix signals tappable. Match the marker styling for consistency. */
+.settings-modal .suburb-outside-collapse > summary {
+  font-family: var(--s2-sans);
+  font-size: 10px;
+  font-weight: 600;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--faint);
+}
+.settings-modal .suburb-outside-collapse > summary::before {
+  font-size: 9px;
+  color: var(--faint);
+}
+
+/* ----- Single cycling chip (mockup-style) ---------------------- */
+/* One chip per tag (Vibe tags, More tags) or per facet (Feels). Tap
+   cycles through neutral → like → love → avoid → neutral. The chip
+   IS the picker — no separate 4-button tri-state. */
+.s2-chip-grid {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+.s2-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  padding: 7px 11px;
+  border: 1px solid var(--chip-neutral-bg);
+  background: var(--chip-neutral-bg);
+  border-radius: 6px;
+  font-family: var(--s2-sans);
+  font-size: 13.5px;
+  font-weight: 500;
+  color: var(--chip-neutral-ink);
+  cursor: pointer;
+  transition: background 0.12s, color 0.12s, border-color 0.12s;
+  user-select: none;
+  line-height: 1.2;
+}
+.s2-chip:hover {
+  border-color: var(--faint);
+}
+.s2-chip__glyph {
+  font-size: 12px;
+  line-height: 1;
+  display: inline;
+}
+/* Neutral / "Meh" — open circle reads as "no fill / no choice
+   made" rather than the filled dot which would compete with the
+   love heart. Lighter weight so it visually quiets against the
+   filled glyphs on the other states. */
+.s2-chip__glyph::before {
+  content: '○';
+  font-weight: 400;
+}
+
+/* Per-state colours adopt the tri-state semantic palette (love =
+   green, like = softer green, avoid = warm-red) for instant
+   "I want this / I don't" legibility. Loses some of the calm
+   editorial cream-on-cream look but the four states are now
+   distinguishable at a glance without reading the glyph. */
+.s2-chip[data-state="love"] {
+  background: var(--free-green);
+  color: #fff;
+  border-color: var(--free-green);
+}
+.s2-chip[data-state="love"] .s2-chip__glyph {
+  display: inline;
+}
+.s2-chip[data-state="love"] .s2-chip__glyph::before { content: '♥'; }
+
+.s2-chip[data-state="like"] {
+  background: var(--chip-like-bg);
+  color: #fff;
+  border-color: var(--chip-like-bg);
+}
+.s2-chip[data-state="like"] .s2-chip__glyph {
+  display: inline;
+}
+.s2-chip[data-state="like"] .s2-chip__glyph::before {
+  content: '✓';
+  font-weight: 700;
+}
+
+.s2-chip[data-state="avoid"] {
+  background: var(--accent-warm);
+  color: #fff;
+  border-color: var(--accent-warm);
+  text-decoration: line-through;
+  text-decoration-thickness: 1px;
+  text-decoration-color: rgba(255, 255, 255, 0.7);
+}
+.s2-chip[data-state="avoid"] .s2-chip__glyph {
+  display: inline-block;
+  text-decoration: none;
+}
+.s2-chip[data-state="avoid"] .s2-chip__glyph::before {
+  content: '−';
+  font-weight: 700;
+}
+
+/* Facet chip — sits on the right of a facet row, label is the state
+   name (Love / Like / Meh / Avoid). Slightly wider so all four
+   state-name widths look balanced when adjacent. */
+.s2-chip--facet {
+  min-width: 84px;
+  justify-content: center;
+}
+
+/* Inclusivity chip — yes / curious / no cycle. Mirrors the tri-state
+   palette: yes = green (like love), curious = soft green (like like),
+   no = default neutral chip look. */
+.s2-chip--incl[data-incl-state="yes"] {
+  background: var(--free-green);
+  color: #fff;
+  border-color: var(--free-green);
+}
+.s2-chip--incl[data-incl-state="curious"] {
+  background: var(--chip-like-bg);
+  color: #fff;
+  border-color: var(--chip-like-bg);
+}
+.s2-chip--incl[data-incl-state="no"] {
+  background: var(--accent-warm);
+  color: #fff;
+  border-color: var(--accent-warm);
+}
+
+/* ----- Facet row (Feels) -------------------------------------- */
+.s2-facet-group { display: block; }
+.s2-facet-group + .s2-facet-group { margin-top: 18px; }
+.s2-facet-subheading {
+  font-family: var(--s2-serif);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--text);
+  margin: 0 0 4px;
+}
+.s2-facet-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+}
+.s2-facet-row:last-child { border-bottom: none; }
+/* Reset sits just LEFT of the right-aligned chip (same placement as
+   suburb rows). Small right-margin separates it from the chip. */
+.s2-facet-row > .row-reset-btn {
+  width: 18px;
+  height: 18px;
+  font-size: 0.85em;
+  margin-right: 4px;
+}
+.s2-facet-row__text { min-width: 0; }
+.s2-facet-row__label {
+  font-family: var(--s2-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  line-height: 1.3;
+}
+.s2-facet-row__sublabel {
+  font-size: 12px;
+  color: var(--faint);
+  margin-top: 2px;
+  line-height: 1.4;
+}
+
+/* Tags collapse — Vibe tags grid up top, per-category subcollapses
+   below. Subheading + a touch of margin between the two subgroups so
+   the Vibe-tags chip strip doesn't collide with the first
+   subcollapse card. */
+.s2-tags-vibe { margin-bottom: 18px; }
+.s2-tags-more .s2-facet-subheading { margin-bottom: 8px; }
+.s2-tags-vibe__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 8px;
+  margin-bottom: 6px;
+}
+.s2-tags-vibe__head .s2-facet-subheading { margin-bottom: 0; }
+
+/* Age-range row inside Who-it's-for — sibling to the identity rows
+   inside the same .s2-facet-group, so it picks up the same 1px row
+   divider via the row's own border-bottom. The row's own label + hint
+   adopt the serif treatment used by the identity rows above so the
+   two read as one continuous list. Vertical padding mirrors the
+   identity rows (12px top/bottom from .s2-facet-row) so the slider
+   doesn't tower over its neighbours. */
+.s2-facet-group .age-range-row.shape-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 12px;
+  padding: 12px 0;
+  border-bottom: 1px solid var(--rule);
+  margin: 0;
+}
+.s2-facet-group .age-range-row:last-child { border-bottom: none; }
+.s2-facet-group .age-range-row .shape-name {
+  font-family: var(--s2-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+  letter-spacing: 0;
+  text-transform: none;
+  line-height: 1.3;
+}
+.s2-facet-group .age-range-row .shape-hint {
+  font-family: var(--s2-sans);
+  font-size: 12px;
+  font-weight: 400;
+  color: var(--faint);
+  letter-spacing: 0;
+  text-transform: none;
+  margin-top: 2px;
+  line-height: 1.4;
+}
+.s2-facet-group .age-range-row .age-range-input {
+  margin-top: 8px;
+  grid-column: 1 / -1;
+}
+
+/* ----- Override existing section helpers inside the modal ----- */
+/* The mockup-style serif touch — section labels stay uppercase sans,
+   helpers and watchlist titles + facet labels go serif. */
+.settings-modal .s2-section__helper,
+.settings-modal .s2-engine-intro__text,
+.settings-modal .s2-footer-note__text {
+  font-family: var(--s2-serif);
+}
+.settings-modal .s2-watchlist-block__title {
+  font-family: var(--s2-serif);
+  font-weight: 500;
+  font-size: 16px;
+}
+.settings-modal .s2-engine-link__title,
+.settings-modal .s2-engine-title {
+  font-family: var(--s2-serif);
+  font-weight: 500;
+}
+.settings-modal .s2-engine-link__sub {
+  font-family: var(--s2-serif);
+  font-style: italic;
+}
+/* Engine Room row labels inherit the same sans-serif treatment as the
+   main Settings row labels — same family, size, and weight — so the
+   Engine Room reads as a continuation of the Settings surface rather
+   than a different control family. (The mono treatment was tried and
+   dropped; it pushed the knobs too far toward "spreadsheet".) */
+.settings-modal .s2-engine-section .shape-name {
+  font-family: var(--s2-serif);
+  font-size: 16px;
+  font-weight: 500;
+  color: var(--text);
+}
+.settings-modal .s2-engine-section .shape-hint {
+  font-family: var(--s2-sans);
+}
+.settings-modal .s2-engine-section .shape-value {
+  font-family: var(--s2-mono);
+  font-size: 12px;
+}
 </style>
 </head>
 <body>
@@ -4457,9 +5773,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 <div class="panel-backdrop" id="settings-backdrop"></div>
 <aside class="settings-modal" id="settings-modal" role="dialog" aria-modal="true" aria-label="Settings" inert>
 <header class="settings-modal__header">
+<button class="settings-modal__back" type="button" data-close-settings aria-label="Back to menu" title="Back">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M19 12H5M12 19l-7-7 7-7"/></svg>
+</button>
 <h2 class="settings-modal__title">Settings</h2>
-<button class="settings-modal__close" type="button" data-close-settings aria-label="Close settings" title="Close">
-<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" aria-hidden="true"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+<button class="settings-modal__theme" type="button" data-theme-toggle aria-label="Toggle theme" title="Toggle theme">
+<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="theme-icon theme-icon--sun"><circle cx="12" cy="12" r="4"/><path d="M12 2v2M12 20v2M4.93 4.93l1.41 1.41M17.66 17.66l1.41 1.41M2 12h2M20 12h2M4.93 19.07l1.41-1.41M17.66 6.34l1.41-1.41"/></svg><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true" class="theme-icon theme-icon--moon" hidden><path d="M21 12.79A9 9 0 1 1 11.21 3 7 7 0 0 0 21 12.79z"/></svg>
 </button>
 </header>
 <div class="settings-subtabs-host" id="settings-subtabs-host"></div>
@@ -4517,13 +5836,36 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // we don't grow N near-identical handler branches.
   var RESET_TARGETS = {
     'reset-tags':       ['subcategory_tiers'],
-    'reset-vibes':      ['facet_tiers', 'inclusivity_prefs'],
-    'reset-rules':      ['rule_states', 'rule_weights', 'pinning_rules',
-                         'min_age', 'max_age'],
+    // Vibes (Feels section) covers personality facets only — identity
+    // prefs + age range moved to the dedicated Who-it's-for section
+    // and reset via 'reset-identity'.
+    'reset-vibes':      ['facet_tiers'],
+    'reset-identity':   ['inclusivity_prefs', 'min_age', 'max_age'],
+    'reset-rules':      ['rule_states', 'rule_weights', 'pinning_rules'],
     'reset-suburbs':    ['suburb_tiers', 'suburb_tier_weights'],
     'reset-watchlist':  ['priority_venues', 'saved_venues',
                          'priority_artists', 'saved_artists'],
-    'reset-shape':      ['score_floor', 'diversity_category', 'diversity_subcategory', 'tier_bonuses'],
+    // Tuning section (Engine Room) covers EVERYTHING the user can dial
+    // inside Tuning — friendly multipliers up top + Advanced sliders
+    // below — so the section reset truly restarts the section.
+    'reset-shape':          ['score_floor', 'reward_multiplier',
+                             'variety_multiplier', 'avoid_multiplier',
+                             'diversity_category', 'diversity_subcategory',
+                             'tier_bonuses', 'suburb_tier_weights'],
+    // Advanced sub-disclosure reset — just the advanced-only knobs.
+    'reset-shape-advanced': ['diversity_category', 'diversity_subcategory',
+                             'tier_bonuses', 'suburb_tier_weights'],
+  };
+
+  // Fallback default values for keys that aren't present in
+  // defaultProfile. Reward/Variety/Avoid multipliers are client-side
+  // only (never written into menu-data.json), so without a fallback a
+  // reset would set them to `undefined` and every chip in the ladder
+  // would read as "no match" → nothing pressed.
+  var RESET_FALLBACKS = {
+    reward_multiplier:  1,
+    variety_multiplier: 1,
+    avoid_multiplier:   1,
     'reset-appearance': ['theme'],
   };
 
@@ -5123,6 +6465,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // Single value drives both the load-time decision and the one-shot
   // setTimeout that flips it once mid-session.
   var TONIGHT_THRESHOLD_HOUR = 14;
+  // Early-morning rollover (used by activeTabAnchorIso + scheduling
+  // below). Mirror it here so the sun/moon icon stays MOON between
+  // midnight and 5am — at that hour the calendar has flipped but
+  // semantically it's still "tonight" of the previous day.
+  var EARLY_MORNING_ROLLOVER_HOUR = 5;
   var MONTHS_SHORT = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
   var WEEKDAYS_SHORT = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
 
@@ -5130,7 +6477,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // than "Today". A module-level flag rather than a fresh now-check on
   // every renderAll so the one-shot setTimeout below can flip the label
   // exactly once per session.
-  var tonightFlipped = (melbourneNowParts().hour >= TONIGHT_THRESHOLD_HOUR);
+  // True both for the afternoon→midnight window (h >= 14) AND the
+  // post-midnight pre-rollover window (h < 5). Both are semantically
+  // "tonight" — the 5am rollover marks the actual start of "today".
+  function _isTonightHour(h) {
+    return h >= TONIGHT_THRESHOLD_HOUR || h < EARLY_MORNING_ROLLOVER_HOUR;
+  }
+  var tonightFlipped = _isTonightHour(melbourneNowParts().hour);
 
   function formatDayHeading(isoDate) {
     // '2026-04-24' -> 'Thursday 24 April' (Melbourne-local date;
@@ -5158,7 +6511,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // next day, empty for everything else (those headings stand on their
   // own date). The empty case is rendered as no eyebrow element at all.
   function dayEyebrowLabel(isoDate) {
-    var today = melbourneNowParts().iso;
+    // Use the rollover-adjusted anchor so the eyebrow tracks the
+    // same "today" that the active tab / sun-moon icon use — until
+    // 5am Melbourne, "today" is still the calendar day before.
+    var today = activeTabAnchorIso();
     if (isoDate === today) return tonightFlipped ? 'Tonight' : 'Today';
     var t = new Date(today + 'T12:00:00');
     t.setDate(t.getDate() + 1);
@@ -5456,7 +6812,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // "Today" / "Tonight" instead of "Mon"/"Sat" so the active tab matches
   // the hero heading below it. Used for screen-reader / aria-label.
   function formatDayTabShort(isoDate) {
-    var today = melbourneNowParts().iso;
+    var today = activeTabAnchorIso();
     if (isoDate === today) return tonightFlipped ? 'Tonight' : 'Today';
     var d = new Date(isoDate + 'T12:00:00');
     return WEEKDAYS_SHORT[d.getDay()];
@@ -5491,7 +6847,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // name. Replaces the prior "TODAY"/"TONIGHT" text that truncated to
   // "TOD..." on narrow viewports.
   function formatDayTabLeadHtml(isoDate) {
-    var today = melbourneNowParts().iso;
+    var today = activeTabAnchorIso();
     if (isoDate === today) {
       return tonightFlipped ? _DAY_TAB_MOON_SVG : _DAY_TAB_SUN_SVG;
     }
@@ -7553,6 +8909,43 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
   }
 
+  // Per-day TOC chip strip. One nav chip per category present in the
+  // day with its curated-bucket count. Hidden when no categories
+  // qualify (empty day) or during active search (CSS rule on
+  // body.search-active). Distinguished from search-panel category
+  // chips by class — these are NAVIGATION links (no aria-pressed
+  // state, cool hover tint) rather than filter toggles.
+  function renderDayTocHtml(byCatMap) {
+    var chips = [];
+    for (var i = 0; i < CATEGORY_ORDER.length; i++) {
+      var catKey = CATEGORY_ORDER[i];
+      var block = byCatMap[catKey];
+      if (!block || block.length === 0) continue;
+      // Count only the curated (non-expanded) items — the "Show more"
+      // bucket is below the fold by default, so the headline number
+      // is what the user sees after a jump.
+      var n = 0;
+      for (var bi = 0; bi < block.length; bi++) {
+        if (!block[bi].is_expanded) n++;
+      }
+      if (n === 0) continue;
+      var label = CATEGORY_DISPLAY[catKey] || catKey;
+      chips.push(
+        '<a class="day-toc__chip" data-toc-cat="' + escapeHtml(catKey) + '" ' +
+        'href="#cat-' + escapeHtml(catKey) + '">' +
+          '<span class="day-toc__chip-label">' + escapeHtml(label) + '</span>' +
+          '<span class="day-toc__chip-count">' + n + '</span>' +
+        '</a>'
+      );
+    }
+    if (chips.length === 0) return '';
+    return (
+      '<nav class="day-toc" aria-label="Jump to category">' +
+      chips.join('') +
+      '</nav>\n'
+    );
+  }
+
   function renderDayHtml(dayIso, byCatMap, profile, nextDayTop) {
     byCatMap = byCatMap || {};
     var heading = formatDayHeading(dayIso);
@@ -7636,6 +9029,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       '</h2>\n' +
       renderEditorNoteHtml() +
       renderTopPickTeaserHtml(byCatMap) +
+      renderDayTocHtml(byCatMap) +
       quietHint +
       sections.join('\n') + '\n' +
       renderWildcardHtml(byCatMap) +
@@ -7709,6 +9103,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // ============================================================
   var TIERS = ['love', 'like', 'neutral', 'avoid'];
   var TIER_LABELS = { love: 'Love', like: 'Like', neutral: 'Meh', avoid: 'Avoid' };
+  // Small glyph that prefixes each tier chip's label, so the four states
+  // can be distinguished at a glance even before the user reads the word.
+  // 'like' uses ✓ rather than + (mockup default) — the + would visually
+  // collide with the + add-button in Watchlists / Suburbs.
+  var TIER_GLYPHS = { love: '♥', like: '✓', neutral: '', avoid: '−' };
   // Identity-relative inclusivity prefs (replace the tier picker for the
   // 4 identity facets): "yes" = I'm in / want these, "curious" = neither
   // boost nor penalty, "no" = gated-out → penalise.
@@ -7786,13 +9185,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (k = 0; k < keys.length; k++) {
       if (isSubcatModified(keys[k])) out.tags++;
     }
+    // Identity (inclusivity) facets are tracked under the Who-it's-for
+    // section via s2IdentityModified(), not under Feels. Counting them
+    // in `out.vibes` would inflate the Feels dot and the reset-vibes
+    // action wouldn't clear them (reset-vibes only resets facet_tiers).
     keys = Object.keys(profile.facet_blurbs || {});
     for (k = 0; k < keys.length; k++) {
       var fkn = keys[k];
       if (HIDDEN_FACETS[fkn]) continue;
-      if (isInclusivityIdentityFacet(fkn)) {
-        if (isInclModified(fkn)) out.vibes++;
-      } else if (isFacetModified(fkn)) out.vibes++;
+      if (isInclusivityIdentityFacet(fkn)) continue;
+      if (isFacetModified(fkn)) out.vibes++;
     }
     keys = Object.keys(defaultProfile.rule_weights || {});
     for (k = 0; k < keys.length; k++) {
@@ -7816,11 +9218,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (k = 0; k < shapeFields.length; k++) {
       if (isShapeModified(shapeFields[k])) out.shape++;
     }
-    out.watchlist =
-      (profile.priority_venues  || []).length +
-      (profile.saved_venues     || []).length +
-      (profile.priority_artists || []).length +
-      (profile.saved_artists    || []).length;
+    // "Modified" = the user added or removed entries vs the shipped
+    // default SET. Compares the UNION of priority + saved bins per
+    // kind so the one-shot bin migration (saved → priority) doesn't
+    // trip the dot — items just moved between bins, the visible set
+    // is unchanged.
+    function _wlKindModified(kind) {
+      var curUnion = (profile['priority_' + kind] || [])
+        .concat(profile['saved_' + kind] || [])
+        .map(_normalizeForWatch).sort();
+      var defUnion = (defaultProfile['priority_' + kind] || [])
+        .concat(defaultProfile['saved_' + kind] || [])
+        .map(_normalizeForWatch).sort();
+      if (curUnion.length !== defUnion.length) return true;
+      for (var wi = 0; wi < curUnion.length; wi++) {
+        if (curUnion[wi] !== defUnion[wi]) return true;
+      }
+      return false;
+    }
+    out.watchlist = 0;
+    if (_wlKindModified('venues'))  out.watchlist++;
+    if (_wlKindModified('artists')) out.watchlist++;
     if ((profile.theme || 'auto') !== 'auto') out.appearance++;
     return out;
   }
@@ -7885,10 +9303,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderSubcatRow(tag) {
     var tier = (profile.subcategory_tiers || {})[tag] || 'neutral';
     var chips = TIERS.map(function (t) {
+      var glyph = TIER_GLYPHS[t]
+        ? '<span class="tri-glyph" aria-hidden="true">' + TIER_GLYPHS[t] + '</span>'
+        : '';
       return (
         '<button type="button" class="tri" data-value="' + t + '" ' +
         'aria-pressed="' + (t === tier ? 'true' : 'false') + '">' +
-          TIER_LABELS[t] +
+          glyph + TIER_LABELS[t] +
         '</button>'
       );
     }).join('');
@@ -7948,10 +9369,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderFacetRow(name, blurb) {
     var tier = (profile.facet_tiers || {})[name] || 'neutral';
     var chips = TIERS.map(function (t) {
+      var glyph = TIER_GLYPHS[t]
+        ? '<span class="tri-glyph" aria-hidden="true">' + TIER_GLYPHS[t] + '</span>'
+        : '';
       return (
         '<button type="button" class="tri" data-value="' + t + '" ' +
         'aria-pressed="' + (t === tier ? 'true' : 'false') + '">' +
-          TIER_LABELS[t] +
+          glyph + TIER_LABELS[t] +
         '</button>'
       );
     }).join('');
@@ -8183,12 +9607,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     for (var r in defaults) {
       rows.push(renderRuleRow(r, defaults[r]));
     }
-    return (
-      '<div class="subcat-group">' +
-        renderAgeRangeRow() +
-        rows.join('\n') +
-      '</div>'
-    );
+    // Age range moved out — now lives in the dedicated Identity
+    // collapse (with the "Who it's for" identity facets) since it's a
+    // hard demographic filter, not a soft scoring rule.
+    return '<div class="subcat-group">' + rows.join('\n') + '</div>';
   }
 
   // Two-slider age-range control: events whose advertised demographic
@@ -8261,7 +9683,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         'data-hint-mode="visible" ' +
         'data-modified="' + (isAgeRangeModified() ? 'true' : 'false') + '">' +
         '<div class="shape-text">' +
-          '<span class="shape-name">Your age range</span>' +
+          '<span class="shape-name">Age range</span>' +
           '<span class="shape-hint">' + escapeHtml(hint) + '</span>' +
           '<button type="button" class="row-help" data-help="' +
             escapeHtml(hint) + '" aria-label="Help: Your age range" ' +
@@ -8427,12 +9849,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       key: 'reward',
       label: 'Reward strength',
       hint: 'How much your Love &amp; Like topic tiers pull events up.',
-      // Colour convention: green = bigger boost, gray = default, red =
-      // smaller boost.
+      // Higher number = stronger reward. Colours stay attached to
+      // meaning, not position: green/love on Strong (top of scale),
+      // red/avoid on Subtle (bottom).
       chips: [
-        { label: 'Strong',   multiplier: 1.5, color: 'love' },
-        { label: 'Standard', multiplier: 1,   color: 'meh' },
         { label: 'Subtle',   multiplier: 0.5, color: 'avoid' },
+        { label: 'Standard', multiplier: 1,   color: 'meh' },
+        { label: 'Strong',   multiplier: 1.5, color: 'love' },
       ],
     },
     {
@@ -8504,6 +9927,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         break;
       }
     }
+    // Chip labels are now 1..N numbers — higher = stronger effect.
+    // The friendly name (Balanced, Strong, etc.) lives in a readout
+    // next to the row title so the user knows what their pick means.
+    // aria-label keeps the word for screen readers.
     var chips = group.chips.map(function (c, idx) {
       var colorAttr = c.color
         ? ' data-tuning-color="' + escapeHtml(c.color) + '"'
@@ -8511,31 +9938,37 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return (
         '<button type="button" class="tri" data-tuning-chip="' + idx + '"' +
         colorAttr +
-        ' aria-pressed="' + (idx === matchedIdx ? 'true' : 'false') + '">' +
-          escapeHtml(c.label) +
+        ' aria-pressed="' + (idx === matchedIdx ? 'true' : 'false') + '"' +
+        ' aria-label="' + escapeHtml(c.label) + '">' +
+          (idx + 1) +
         '</button>'
       );
     }).join('');
-    // Inline badge after the row title: matched preset shows the
-    // multiplier (or absolute value for Strictness), gated by
-    // show-scores via .row-score-effect. Off-preset state shows
-    // persistent "custom: <value>" regardless of show-scores so the
-    // user always knows they're off-preset.
-    var inlineBadge = '';
+    // Friendly-name readout — always visible. When off-preset, shows
+    // "custom: <value>" so the user knows they've dialled away from
+    // the curated stops. Score-effect badge (numeric weight, gated by
+    // show-scores) still rides along.
+    var readoutText;
+    var customClass = '';
     if (matchedIdx === -1) {
       var customDisplay = group.key === 'strictness'
         ? (current != null ? current.toFixed(2) : '—')
         : (current != null ? formatMultiplier(current) : '—');
-      inlineBadge =
-        '<span class="chip-custom">custom: ' +
-          escapeHtml(customDisplay) +
-        '</span>';
+      readoutText = 'custom: ' + customDisplay;
+      customClass = ' tuning-readout--custom';
     } else {
+      readoutText = group.chips[matchedIdx].label;
+    }
+    var inlineBadge =
+      '<span class="tuning-readout' + customClass + '">' +
+        escapeHtml(readoutText) +
+      '</span>';
+    if (matchedIdx !== -1) {
       var matchedChip = group.chips[matchedIdx];
       var display = group.key === 'strictness'
         ? matchedChip.score_floor.toFixed(2)
         : formatMultiplier(matchedChip.multiplier);
-      inlineBadge =
+      inlineBadge +=
         '<span class="row-score-effect">' + escapeHtml(display) + '</span>';
     }
     var hintHtml =
@@ -8831,24 +10264,18 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // Replace the entire kind block so row indices stay in sync
     // with the new arrays. Cheap: at most ~16 entries per kind.
     var fresh = document.createElement('div');
-    fresh.innerHTML = renderWatchlistKindBlock(kind);
+    fresh.innerHTML = renderS2WatchlistKindBlock(kind);
     var freshBlock = fresh.firstElementChild;
     if (freshBlock && block.parentNode) {
       block.parentNode.replaceChild(freshBlock, block);
     }
     if (opts && opts.focusBin) {
-      // Re-open the add row + focus its input for the bin we just
-      // added to, so successive adds don't need a fresh + tap.
-      var addRow = document.querySelector(
-        '[data-watch-add-row="' + kind + ':' + opts.focusBin + '"]');
-      if (addRow) {
-        addRow.hidden = false;
-        var btn = document.querySelector(
-          '[data-watch-section-add="' + kind + ':' + opts.focusBin + '"]');
-        if (btn) btn.setAttribute('aria-expanded', 'true');
-        var input = addRow.querySelector('input');
-        if (input) input.focus();
-      }
+      // New single-pill-list UI: the search input is always visible —
+      // re-focus it so the user can keep adding without re-tapping.
+      var input = document.querySelector(
+        '.watchlist-kind[data-watch-kind-block="' + kind + '"] ' +
+        '.s2-watchlist-search');
+      if (input) input.focus();
     }
     updateSettingsTabDots();
   }
@@ -8964,29 +10391,29 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   function renderShowScoreToggleHtml() {
     var scoreOn = !!profile.show_score_chip;
     return (
-      '<label class="setting-toggle" for="show-score-chip-toggle">' +
-        '<input type="checkbox" id="show-score-chip-toggle" ' +
+      '<div class="rule-row rule-row--inline" data-hint-mode="visible">' +
+        '<div class="rule-text">' +
+          '<div class="rule-name">Show scores</div>' +
+          '<div class="rule-hint">Shows score contributions on events and relevant settings.</div>' +
+        '</div>' +
+        '<button type="button" class="s2-toggle" ' +
           'data-toggle-score-chip ' +
-          (scoreOn ? 'checked' : '') + '>' +
-        '<span class="setting-toggle__body">' +
-          '<span class="setting-toggle__label">Show event scores</span>' +
-          '<span class="setting-toggle__hint">Adds a small score chip ' +
-            'on each card with a breakdown of how vibes and rules ' +
-            'contributed to the ranking.</span>' +
-        '</span>' +
-      '</label>'
+          'aria-checked="' + (scoreOn ? 'true' : 'false') + '" ' +
+          'aria-label="Show scores"></button>' +
+      '</div>'
     );
   }
 
   // --- Shape sub-tab (raw sliders, now inside Tuning > Advanced) -----
   var SHAPE_FIELDS = [
-    { key: 'score_floor',        label: 'Score floor',
-      hint: 'Events with a score below this are hidden entirely. Raise it to tighten.',
-      min: -0.5, max: 1.0, step: 0.05 },
-    // diversity_category was here previously but is now auto-derived
-    // from score_floor + effective subcategory penalty (see
-    // diversityPenaltyFor) so the curated count stays near a target
-    // (~6 per category) as Variety dials sub_pen up or down.
+    // score_floor was here previously but is fully covered by the
+    // friendly Strictness ladder at the top of the Tuning section
+    // (Very loose / Loose / Balanced / Strict / Very strict). The
+    // raw slider duplicated the same value with worse ergonomics.
+    // diversity_category is auto-derived from score_floor + effective
+    // subcategory penalty (see diversityPenaltyFor) so the curated
+    // count stays near a target (~6 per category) as Variety dials
+    // sub_pen up or down.
     { key: 'diversity_subcategory', label: 'Subcategory spread',
       hint: 'Per-pair penalty when two picks share any subcategory. Higher = more variety within a category. Category cap auto-adjusts to keep ~6 events per category.',
       min: 0, max: 0.3, step: 0.01 },
@@ -9049,11 +10476,26 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // useful diagnostic gate users reach for often, so it doesn't
     // belong buried under the Advanced disclosure with the
     // raw-shape sliders.
+    //
+    // The Advanced disclosure carries its own reset link inside the
+    // summary so the user can revert just the Advanced sub-section
+    // without touching the friendly Tuning chips above. Click handler
+    // suppresses the summary toggle when the click lands on a
+    // data-action element.
     return (
-      renderShowScoreToggleHtml() +
-      '<div class="subcat-group">' + friendlyRows + '</div>' +
+      '<div class="subcat-group">' +
+        friendlyRows +
+        // Show-scores toggle rides at the foot of the friendly chip
+        // block, right under Avoid strength — keeps the diagnostic
+        // gate adjacent to the knobs whose effect it makes visible.
+        renderShowScoreToggleHtml() +
+      '</div>' +
       '<details class="tuning-advanced" data-persist-open="tuning-advanced">' +
-        '<summary>Advanced</summary>' +
+        '<summary>' +
+          '<span class="tuning-advanced__label">Advanced</span>' +
+          '<button type="button" class="s2-section__reset settings-action" ' +
+            'data-action="reset-shape-advanced">reset</button>' +
+        '</summary>' +
         '<div class="subcat-group">' + advancedRows + weightRows + '</div>' +
       '</details>'
     );
@@ -9070,9 +10512,13 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // Included tier always weights 0 (no slider) — it's the "kept but
   // not boosted" tier. Outside tier is hard-filtered, so no slider.
   var SUBURB_WEIGHT_FIELDS = [
-    { tier: 'home',  label: 'Home bonus',  hint: '',
+    { tier: 'home',  label: 'Home bonus',
+      hint: 'Score boost added to events in any suburb tiered as Home. ' +
+        'Higher = your home suburb pulls events to the top harder.',
       min: 0, max: 0.4, step: 0.01 },
-    { tier: 'local', label: 'Local bonus', hint: '',
+    { tier: 'local', label: 'Local bonus',
+      hint: 'Score boost added to events in any suburb tiered as Local. ' +
+        'Higher = nearby suburbs rank above the rest more strongly.',
       min: 0, max: 0.4, step: 0.01 },
   ];
 
@@ -9124,17 +10570,29 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         '</button>'
       );
     }).join('');
+    // Per-suburb score badge dropped — the score is identical for every
+    // suburb in the same tier, so it's surfaced once on the tier
+    // marker (Home / Local / Included / Outside) instead of N times
+    // per suburb. Less noise per row.
+    //
+    // Reset button sits in its own grid cell, directly LEFT of the
+    // (right-aligned) chip cluster — pinned to the controls, not
+    // the label. Suburb-row grid is 3-col: label | reset | chips.
     return (
       '<div class="suburb-row" data-suburb="' + escapeHtml(suburb) + '" ' +
         'data-modified="' + (isSuburbTierModified(suburb) ? 'true' : 'false') + '">' +
-        '<span class="subcat-name">' + escapeHtml(suburb) +
-          renderRowScoreEffect(suburbScoreEffect(suburb)) +
-        '</span>' +
+        '<div class="shape-text">' +
+          '<span class="subcat-name">' + escapeHtml(suburb) + '</span>' +
+        '</div>' +
         renderRowResetBtn() +
         '<div class="tri-state" role="radiogroup" aria-label="' +
           escapeHtml(suburb) + ' tier">' + chips + '</div>' +
       '</div>'
     );
+  }
+
+  function suburbTierScoreEffect(tier) {
+    return (profile.suburb_tier_weights || {})[tier];
   }
 
   // Datalist of all suburbs — rendered once at panel root and shared
@@ -9234,7 +10692,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
             (outsideHasModified ? ' open' : '') + '>' +
             '<summary>' +
               '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) +
-              ' (' + groups[tk].length + ')</span>' +
+              ' (' + groups[tk].length + ')' +
+                renderRowScoreEffect(suburbTierScoreEffect(tk)) +
+              '</span>' +
               '<button type="button" class="add-suburb-btn" ' +
                 'data-add-suburb="' + tk + '" ' +
                 'aria-expanded="false" ' +
@@ -9251,7 +10711,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         sections.push(
           '<div class="subcat-group" data-suburb-tier="' + tk + '">' +
             '<h4 class="subcat-group-heading">' +
-              '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) + '</span>' +
+              '<span>' + escapeHtml(SUBURB_TIER_SECTION_LABELS[tk]) +
+                renderRowScoreEffect(suburbTierScoreEffect(tk)) +
+              '</span>' +
               '<button type="button" class="add-suburb-btn" ' +
                 'data-add-suburb="' + tk + '" ' +
                 'aria-expanded="false" ' +
@@ -9418,126 +10880,1039 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     );
   }
 
+  // ============================================================
+  //   Settings v2 — single-scroll layout + Engine Room sub-view
+  // ============================================================
+  // The Settings modal shell is unchanged (right-sliding panel with a
+  // sticky title-and-close header). What changed is what fills it:
+  // the old sticky 7-subtab strip is gone, replaced with a single
+  // scrolling page where two sections sit always-visible at the top
+  // (Watchlists, Vibe tags + Feels) and the rest live behind collapse
+  // disclosures (More tags, Suburbs, Rules, Display). The deepest
+  // tuning controls move into a dedicated Engine Room sub-view that
+  // swaps the modal contents on tap.
+  //
+  // Existing render*Panel() helpers stay — they're reused as the
+  // bodies of the new sections. The change is purely in the wrapping
+  // structure + the section header chrome.
+
+  // Subtle warm dot beside a collapse-header label when that section
+  // has any state diverging from defaults.
+  function s2ModDot() {
+    return '<span class="s2-mod-dot" aria-hidden="true"></span>';
+  }
+
+  // Reset link inside a section header. Reuses the existing
+  // data-action wiring (reset-watchlist / reset-vibes / reset-tags /
+  // reset-rules / reset-suburbs / reset-shape) so per-section reset
+  // logic in the click handler keeps working unchanged.
+  function s2SectionReset(action, label) {
+    return (
+      '<button type="button" class="s2-section__reset settings-action" ' +
+        'data-action="' + action + '">' +
+        escapeHtml(label || 'reset') +
+      '</button>'
+    );
+  }
+
+  // Always-visible section block (Watchlists, Vibe tags, Feels). Mirrors
+  // the mockup's .section shape: small uppercase label, optional
+  // italic helper paragraph, then body. Outer div carries
+  // data-subtab="…" so existing reset/modified-dot selectors that
+  // walk `.settings-panel[data-subtab="…"]` still find it.
+  function renderS2Section(opts) {
+    var resetHtml = opts.resetAction
+      ? s2SectionReset(opts.resetAction, opts.resetLabel)
+      : '';
+    var dot = opts.modified ? s2ModDot() : '';
+    return (
+      '<section class="s2-section settings-panel" data-subtab="' + opts.name + '">' +
+        '<div class="s2-section__label">' +
+          '<span class="s2-section__name">' + escapeHtml(opts.label) + dot + '</span>' +
+          resetHtml +
+        '</div>' +
+        (opts.helper
+          ? '<p class="s2-section__helper">' + opts.helper + '</p>'
+          : '') +
+        (opts.body || '') +
+      '</section>'
+    );
+  }
+
+  // Tier-2 collapse — single tappable header row with label + preview
+  // text + chevron. Body slides open below on tap. Reset link, when
+  // provided, sits AFTER the chevron on the header row so it's visible
+  // as soon as the section is open (and not buried at the foot of a
+  // long body). The reset button stops propagation so tapping it
+  // doesn't also toggle the collapse open/closed.
+  function renderS2Collapse(opts) {
+    var open = !!opts.open;
+    var resetHtml = opts.resetAction
+      ? s2SectionReset(opts.resetAction, opts.resetLabel)
+      : '';
+    var dot = opts.modified ? s2ModDot() : '';
+    return (
+      '<section class="s2-collapse settings-panel" ' +
+        'data-subtab="' + opts.name + '" ' +
+        'data-open="' + (open ? 'true' : 'false') + '">' +
+        '<div class="s2-collapse__head-row">' +
+          '<button type="button" class="s2-collapse__header" ' +
+            'aria-expanded="' + (open ? 'true' : 'false') + '">' +
+            '<span class="s2-collapse__label">' +
+              escapeHtml(opts.label) + dot +
+            '</span>' +
+            '<span class="s2-collapse__preview">' + (opts.preview || '') + '</span>' +
+            '<span class="s2-collapse__chevron" aria-hidden="true">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M6 9l6 6 6-6"/>' +
+              '</svg>' +
+            '</span>' +
+          '</button>' +
+          (resetHtml
+            ? '<span class="s2-collapse__reset-slot">' + resetHtml + '</span>'
+            : '') +
+        '</div>' +
+        '<div class="s2-collapse__body">' +
+          (opts.helper
+            ? '<p class="s2-section__helper">' + opts.helper + '</p>'
+            : '') +
+          (opts.body || '') +
+        '</div>' +
+      '</section>'
+    );
+  }
+
+  // Mockup-style watchlist block: header + always-visible search input +
+  // single combined pill list per kind. Replaces the dual-bin
+  // Priority/Saved UI from the previous design — both bins are merged
+  // into a single visible list (see ensureWatchlistBinsMerged below).
+  function renderS2WatchlistsBody() {
+    return (
+      '<div class="watchlist-section">' +
+        renderS2WatchlistKindBlock('venues') +
+      '</div>' +
+      '<div class="watchlist-section">' +
+        renderS2WatchlistKindBlock('artists') +
+      '</div>'
+    );
+  }
+
+  function renderS2WatchlistKindBlock(kind) {
+    var title = kind === 'venues' ? 'Venues' : 'Artists';
+    var noun = kind === 'venues' ? 'venue' : 'artist';
+    // After ensureWatchlistBinsMerged() the saved bin is empty; render
+    // the union for safety in case the migration hasn't run yet (e.g.
+    // a stale tab still on the previous build). Removes target the
+    // bin a row actually came from.
+    var prio = watchlistList(kind, 'priority');
+    var saved = watchlistList(kind, 'saved');
+    var total = prio.length + saved.length;
+    var rowsHtml = prio.map(function (item, idx) {
+      return renderS2WatchPill(kind, 'priority', item, idx);
+    }).concat(saved.map(function (item, idx) {
+      return renderS2WatchPill(kind, 'saved', item, idx);
+    })).join('');
+    var meta = total + ' followed';
+    return (
+      '<div class="watchlist-kind" data-watch-kind-block="' + kind + '">' +
+        '<div class="s2-watchlist-block">' +
+          '<div class="s2-watchlist-block__header">' +
+            '<span class="s2-watchlist-block__title">' + escapeHtml(title) + '</span>' +
+            '<span class="s2-watchlist-block__meta">' + meta + '</span>' +
+          '</div>' +
+          '<input type="text" class="s2-watchlist-search" ' +
+            'data-watch-add="' + kind + ':priority" ' +
+            'placeholder="Search to add a ' + noun + '&hellip;" ' +
+            'autocomplete="off" autocapitalize="words" spellcheck="false">' +
+          '<div class="s2-pill-list" data-watch-rows="' + kind + ':all">' +
+            rowsHtml +
+          '</div>' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  function renderS2WatchPill(kind, bin, item, idx) {
+    return (
+      '<span class="s2-pill" ' +
+        'data-watch-kind="' + kind + '" ' +
+        'data-watch-bin="' + bin + '" ' +
+        'data-watch-idx="' + idx + '">' +
+        '<span class="s2-pill__label">' + escapeHtml(item) + '</span>' +
+        '<button type="button" class="s2-pill__remove" ' +
+          'data-watch-remove="' + kind + ':' + bin + ':' + idx + '" ' +
+          'aria-label="Remove ' + escapeHtml(item) + '">&times;</button>' +
+      '</span>'
+    );
+  }
+
+  // Cycle order for the single chip: neutral → like → love → avoid →
+  // neutral. Matches the mockup's interaction cadence (least intense
+  // signal upgrades first; avoid sits at the end so it takes 3 taps to
+  // get there from neutral — guards against accidental avoids).
+  var S2_TIER_CYCLE = ['neutral', 'like', 'love', 'avoid'];
+  var S2_INCL_CYCLE = ['no', 'curious', 'yes'];
+
+  // Patch a chip in place after a cycle. Avoid a full re-render so the
+  // user sees the chip update under their finger. For facet chips, also
+  // update the label text to the new state name.
+  function s2UpdateChip(chip, state, opts) {
+    opts = opts || {};
+    chip.dataset.state = state;
+    chip.setAttribute('aria-pressed', state !== 'neutral' ? 'true' : 'false');
+    if (opts.showLabel) {
+      var labelEl = chip.querySelector('.s2-chip__label');
+      if (labelEl) labelEl.textContent = TIER_LABELS[state] || state;
+    }
+  }
+  function s2UpdateInclChip(chip, state) {
+    chip.dataset.inclState = state;
+    chip.setAttribute('aria-pressed', state !== 'no' ? 'true' : 'false');
+    var labelEl = chip.querySelector('.s2-chip__label');
+    if (labelEl) labelEl.textContent = INCL_PREF_LABELS[state] || state;
+  }
+
+  // Sync the sun/moon icon in the modal header to the effective theme.
+  function s2RefreshThemeIcon() {
+    var sun = document.querySelector('.theme-icon--sun');
+    var moon = document.querySelector('.theme-icon--moon');
+    if (!sun || !moon) return;
+    // Effective theme = explicit setting if set, else OS preference.
+    var setting = profile.theme || 'auto';
+    var effective;
+    if (setting === 'light' || setting === 'dark') {
+      effective = setting;
+    } else if (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches) {
+      effective = 'dark';
+    } else {
+      effective = 'light';
+    }
+    // Show the icon you'd swap TO — when dark is active, show sun
+    // (tap to go light); when light is active, show moon.
+    if (effective === 'dark') {
+      sun.hidden = false;
+      moon.hidden = true;
+    } else {
+      sun.hidden = true;
+      moon.hidden = false;
+    }
+  }
+
+  // Single mockup-style chip — one button per tag/facet that cycles
+  // through neutral → like → love → avoid → neutral on tap. The chip
+  // is BOTH the label and the picker (vs the older 4-button tri-state
+  // shape). Used in Vibe tags + More tags (label = tag name) and in
+  // Feels (label = state name, updated on each cycle).
+  //
+  // opts: { state, label, ariaLabel, dataAttr (e.g. 'data-s2-subcat="jazz"'),
+  //         extraClasses }
+  function renderS2Chip(opts) {
+    var state = opts.state || 'neutral';
+    return (
+      '<button type="button" class="s2-chip' +
+        (opts.extraClasses ? ' ' + opts.extraClasses : '') + '" ' +
+        'data-state="' + state + '" ' +
+        (opts.dataAttr || '') + ' ' +
+        'aria-label="' + escapeHtml(opts.ariaLabel || opts.label) + '" ' +
+        'aria-pressed="' + (state !== 'neutral' ? 'true' : 'false') + '">' +
+        '<span class="s2-chip__glyph" aria-hidden="true"></span>' +
+        '<span class="s2-chip__label">' + escapeHtml(opts.label) + '</span>' +
+      '</button>'
+    );
+  }
+
+  // Subcategory chip — label = tag name. Glyph reflects current tier.
+  function renderS2SubcatChip(tag) {
+    var tier = (profile.subcategory_tiers || {})[tag] || 'neutral';
+    return renderS2Chip({
+      state: tier,
+      label: tag,
+      ariaLabel: tag + ' (' + (TIER_LABELS[tier] || tier) + ', tap to cycle)',
+      dataAttr: 'data-s2-subcat="' + escapeHtml(tag) + '"',
+    });
+  }
+
+  // Facet chip — label = state name (Love / Like / Meh / Avoid),
+  // updated client-side as the chip cycles.
+  function renderS2FacetChip(name) {
+    var tier = (profile.facet_tiers || {})[name] || 'neutral';
+    return renderS2Chip({
+      state: tier,
+      label: TIER_LABELS[tier],
+      ariaLabel: name.replace(/_/g, ' ') + ' (tap to cycle)',
+      dataAttr: 'data-s2-facet="' + escapeHtml(name) + '"',
+      extraClasses: 's2-chip--facet',
+    });
+  }
+
+  // Inclusivity chip — yes / curious / no cycle, used in the "Who it's
+  // for" identity-facet rows below Feels.
+  function renderS2InclChip(name) {
+    var pref = (profile.inclusivity_prefs || {})[name] || 'no';
+    return (
+      '<button type="button" class="s2-chip s2-chip--facet s2-chip--incl" ' +
+        'data-incl-state="' + pref + '" ' +
+        'data-s2-incl="' + escapeHtml(name) + '" ' +
+        'aria-label="' + escapeHtml(name.replace(/_/g, ' ') +
+          ' (' + (INCL_PREF_LABELS[pref] || pref) + ', tap to cycle)') + '" ' +
+        'aria-pressed="' + (pref !== 'no' ? 'true' : 'false') + '">' +
+        '<span class="s2-chip__label">' + escapeHtml(
+          INCL_PREF_LABELS[pref] || pref) + '</span>' +
+      '</button>'
+    );
+  }
+
+  // Vibe tags — flat chip grid of the Broad / cross-category subcat
+  // group as single cycling chips.
+  function renderS2VibeTagsBody() {
+    if (!BROAD_SUBCATS.length) {
+      return '<div class="settings-placeholder">No broad tags in profile.</div>';
+    }
+    var broadSorted = BROAD_SUBCATS.slice().sort();
+    var chips = broadSorted.map(renderS2SubcatChip).join('');
+    return '<div class="s2-chip-grid">' + chips + '</div>';
+  }
+
+  // Combined Tags body — Vibe tags (cross-category) chip grid up top,
+  // then a subheading + the per-category subcollapses (Music, Watch,
+  // Hands-on, Movement, Go somewhere, Loose ends).
+  function renderS2TagsBody() {
+    var parts = [];
+    if (BROAD_SUBCATS.length) {
+      // Broad-style tags are "modified" when any Broad subcategory
+      // diverges from its default tier. Dot + ↺ icon are always in
+      // DOM; CSS hides them when data-broad-modified="false".
+      var broadModified = s2BroadTagsModified();
+      parts.push(
+        '<div class="s2-tags-vibe" ' +
+          'data-broad-modified="' + (broadModified ? 'true' : 'false') + '">' +
+          '<div class="s2-tags-vibe__head">' +
+            '<div class="s2-facet-subheading">Broad style tags' +
+              ' ' + s2ModDot() +
+              '<button type="button" class="s2-subcollapse__reset-icon" ' +
+                'data-action="reset-tags-broad" ' +
+                'aria-label="Reset broad style tags to defaults" ' +
+                'title="Reset to defaults">↺</button>' +
+            '</div>' +
+          '</div>' +
+          renderS2VibeTagsBody() +
+        '</div>'
+      );
+    }
+    parts.push(
+      '<div class="s2-tags-more">' +
+        '<div class="s2-facet-subheading">By category</div>' +
+        renderS2MoreTagsBody() +
+      '</div>'
+    );
+    return parts.join('');
+  }
+
+  // Feels — the four "personality" facets up top, plus the identity
+  // inclusivity facets below in a "Who it's for" mini-group (yes /
+  // curious / no picker). HIDDEN_FACETS stay hidden; `resonance` is
+  // omitted on purpose per the redesign plan (it's the meta facet
+  // that captures the curator's small-indie-warm vibe and is best
+  // left as a curation knob).
+  var S2_FEELS_FACETS = [
+    'contemplative_inner',
+    'intimate_relational',
+    'experimental_unconventional',
+    'intellectual_academic',
+  ];
+  function renderS2FacetRow(name, blurb, chipHtml, kind) {
+    var displayName = name
+      .replace(/_oriented$/, '')
+      .replace(/_/g, ' ')
+      .replace(/\b\w/g, function (c) { return c.toUpperCase(); });
+    var IDENT_LABELS = { feminine_oriented: 'Women', masculine_oriented: 'Men' };
+    if (IDENT_LABELS[name]) displayName = IDENT_LABELS[name];
+    var isIncl = kind === 'incl';
+    var dataAttr = isIncl
+      ? 'data-incl="' + escapeHtml(name) + '"'
+      : 'data-facet="' + escapeHtml(name) + '"';
+    var modified = isIncl ? isInclModified(name) : isFacetModified(name);
+    // Reuses .facet-row class so the existing data-modified::after
+    // dot and reset-button visibility CSS already lights it up. The
+    // resetRow handler dispatches on data-facet / data-incl so the
+    // per-row reset reverts just this facet's tier. Reset sits to
+    // the LEFT of the right-aligned chip (same pattern as suburb
+    // rows) so it's pinned to the controls but doesn't fall off the
+    // right edge.
+    return (
+      '<div class="s2-facet-row facet-row" ' + dataAttr + ' ' +
+        'data-modified="' + (modified ? 'true' : 'false') + '">' +
+        '<div class="s2-facet-row__text">' +
+          '<span class="s2-facet-row__label facet-name">' +
+            escapeHtml(displayName) + '</span>' +
+          (blurb
+            ? '<div class="s2-facet-row__sublabel">' + escapeHtml(blurb) + '</div>'
+            : '') +
+        '</div>' +
+        renderRowResetBtn() +
+        chipHtml +
+      '</div>'
+    );
+  }
+
+  function renderS2FeelsBody() {
+    var blurbs = profile.facet_blurbs || {};
+    var personalityRows = [];
+    for (var i = 0; i < S2_FEELS_FACETS.length; i++) {
+      var name = S2_FEELS_FACETS[i];
+      if (HIDDEN_FACETS[name]) continue;
+      if (isInclusivityIdentityFacet(name)) continue;
+      if (!(name in blurbs)) continue;
+      personalityRows.push(renderS2FacetRow(name, blurbs[name],
+        renderS2FacetChip(name), 'facet'));
+    }
+    if (!personalityRows.length) {
+      return '<div class="settings-placeholder">No feels in profile.</div>';
+    }
+    return '<div class="s2-facet-group">' + personalityRows.join('\n') + '</div>';
+  }
+
+  // Who it's for — collapsed section holding the identity facets
+  // (yes / curious / no per group) plus the hard age-range filter.
+  // Both surfaces describe WHO the user is rather than how the menu
+  // should rank events, which is why they live together (and apart
+  // from Rules, where age used to live). The collapse header already
+  // says "Who it's for", so the body skips a redundant repeat heading.
+  function renderS2IdentityBody() {
+    var blurbs = profile.facet_blurbs || {};
+    var identRows = [];
+    for (var iname in blurbs) {
+      if (HIDDEN_FACETS[iname]) continue;
+      if (isInclusivityIdentityFacet(iname)) {
+        identRows.push(renderS2FacetRow(iname, blurbs[iname],
+          renderS2InclChip(iname), 'incl'));
+      }
+    }
+    // Render identity rows + the age-range row as siblings inside the
+    // SAME facet group so they share the same vertical rhythm + the
+    // 1px row dividers stack continuously between them. (Wrapping the
+    // age row in its own .s2-age-range-wrap added a gap and broke the
+    // divider line, making the age slider feel disconnected.)
+    var rows = identRows.slice();
+    rows.push(renderAgeRangeRow());
+    if (!rows.length) {
+      return '<div class="settings-placeholder">No identity prefs.</div>';
+    }
+    return '<div class="s2-facet-group">' + rows.join('\n') + '</div>';
+  }
+
+  function s2IdentityPreview() {
+    var minA = ageRangeProfileMin();
+    var maxA = ageRangeProfileMax();
+    var prefs = profile.inclusivity_prefs || {};
+    var yesCount = 0, curiousCount = 0;
+    for (var k in prefs) {
+      if (prefs[k] === 'yes') yesCount++;
+      else if (prefs[k] === 'curious') curiousCount++;
+    }
+    var bits = [];
+    bits.push(minA + '–' + formatAgeMax(maxA));
+    if (yesCount)     bits.push(yesCount + ' yes');
+    if (curiousCount) bits.push(curiousCount + ' curious');
+    return bits.join(' · ');
+  }
+
+  function s2IdentityModified() {
+    if (isAgeRangeModified()) return true;
+    var prefs = profile.inclusivity_prefs || {};
+    var defaultPrefs = defaultProfile.inclusivity_prefs || {};
+    var seen = {};
+    for (var k in prefs) {
+      seen[k] = true;
+      if ((prefs[k] || 'no') !== (defaultPrefs[k] || 'no')) return true;
+    }
+    for (var d in defaultPrefs) {
+      if (seen[d]) continue;
+      if ((defaultPrefs[d] || 'no') !== 'no') return true;
+    }
+    return false;
+  }
+
+  // More tags — per-category subcat groups, each wrapped in its own
+  // nested subcollapse. Skips the Broad group (already in Vibe tags).
+  function renderS2MoreTagsBody() {
+    var tax = profile.subcategory_taxonomy || {};
+    var parts = [];
+    for (var i = 0; i < CATEGORY_ORDER.length; i++) {
+      var catKey = CATEGORY_ORDER[i];
+      var tags = tax[catKey];
+      if (!tags || !tags.length) continue;
+      var display = CATEGORY_DISPLAY[catKey] || catKey;
+      var sortedTags = tags
+        .slice()
+        .filter(function (t) { return !BROAD_SUBCAT_SET[t]; })
+        .sort();
+      if (!sortedTags.length) continue;
+      var meta = s2SubcatGroupMeta(sortedTags);
+      var chips = sortedTags.map(renderS2SubcatChip).join('');
+      var catModified = false;
+      for (var sm = 0; sm < sortedTags.length; sm++) {
+        if (isSubcatModified(sortedTags[sm])) { catModified = true; break; }
+      }
+      parts.push(
+        '<div class="s2-subcollapse" data-open="false" ' +
+          'data-s2-cat="' + escapeHtml(catKey) + '" ' +
+          'data-cat-modified="' + (catModified ? 'true' : 'false') + '">' +
+          // Head-row is the toggle target (click anywhere except the
+          // reset icon toggles the subcollapse). Title + ● modified
+          // dot + ↺ reset icon sit inline at the start; meta + chevron
+          // sit at the end. Dot + reset are ALWAYS in the DOM and
+          // CSS-hidden when data-cat-modified="false" — that way
+          // s2RefreshCollapsePreviews can just flip the attribute
+          // when state changes mid-session without re-injecting nodes.
+          '<div class="s2-subcollapse__header" role="button" tabindex="0" ' +
+            'aria-expanded="false">' +
+            '<span class="s2-subcollapse__title">' + escapeHtml(display) +
+              ' ' + s2ModDot() +
+            '</span>' +
+            '<button type="button" class="s2-subcollapse__reset-icon" ' +
+              'data-action="reset-tags-cat" ' +
+              'data-tags-cat="' + escapeHtml(catKey) + '" ' +
+              'aria-label="Reset ' + escapeHtml(display) + ' to defaults" ' +
+              'title="Reset to defaults">↺</button>' +
+            '<span class="s2-subcollapse__meta">' + escapeHtml(meta) + '</span>' +
+            '<span class="s2-subcollapse__chevron" aria-hidden="true">' +
+              '<svg viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+                'stroke-width="2" stroke-linecap="round" stroke-linejoin="round">' +
+                '<path d="M6 9l6 6 6-6"/>' +
+              '</svg>' +
+            '</span>' +
+          '</div>' +
+          '<div class="s2-subcollapse__body">' +
+            '<div class="s2-chip-grid">' + chips + '</div>' +
+          '</div>' +
+        '</div>'
+      );
+    }
+    if (!parts.length) {
+      return '<div class="settings-placeholder">No more tags.</div>';
+    }
+    // Score-chip crumb stays in the More tags context (it points to a
+    // toggle elsewhere). Hidden-events footer moved out to its own
+    // slot just above the Engine Room — it applies to events generally,
+    // not specifically to the tag groups.
+    return parts.join('\n') + renderScoreChipCrumb();
+  }
+
+  function s2SubcatGroupMeta(tags) {
+    var set = 0, avoided = 0;
+    var tiers = profile.subcategory_tiers || {};
+    for (var i = 0; i < tags.length; i++) {
+      var t = tiers[tags[i]] || 'neutral';
+      if (t === 'love' || t === 'like') set++;
+      else if (t === 'avoid') { set++; avoided++; }
+    }
+    if (set === 0) return '';
+    if (avoided === 0) return set + ' set';
+    return set + ' set · ' + avoided + ' avoided';
+  }
+
+  // Display body — Theme picker + Compact cards stub toggle.
+  function renderS2DisplayBody() {
+    return (
+      renderThemePickerHtml() +
+      '<div class="rule-row" style="border-bottom: none; margin-top: 8px;">' +
+        '<div class="rule-text">' +
+          '<div class="rule-name">Compact cards</div>' +
+          '<div class="rule-desc">Denser layout, more events per screen.</div>' +
+        '</div>' +
+        '<button type="button" class="s2-toggle s2-stub" ' +
+          'aria-checked="false" title="Coming soon"></button>' +
+      '</div>'
+    );
+  }
+
+  // Engine Room entry — tappable row that swaps the modal body from
+  // settings-view to engine-view.
+  function renderS2EngineRoomLink(modified) {
+    return (
+      '<button type="button" class="s2-engine-link" ' +
+        'data-s2-enter-engine>' +
+        '<div class="s2-engine-link__inner">' +
+          '<div class="s2-engine-link__title">Engine <em>Room</em>' +
+            (modified ? ' ' + s2ModDot() : '') +
+          '</div>' +
+          '<div class="s2-engine-link__sub">' +
+            'The scoring engine, exposed. For when you really want to ' +
+            'look under the hood.' +
+          '</div>' +
+        '</div>' +
+        '<span class="s2-engine-link__arrow" aria-hidden="true">&rarr;</span>' +
+      '</button>'
+    );
+  }
+
+  // Curator note sits at the TOP of the settings panel (used to live in
+  // the footer). Combines the privacy promise with the persistence
+  // reassurance so the user reads them as a pair on entry.
+  function renderS2PreambleNote() {
+    return (
+      '<div class="s2-preamble-note">' +
+        '<div class="s2-preamble-note__text">' +
+          'Nothing here learns about you. The engine only does what you ' +
+          'tell it. Your tweaks persist — pop back any time and the menu ' +
+          'picks up how you set it. (Safari resets after a week away.)' +
+        '</div>' +
+      '</div>'
+    );
+  }
+
+  // Section-preview strings for the closed collapse headers.
+  function s2WatchlistPreview() {
+    var v = (profile.priority_venues || []).length
+          + (profile.saved_venues || []).length;
+    var a = (profile.priority_artists || []).length
+          + (profile.saved_artists || []).length;
+    if (v === 0 && a === 0) return 'none';
+    var bits = [];
+    if (v) bits.push(v + (v === 1 ? ' venue' : ' venues'));
+    if (a) bits.push(a + (a === 1 ? ' artist' : ' artists'));
+    return bits.join(' · ');
+  }
+  function s2BroadTagsModified() {
+    var tiers = profile.subcategory_tiers || {};
+    var defs = defaultProfile.subcategory_tiers || {};
+    for (var i = 0; i < BROAD_SUBCATS.length; i++) {
+      var t = BROAD_SUBCATS[i];
+      if ((tiers[t] || 'neutral') !== (defs[t] || 'neutral')) return true;
+    }
+    return false;
+  }
+  function s2VibeTagsPreview() {
+    var tiers = profile.subcategory_tiers || {};
+    var defs = defaultProfile.subcategory_tiers || {};
+    var changed = 0;
+    for (var i = 0; i < BROAD_SUBCATS.length; i++) {
+      var t = BROAD_SUBCATS[i];
+      if ((tiers[t] || 'neutral') !== (defs[t] || 'neutral')) changed++;
+    }
+    if (changed === 0) return 'all default';
+    return changed + (changed === 1 ? ' tag set' : ' tags set');
+  }
+  function s2FeelsPreview() {
+    var tiers = profile.facet_tiers || {};
+    var defs = defaultProfile.facet_tiers || {};
+    var changed = 0;
+    for (var i = 0; i < S2_FEELS_FACETS.length; i++) {
+      var name = S2_FEELS_FACETS[i];
+      if ((tiers[name] || 'neutral') !== (defs[name] || 'neutral')) changed++;
+    }
+    if (changed === 0) return 'all default';
+    return changed + (changed === 1 ? ' facet set' : ' facets set');
+  }
+  function s2TagsPreview() {
+    var counts = settingsTabModifiedCounts();
+    if (counts.tags === 0) return 'all default';
+    return counts.tags + (counts.tags === 1 ? ' tag set' : ' tags set');
+  }
+  function s2SuburbsPreview() {
+    var tax = (defaultProfile.suburb_taxonomy || []);
+    var groups = { home: 0, local: 0, included: 0 };
+    for (var i = 0; i < tax.length; i++) {
+      var t = suburbCurrentTier(tax[i]);
+      if (t in groups) groups[t]++;
+    }
+    var bits = [];
+    if (groups.home)     bits.push(groups.home + ' home');
+    if (groups.local)    bits.push(groups.local + ' local');
+    if (groups.included) bits.push(groups.included + ' included');
+    return bits.join(' · ') || 'default';
+  }
+  function s2RulesPreview() {
+    var counts = settingsTabModifiedCounts();
+    if (counts.rules === 0) return 'all default';
+    return counts.rules + (counts.rules === 1 ? ' rule changed' : ' rules changed');
+  }
+  function s2DisplayPreview() {
+    var theme = profile.theme || 'auto';
+    var label = theme.charAt(0).toUpperCase() + theme.slice(1);
+    return label;
+  }
+
+  // Engine Room view — second `.s2-view` inside #settings-view. Holds
+  // the existing Tuning knobs (strictness / reward / variety / avoid)
+  // plus a profile-management danger zone with stub buttons.
+  function renderS2EngineRoomView() {
+    return (
+      '<div class="s2-view s2-view--engine" data-s2-view="engine" hidden>' +
+        '<div class="s2-engine-intro">' +
+          '<p class="s2-engine-intro__text">' +
+            'Every event gets a <em>score</em> based on how well it ' +
+            'matches your preferences — your loved tags, your watched ' +
+            'venues, your home suburbs, the rules you’ve set. The ' +
+            'menu sorts by that score, hides anything below the ' +
+            'Strictness floor, and spreads picks across categories ' +
+            'for variety.' +
+          '</p>' +
+          '<p class="s2-engine-intro__text">' +
+            'Everything below changes how that score is calculated. ' +
+            'Reset any section if you’ve wandered too far.' +
+          '</p>' +
+        '</div>' +
+        // Reuse the existing Shape/Tuning panel — its data-subtab="shape"
+        // attribute keeps the reset-shape action wired.
+        '<section class="s2-engine-section settings-panel" data-subtab="shape">' +
+          '<div class="s2-section__label">' +
+            '<span class="s2-section__name">Tuning</span>' +
+            s2SectionReset('reset-shape', 'reset') +
+          '</div>' +
+          renderShapePanel() +
+        '</section>' +
+        // Profile / danger zone — stub buttons for now.
+        '<section class="s2-danger-zone">' +
+          '<div class="s2-section__label">' +
+            '<span class="s2-section__name">Profile</span>' +
+          '</div>' +
+          '<button type="button" class="s2-danger-button s2-stub" ' +
+            'title="Coming soon">Export profile (JSON)</button>' +
+          '<button type="button" class="s2-danger-button s2-stub" ' +
+            'title="Coming soon">Import profile</button>' +
+          '<button type="button" class="s2-danger-button s2-danger-button--reset s2-stub" ' +
+            'title="Coming soon">Reset everything to defaults</button>' +
+        '</section>' +
+      '</div>'
+    );
+  }
+
+  // One-shot migration: every entry in `saved_venues` / `saved_artists`
+  // is promoted into `priority_venues` / `priority_artists` so the new
+  // single-pill-list UI surfaces everything the user previously had in
+  // either bin. Guarded by a profile-level flag so it runs once per
+  // user (re-runnable in dev by clearing the flag).
+  function ensureWatchlistBinsMerged() {
+    if (profile.watchlist_bins_merged) return;
+    var changed = false;
+    ['venues', 'artists'].forEach(function (kind) {
+      var prioKey = 'priority_' + kind;
+      var savedKey = 'saved_' + kind;
+      var prio = (profile[prioKey] || []).slice();
+      var saved = (profile[savedKey] || []).slice();
+      if (!saved.length) return;
+      var seen = {};
+      for (var i = 0; i < prio.length; i++) {
+        seen[_normalizeForWatch(prio[i])] = true;
+      }
+      for (var j = 0; j < saved.length; j++) {
+        var n = _normalizeForWatch(saved[j]);
+        if (!seen[n]) {
+          prio.push(saved[j]);
+          seen[n] = true;
+        }
+      }
+      profile[prioKey] = prio;
+      profile[savedKey] = [];
+      changed = true;
+    });
+    profile.watchlist_bins_merged = true;
+    if (changed) {
+      // Re-run auto-pin so newly-promoted venues take effect.
+      applyWatchlistAutoPin();
+    }
+    saveProfile();
+  }
+
+  function renderS2SettingsView() {
+    var counts = settingsTabModifiedCounts();
+    return (
+      '<div class="s2-view s2-view--settings" data-s2-view="settings">' +
+        renderS2PreambleNote() +
+        renderS2Collapse({
+          name: 'watchlist',
+          label: 'Watchlists',
+          preview: s2WatchlistPreview(),
+          helper: 'Artists and venues you follow. They surface above ' +
+            'other events whenever they have something on.',
+          body: renderS2WatchlistsBody(),
+          modified: counts.watchlist > 0,
+          resetAction: 'reset-watchlist',
+          resetLabel: 'reset',
+        }) +
+        renderS2Collapse({
+          name: 'tags',
+          label: 'Event tags',
+          preview: s2TagsPreview(),
+          helper: 'Boost or hide topics. Broad style tags apply across ' +
+            'categories; the rest are grouped per category.',
+          body: renderS2TagsBody(),
+          modified: counts.tags > 0,
+          resetAction: 'reset-tags',
+          resetLabel: 'reset',
+        }) +
+        renderS2Collapse({
+          name: 'vibes',
+          label: 'Feels',
+          preview: s2FeelsPreview(),
+          helper: 'How you feel about kinds of experience.',
+          body: renderS2FeelsBody(),
+          modified: counts.vibes > 0,
+          resetAction: 'reset-vibes',
+          resetLabel: 'reset',
+        }) +
+        renderS2Collapse({
+          name: 'suburbs',
+          label: 'Suburbs',
+          preview: s2SuburbsPreview(),
+          body: renderSuburbsPanel(),
+          modified: counts.suburbs > 0,
+          resetAction: 'reset-suburbs',
+          resetLabel: 'reset',
+        }) +
+        renderS2Collapse({
+          name: 'identity',
+          label: 'Who it’s for',
+          preview: s2IdentityPreview(),
+          helper: 'Groups you belong to or want to see events for, and ' +
+            'the age band the menu should stick to.',
+          body: renderS2IdentityBody(),
+          modified: s2IdentityModified(),
+          resetAction: 'reset-identity',
+          resetLabel: 'reset',
+        }) +
+        renderS2Collapse({
+          name: 'rules',
+          label: 'Rules',
+          preview: s2RulesPreview(),
+          body: renderRulesPanel(),
+          modified: counts.rules > 0,
+          resetAction: 'reset-rules',
+          resetLabel: 'reset',
+        }) +
+        renderS2Collapse({
+          name: 'appearance',
+          label: 'Display',
+          preview: s2DisplayPreview(),
+          body: renderS2DisplayBody(),
+          // Theme picks aren't a "modification" worth tracking — the
+          // dot would just blink on the moment the user chose anything
+          // other than Auto, which isn't useful signal.
+          modified: false,
+        }) +
+        renderS2EngineRoomLink(counts.shape > 0) +
+        renderHiddenEventsFooter() +
+      '</div>'
+    );
+  }
+
+  // Swap the visible inner view inside #settings-view between the
+  // top-level Settings list and the Engine Room sub-view. Modal shell
+  // stays open through the swap; scrollTop resets so the new view
+  // lands at the top.
+  function s2SwitchView(name, opts) {
+    opts = opts || {};
+    var view = document.getElementById('settings-view');
+    if (!view) return;
+    var settings = view.querySelector('[data-s2-view="settings"]');
+    var engine = view.querySelector('[data-s2-view="engine"]');
+    if (!settings || !engine) return;
+    var titleEl = document.querySelector('.settings-modal__title');
+    var modal = document.getElementById('settings-modal');
+    if (name === 'engine') {
+      settings.hidden = true;
+      engine.hidden = false;
+      if (!opts.preserveScroll) view.scrollTop = 0;
+      // Modal header swaps wholesale to the engine surface — italic
+      // emphasis on "Room" matches the mockup.
+      if (titleEl) titleEl.innerHTML = 'Engine <em>Room</em>';
+      if (modal) modal.classList.add('settings-modal--engine');
+    } else {
+      settings.hidden = false;
+      engine.hidden = true;
+      if (!opts.preserveScroll) view.scrollTop = 0;
+      if (titleEl) titleEl.textContent = 'Settings';
+      if (modal) modal.classList.remove('settings-modal--engine');
+    }
+  }
+
+  // Move each row's row-reset ↺ button so it sits pinned to the
+  // chip/slider cluster:
+  //   * shape-row / rule-row (Engine Room): cluster is left-aligned,
+  //     reset goes IMMEDIATELY AFTER it (right side of cluster).
+  //   * suburb-row: cluster is right-aligned via grid auto-track and
+  //     the renderer already emits reset just before chips — nothing
+  //     to relocate.
+  //   * age-range-row: reset stays next to the label in the row
+  //     header (the slider sits on a wrapped second grid row, so
+  //     positioning reset against it makes less sense).
+  // Runs once per renderSettingsView; cheap (one querySelectorAll +
+  // ~N insertAdjacentElement calls).
+  function s2RelocateResetButtons() {
+    // shape-row only — rule-row keeps its initial render placement
+    // (reset BETWEEN text and chips) so date_idea's reset sits LEFT
+    // of the tri-state chip cluster, matching the suburb pattern.
+    var rows = document.querySelectorAll(
+      '#settings-view .shape-row');
+    var CLUSTER_CLASSES = {
+      'tuning-chips': 1, 'shape-input': 1,
+      'suburb-weight-input': 1, 'tri-state': 1,
+    };
+    for (var i = 0; i < rows.length; i++) {
+      var row = rows[i];
+      var btn = null;
+      var cluster = null;
+      var kids = row.children;
+      for (var c = 0; c < kids.length; c++) {
+        if (!kids[c].classList) continue;
+        if (kids[c].classList.contains('row-reset-btn')) {
+          btn = kids[c];
+          continue;
+        }
+        for (var ck in CLUSTER_CLASSES) {
+          if (kids[c].classList.contains(ck)) { cluster = kids[c]; break; }
+        }
+      }
+      if (!btn || !cluster) continue;
+      cluster.insertAdjacentElement('afterend', btn);
+    }
+    // age-range-row: keep the reset inline with the label (the
+    // legacy behaviour) by relocating it next to the .shape-name.
+    var ageRows = document.querySelectorAll(
+      '#settings-view .age-range-row');
+    for (var a = 0; a < ageRows.length; a++) {
+      var arow = ageRows[a];
+      var abtn = null;
+      var akids = arow.children;
+      for (var ac = 0; ac < akids.length; ac++) {
+        if (akids[ac].classList && akids[ac].classList.contains('row-reset-btn')) {
+          abtn = akids[ac];
+          break;
+        }
+      }
+      if (!abtn) continue;
+      var alabel = arow.querySelector('.shape-name');
+      if (alabel) alabel.insertAdjacentElement('afterend', abtn);
+    }
+  }
+
   function renderSettingsView() {
     var view = document.getElementById('settings-view');
     if (!view) return;
-    var tabCounts = settingsTabModifiedCounts();
-    var tabMod = {
-      tags: tabCounts.tags > 0, vibes: tabCounts.vibes > 0,
-      rules: tabCounts.rules > 0, suburbs: tabCounts.suburbs > 0,
-      watchlist: tabCounts.watchlist > 0,
-      shape: tabCounts.shape > 0, appearance: tabCounts.appearance > 0,
-    };
-    function tabBtn(slug, label, selected) {
-      return (
-        '<button class="settings-subtab" role="tab" data-subtab="' + slug + '" ' +
-          'aria-selected="' + (selected ? 'true' : 'false') + '">' +
-          escapeHtml(label) +
-          '<span class="settings-subtab__dot" aria-hidden="true"' +
-            (tabMod[slug] ? '' : ' hidden') + '></span>' +
-        '</button>'
-      );
-    }
-    // Subtab strip renders into its own static host (a flex sibling of
-    // the scroll container, like the modal header) so an overscroll
-    // pull on #settings-view can't drag it down. Panels render into the
-    // scrollable #settings-view.
+    // Subtab strip is gone — host stays in DOM but stays empty
+    // (`:empty { display: none; }` hides it visually).
     var subtabsHost = document.getElementById('settings-subtabs-host');
-    if (subtabsHost) {
-      subtabsHost.innerHTML = (
-        '<nav class="settings-subtabs" role="tablist" aria-label="Settings sections" data-no-swipe>' +
-          tabBtn('watchlist', 'Watchlist', true) +
-          tabBtn('vibes', 'Vibes', false) +
-          tabBtn('tags', 'Topics', false) +
-          tabBtn('rules', 'Rules', false) +
-          tabBtn('suburbs', 'Suburbs', false) +
-          tabBtn('shape', 'Tuning', false) +
-          tabBtn('appearance', 'Theme', false) +
-        '</nav>'
-      );
-    }
-    view.innerHTML = (
-      renderSubPanel({
-        name: 'vibes',
-        hidden: true,
-        desc: 'Stable feels you always like or avoid &mdash; meditation-y, ' +
-          'corporate-y, avant-garde-y.',
-        body: renderFacetGroups(),
-        resetAction: 'reset-vibes',
-        resetLabel: 'Reset all vibes',
-      }) +
-      renderSubPanel({
-        name: 'tags',
-        hidden: true,
-        desc: 'Boost or hide topics &mdash; jazz, yoga, cooking, and ' +
-          'so on.',
-        body: renderSubcatGroups(),
-        extras: renderHiddenEventsFooter() + renderScoreChipCrumb(),
-        resetAction: 'reset-tags',
-        resetLabel: 'Reset all tags',
-      }) +
-      renderSubPanel({
-        name: 'rules',
-        hidden: true,
-        desc: 'Soft rules the menu folds into the ranking &mdash; ' +
-          'free events, date ideas, alt-lifestyle picks, age range.',
-        body: renderRulesPanel(),
-        resetAction: 'reset-rules',
-        resetLabel: 'Reset all rules',
-      }) +
-      renderSubPanel({
-        name: 'suburbs',
-        hidden: true,
-        desc: 'Boost or hide events by location.',
-        body: renderSuburbsPanel(),
-        resetAction: 'reset-suburbs',
-        resetLabel: 'Reset all suburbs',
-      }) +
-      renderSubPanel({
-        name: 'watchlist',
-        desc: 'Venues and artists you always want surfaced.',
-        body: renderWatchlistPanel(),
-        resetAction: 'reset-watchlist',
-        resetLabel: 'Reset to defaults',
-      }) +
-      renderSubPanel({
-        name: 'shape',
-        hidden: true,
-        desc: 'How strict, how varied, how much your tier choices push ' +
-          'events.',
-        body: renderShapePanel(),
-        resetAction: 'reset-shape',
-        resetLabel: 'Reset shape',
-      }) +
-      renderSubPanel({
-        name: 'appearance',
-        hidden: true,
-        desc: 'Light, dark, or follow system.',
-        body: renderThemePickerHtml(),
-      }) +
-      '<p class="settings-storage-note">' +
-        'Your tweaks persist &mdash; pop back any time and the menu picks ' +
-        'up how you set it. (Safari resets after a week away.)' +
-      '</p>'
-    );
+    if (subtabsHost) subtabsHost.innerHTML = '';
+    // One-shot bin merge so the combined pill list shows everything
+    // the user had in either Priority or Saved before.
+    ensureWatchlistBinsMerged();
+    view.innerHTML = renderS2SettingsView() + renderS2EngineRoomView();
+    s2RelocateResetButtons();
     ensureSettingsResizeObserver();
     measureSettingsHints();
     // Position the age-range fill bar to match its initial values —
     // CSS doesn't know the values, so we set left/right inline.
     var ageRow = view.querySelector('.age-range-row');
     if (ageRow) updateAgeFillBar(ageRow);
-    // Subtab strip wraps now — no centring/edge-padding needed.
   }
 
-  // Refresh the per-tab modified dots without re-rendering settings.
+  // Refresh the per-section modified dots without re-rendering settings.
   // Used by in-place chip handlers that patch their row DOM directly.
+  // The old subtab strip is gone; dots now live on collapse / section
+  // headers. The dot is an inline span (s2-mod-dot) inside the label
+  // span — toggle by clearing the label and re-rendering with/without
+  // the dot. Simpler: add/remove the dot element directly.
   function updateSettingsTabDots() {
     var counts = settingsTabModifiedCounts();
-    var subtabs = document.querySelectorAll('.settings-subtab');
-    for (var i = 0; i < subtabs.length; i++) {
-      var dot = subtabs[i].querySelector('.settings-subtab__dot');
-      if (!dot) continue;
-      dot.hidden = !counts[subtabs[i].dataset.subtab];
+    // Map of section data-subtab → mod count to consult. Vibe-tags and
+    // More-tags both reflect the same `tags` count for simplicity.
+    // Identity is a synthesised count from age-range + identity prefs.
+    var mapForSection = {
+      watchlist: counts.watchlist,
+      vibes:     counts.vibes,
+      identity:  s2IdentityModified() ? 1 : 0,
+      tags:      counts.tags,
+      suburbs:   counts.suburbs,
+      rules:     counts.rules,
+      // Display deliberately omitted — theme is a presentation
+      // preference, not a "modification" worth flagging.
+      appearance: 0,
+      shape:     counts.shape,
+    };
+    // Walk every settings-panel and patch its dot.
+    var sections = document.querySelectorAll(
+      '#settings-view .settings-panel[data-subtab]');
+    for (var i = 0; i < sections.length; i++) {
+      var key = sections[i].dataset.subtab;
+      var want = !!mapForSection[key];
+      // Find the label-bearing element — collapse uses .s2-collapse__label,
+      // always-visible section uses .s2-section__name.
+      var labelEl = sections[i].querySelector(
+        '.s2-collapse__label, .s2-section__name');
+      if (!labelEl) continue;
+      var dot = labelEl.querySelector('.s2-mod-dot');
+      if (want && !dot) {
+        labelEl.insertAdjacentHTML('beforeend',
+          '<span class="s2-mod-dot" aria-hidden="true"></span>');
+      } else if (!want && dot) {
+        dot.parentNode.removeChild(dot);
+      }
+    }
+    // Engine Room entry link mirrors the shape count.
+    var engineLink = document.querySelector('.s2-engine-link__title');
+    if (engineLink) {
+      var engineDot = engineLink.querySelector('.s2-mod-dot');
+      if (counts.shape > 0 && !engineDot) {
+        engineLink.insertAdjacentHTML('beforeend',
+          ' <span class="s2-mod-dot" aria-hidden="true"></span>');
+      } else if (counts.shape === 0 && engineDot) {
+        engineDot.parentNode.removeChild(engineDot);
+      }
+    }
+    // Refresh the collapse-header preview strings while we're here —
+    // they're built at render time and otherwise go stale the moment
+    // any mutation (chip click, slider drag, theme pick) lands.
+    s2RefreshCollapsePreviews();
+  }
+
+  // Patch every collapse-header preview from its source-of-truth
+  // function. Cheap (5 querySelectors + textContent writes), plus a
+  // walk of every subcollapse inside More tags so the "N set · M
+  // avoided" meta line stays current after each chip cycle.
+  function s2RefreshCollapsePreviews() {
+    var view = document.getElementById('settings-view');
+    if (!view) return;
+    var map = {
+      watchlist:  s2WatchlistPreview(),
+      vibes:      s2FeelsPreview(),
+      identity:   s2IdentityPreview(),
+      tags:       s2TagsPreview(),
+      suburbs:    s2SuburbsPreview(),
+      rules:      s2RulesPreview(),
+      appearance: s2DisplayPreview(),
+    };
+    for (var key in map) {
+      var sect = view.querySelector(
+        '.s2-collapse[data-subtab="' + key + '"]');
+      if (!sect) continue;
+      var prev = sect.querySelector('.s2-collapse__preview');
+      if (prev) prev.textContent = map[key];
+    }
+    var tax = profile.subcategory_taxonomy || {};
+    var subs = view.querySelectorAll('.s2-subcollapse[data-s2-cat]');
+    for (var i = 0; i < subs.length; i++) {
+      var catKey = subs[i].dataset.s2Cat;
+      var tags = (tax[catKey] || []).slice().filter(function (t) {
+        return !BROAD_SUBCAT_SET[t];
+      });
+      var metaEl = subs[i].querySelector('.s2-subcollapse__meta');
+      if (metaEl) metaEl.textContent = s2SubcatGroupMeta(tags);
+      // Live-update the modified flag so the inline ● + ↺ in the
+      // subcollapse title reflect chip changes without a re-render.
+      var catModNow = false;
+      for (var sm = 0; sm < tags.length; sm++) {
+        if (isSubcatModified(tags[sm])) { catModNow = true; break; }
+      }
+      subs[i].dataset.catModified = catModNow ? 'true' : 'false';
+    }
+    // Same live-update for the Broad style tags subheading.
+    var vibeWrap = view.querySelector('.s2-tags-vibe');
+    if (vibeWrap) {
+      vibeWrap.dataset.broadModified =
+        s2BroadTagsModified() ? 'true' : 'false';
     }
   }
 
@@ -9603,34 +11978,97 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       _swipeState.pendingSettingsRerender = true;
       return;
     }
-    // renderSettingsView rebuilds the whole Settings DOM with
-    // Subcategories as the hard-coded default; snapshot whichever
-    // sub-tab is currently visible and re-activate it afterwards so
-    // Reset-* buttons don't yank the user back to Subcategories.
     // Close any row-help popover first — its anchor button is about
     // to be destroyed, leaving a ghost in OPEN_POPOVERS otherwise.
     for (var rhi = OPEN_POPOVERS.length - 1; rhi >= 0; rhi--) {
       if (OPEN_POPOVERS[rhi]._kind === 'row-help') closePopover(OPEN_POPOVERS[rhi]);
     }
-    var current = document.querySelector('.settings-subtab[aria-selected="true"]');
-    var name = (current && current.dataset.subtab) || 'watchlist';
-    // Snapshot any <details data-persist-open="X"> open states so a
-    // chip-driven re-render doesn't collapse Tuning > Advanced or the
-    // Outside section out from under the user.
+    // Settings v2 — snapshot which inner view (settings / engine) is
+    // active, plus open states of <details data-persist-open> and the
+    // s2-collapse / s2-subcollapse disclosures, so a chip-driven
+    // re-render doesn't collapse the user's whole panel. Snapshot the
+    // scroll offset too — without it, a per-section reset (or any
+    // mid-scroll chip toggle that re-renders) would snap the panel
+    // back to the top.
+    var view = document.getElementById('settings-view');
+    var activeView = 'settings';
+    var savedScroll = 0;
+    if (view) {
+      var engineEl = view.querySelector('[data-s2-view="engine"]');
+      if (engineEl && !engineEl.hidden) activeView = 'engine';
+      savedScroll = view.scrollTop || 0;
+    }
     var openStates = {};
     var openEls = document.querySelectorAll(
       '#settings-view details[data-persist-open]');
     for (var oi = 0; oi < openEls.length; oi++) {
       openStates[openEls[oi].dataset.persistOpen] = openEls[oi].open;
     }
+    var collapseStates = {};
+    var collEls = document.querySelectorAll(
+      '#settings-view .s2-collapse[data-subtab]');
+    for (var ci = 0; ci < collEls.length; ci++) {
+      collapseStates[collEls[ci].dataset.subtab] = collEls[ci].dataset.open === 'true';
+    }
+    var subCollapseStates = [];
+    var subEls = document.querySelectorAll(
+      '#settings-view .s2-subcollapse');
+    for (var si = 0; si < subEls.length; si++) {
+      subCollapseStates.push(subEls[si].dataset.open === 'true');
+    }
     renderSettingsView();
+    // Suppress collapse transitions while we restore open states —
+    // otherwise innerHTML resets every collapse to closed, then JS
+    // flips them open, and the margin/border transitions play over
+    // 180ms, making neighbour sections visibly jump as the open
+    // section "grows" downward.
+    var viewForRestore = document.getElementById('settings-view');
+    if (viewForRestore) viewForRestore.classList.add('s2-restoring');
+    s2SwitchView(activeView, { preserveScroll: true });
+    // Restore the open / closed states of every disclosure BEFORE we
+    // touch scroll — collapses default to closed at render time, so
+    // the content is much shorter than the user left it. Setting
+    // scrollTop=savedScroll on the shorter content would clamp to the
+    // (smaller) scrollHeight and snap the panel toward the top.
     var restoredEls = document.querySelectorAll(
       '#settings-view details[data-persist-open]');
     for (var ri = 0; ri < restoredEls.length; ri++) {
       var key = restoredEls[ri].dataset.persistOpen;
       if (key in openStates) restoredEls[ri].open = openStates[key];
     }
-    switchSubtab(name);
+    var restoredColl = document.querySelectorAll(
+      '#settings-view .s2-collapse[data-subtab]');
+    for (var rci = 0; rci < restoredColl.length; rci++) {
+      var collKey = restoredColl[rci].dataset.subtab;
+      if (collKey in collapseStates) {
+        var wantOpen = collapseStates[collKey];
+        restoredColl[rci].dataset.open = wantOpen ? 'true' : 'false';
+        var hdr = restoredColl[rci].querySelector('.s2-collapse__header');
+        if (hdr) hdr.setAttribute('aria-expanded', wantOpen ? 'true' : 'false');
+      }
+    }
+    var restoredSubs = document.querySelectorAll(
+      '#settings-view .s2-subcollapse');
+    for (var rsi = 0; rsi < restoredSubs.length && rsi < subCollapseStates.length; rsi++) {
+      var wantSubOpen = subCollapseStates[rsi];
+      restoredSubs[rsi].dataset.open = wantSubOpen ? 'true' : 'false';
+      var subHdr = restoredSubs[rsi].querySelector('.s2-subcollapse__header');
+      if (subHdr) subHdr.setAttribute('aria-expanded', wantSubOpen ? 'true' : 'false');
+    }
+    // Now that the disclosures are in their post-restore state, the
+    // scroll container's full height matches the pre-rebuild height,
+    // so a scrollTop assignment can actually land where the user was.
+    var view2 = document.getElementById('settings-view');
+    if (view2) view2.scrollTop = savedScroll;
+    // Re-enable collapse transitions on the next frame — gives the
+    // restored states a chance to settle without animating.
+    if (view2 && view2.classList.contains('s2-restoring')) {
+      // Force a reflow so the post-restore styles commit before
+      // transitions come back online.
+      // eslint-disable-next-line no-unused-expressions
+      view2.offsetHeight;
+      view2.classList.remove('s2-restoring');
+    }
   }
 
   function updateSettingsBadge() {
@@ -9871,15 +12309,16 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     document.body.classList.add('modal-open');
     var btn = document.getElementById('btn-open-settings');
     if (btn) btn.setAttribute('aria-expanded', 'true');
-    // Restore last subtab (Watchlist on first ever entry).
-    if (opts.restoreSubtab !== false) {
-      switchSubtab(viewState.lastSubtab || 'watchlist', { silent: false });
-    }
+    // Settings v2 — single-scroll layout means no subtab to restore.
+    // Always land on the top-level settings view (not Engine Room) and
+    // reset the modal title in case the user closed mid-engine-room.
+    s2SwitchView('settings');
+    s2RefreshThemeIcon();
     if (opts.updateHash !== false) {
       var hash = '#settings';
       if (location.hash !== hash) history.replaceState(null, '', hash);
     }
-    // Reset internal scroll so deep-link arrivals land at the subtab strip.
+    // Reset internal scroll so deep-link arrivals land at the top.
     var view = document.getElementById('settings-view');
     if (view) view.scrollTop = 0;
   }
@@ -11254,15 +13693,28 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (rowEl.dataset.subcat) {
       var dSubcat = (defaultProfile.subcategory_tiers || {})[rowEl.dataset.subcat] || 'neutral';
       handleTierChange(rowEl.dataset.subcat, dSubcat);
+      rerenderSettingsPreservingSubtab();
+      return;
     } else if (rowEl.dataset.incl) {
       var dIncl = (defaultProfile.inclusivity_prefs || {})[rowEl.dataset.incl] || 'no';
       handleInclusivityPrefChange(rowEl.dataset.incl, dIncl);
+      rerenderSettingsPreservingSubtab();
+      return;
     } else if (rowEl.dataset.facet) {
       var dFacet = (defaultProfile.facet_tiers || {})[rowEl.dataset.facet] || 'neutral';
       handleFacetTierChange(rowEl.dataset.facet, dFacet);
+      rerenderSettingsPreservingSubtab();
+      return;
     } else if (rowEl.dataset.rule) {
       var dRule = (defaultProfile.rule_states || {})[rowEl.dataset.rule] || 'on';
-      handleRuleStateChip(rowEl.dataset.rule, dRule);
+      // Use applyRuleState + full rerender directly — the
+      // handle*Chip path patches only .tri chips in-place, which
+      // are absent for binary rule-toggle rows in the new design.
+      applyRuleState(rowEl.dataset.rule, dRule);
+      saveProfile();
+      rerenderSettingsPreservingSubtab();
+      requestRenderAll();
+      return;
     } else if (rowEl.dataset.suburb) {
       var dSub = (defaultProfile.suburb_tiers || {})[rowEl.dataset.suburb] || 'outside';
       handleSuburbTierChange(rowEl.dataset.suburb, dSub);
@@ -11446,6 +13898,11 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
   function switchSubtab(name, opts) {
     opts = opts || {};
+    // Settings v2 — the subtab strip is gone; every `.settings-panel`
+    // is now a section in a single scrolling layout. No-op safely so
+    // legacy callers (swipe machinery, keyboard handlers) don't tear
+    // the layout apart by hiding every panel except one.
+    if (!document.querySelector('.settings-subtab')) return;
     if (opts.staged) {
       // Stage the subtab panel WITHOUT touching the strip's
       // aria-selected (preserves a11y until the panel is actually
@@ -12644,12 +15101,27 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   }
 
   function restoreAllHidden() {
-    var n = (profile.hidden_event_ids || []).length;
+    var prev = (profile.hidden_event_ids || []).slice();
+    var n = prev.length;
     if (n === 0) return;
     profile.hidden_event_ids = [];
     refreshHiddenSet();
     saveProfile();
-    showToast('Restored ' + n + ' hidden event' + (n === 1 ? '' : 's'));
+    showToast('Restored ' + n + ' hidden event' + (n === 1 ? '' : 's'), {
+      onUndo: function () {
+        // Restore the snapshot of hidden IDs and rerun the same
+        // re-render / settings-rebuild path so the per-category
+        // Hidden disclosures repopulate at their previous positions.
+        profile.hidden_event_ids = prev.slice();
+        refreshHiddenSet();
+        saveProfile();
+        var snap2 = captureSectionUIState();
+        renderAllAnimated(null, { preserveScores: true, preserveSnap: snap2 });
+        unlockMainHeight(snap2);
+        rerenderSettingsPreservingSubtab();
+        dismissToast();
+      },
+    });
     var snap = captureSectionUIState();
     renderAllAnimated(null, { preserveScores: true, preserveSnap: snap });
     unlockMainHeight(snap);
@@ -13733,10 +16205,21 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // not part of the day-tab strip.
     var openSettingsBtn = e.target.closest && e.target.closest('[data-open-settings]');
     if (openSettingsBtn) { openSettings(); return; }
-    // Close affordances inside the settings modal — X button and the
-    // backdrop. ESC is handled in the keydown listener below.
+    // Close affordances inside the settings modal — back button and the
+    // backdrop. ESC is handled in the keydown listener below. The back
+    // button is context-aware: when the user is in the Engine Room
+    // sub-view, it returns them to the main Settings list; only when
+    // they're already on the Settings list does it close the modal.
     var closeSettingsBtn = e.target.closest && e.target.closest('[data-close-settings]');
-    if (closeSettingsBtn) { closeSettings(); return; }
+    if (closeSettingsBtn) {
+      var engineEl = document.querySelector('[data-s2-view="engine"]');
+      if (engineEl && !engineEl.hidden) {
+        s2SwitchView('settings');
+      } else {
+        closeSettings();
+      }
+      return;
+    }
     var bd = e.target.closest && e.target.closest('.panel-backdrop');
     if (bd) { closeSettings(); return; }
 
@@ -13813,6 +16296,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (searchBtn) { toggleSearchPanel(); return; }
     var catChip = e.target.closest && e.target.closest('[data-category-chip]');
     if (catChip) { handleCategoryChip(catChip.dataset.categoryChip, catChip); return; }
+    var tocChip = e.target.closest && e.target.closest('[data-toc-cat]');
+    if (tocChip) {
+      e.preventDefault();
+      var cat = tocChip.dataset.tocCat;
+      // Scope to the day panel the chip lives in — stacked mode has
+      // all 7 days mounted simultaneously and we want to jump within
+      // the same day, not the first matching category across the DOM.
+      var dayPanel = tocChip.closest('.day');
+      var section = dayPanel
+        ? dayPanel.querySelector('.category[data-cat="' + cat + '"]')
+        : document.querySelector('.category[data-cat="' + cat + '"]');
+      if (section) {
+        section.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      }
+      return;
+    }
     var quickBtn = e.target.closest &&
       e.target.closest('button[data-quick-toggle]');
     if (quickBtn) {
@@ -13860,6 +16359,99 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return;
     }
 
+
+    // Settings v2 — single cycling chip (subcategory, facet, inclusivity).
+    var s2chip = e.target.closest && e.target.closest('.s2-chip');
+    if (s2chip) {
+      e.preventDefault();
+      var subTag = s2chip.dataset.s2Subcat;
+      var facetName = s2chip.dataset.s2Facet;
+      var inclName = s2chip.dataset.s2Incl;
+      if (subTag) {
+        var curT = (profile.subcategory_tiers || {})[subTag] || 'neutral';
+        var nextT = S2_TIER_CYCLE[(S2_TIER_CYCLE.indexOf(curT) + 1) % S2_TIER_CYCLE.length];
+        handleTierChange(subTag, nextT);
+        // Patch the chip in-place so cycling is snappy (no re-render
+        // flicker). updateSettingsTabDots already runs inside the
+        // handler.
+        s2UpdateChip(s2chip, nextT);
+      } else if (facetName) {
+        var curF = (profile.facet_tiers || {})[facetName] || 'neutral';
+        var nextF = S2_TIER_CYCLE[(S2_TIER_CYCLE.indexOf(curF) + 1) % S2_TIER_CYCLE.length];
+        handleFacetTierChange(facetName, nextF);
+        s2UpdateChip(s2chip, nextF, { showLabel: true });
+      } else if (inclName) {
+        var curI = (profile.inclusivity_prefs || {})[inclName] || 'no';
+        var idxI = S2_INCL_CYCLE.indexOf(curI);
+        if (idxI < 0) idxI = 0;
+        var nextI = S2_INCL_CYCLE[(idxI + 1) % S2_INCL_CYCLE.length];
+        handleInclusivityPrefChange(inclName, nextI);
+        s2UpdateInclChip(s2chip, nextI);
+      }
+      return;
+    }
+    // Settings v2 — theme toggle in the modal header. Cycles
+    // light ↔ dark (Auto users explicitly opted into Light/Dark via
+    // the in-Display picker if they wanted; the header button is the
+    // quick toggle for two-state flipping).
+    var themeBtn = e.target.closest && e.target.closest('[data-theme-toggle]');
+    if (themeBtn) {
+      e.preventDefault();
+      var cur = profile.theme || 'auto';
+      var resolved = cur === 'dark' ? 'light'
+        : cur === 'light' ? 'dark'
+        : (window.matchMedia && window.matchMedia('(prefers-color-scheme: dark)').matches
+            ? 'light' : 'dark');
+      setTheme(resolved);
+      s2RefreshThemeIcon();
+      return;
+    }
+    // Settings v2 — collapse open/close toggle.
+    var collapseHdr = e.target.closest && e.target.closest('.s2-collapse__header');
+    if (collapseHdr) {
+      e.preventDefault();
+      var sect = collapseHdr.closest('.s2-collapse');
+      if (sect) {
+        var nowOpen = sect.dataset.open !== 'true';
+        sect.dataset.open = nowOpen ? 'true' : 'false';
+        collapseHdr.setAttribute('aria-expanded', nowOpen ? 'true' : 'false');
+      }
+      return;
+    }
+    var subCollapseHdr = e.target.closest && e.target.closest('.s2-subcollapse__header');
+    // Skip the toggle when the click lands on the inline reset icon
+    // — let the data-action handler further down catch it instead.
+    if (subCollapseHdr && !e.target.closest('.s2-subcollapse__reset-icon')) {
+      e.preventDefault();
+      var subSect = subCollapseHdr.closest('.s2-subcollapse');
+      if (subSect) {
+        var subOpen = subSect.dataset.open !== 'true';
+        subSect.dataset.open = subOpen ? 'true' : 'false';
+        subCollapseHdr.setAttribute('aria-expanded', subOpen ? 'true' : 'false');
+      }
+      return;
+    }
+    // Settings v2 — Engine Room view swap.
+    var enterEngine = e.target.closest && e.target.closest('[data-s2-enter-engine]');
+    if (enterEngine) {
+      e.preventDefault();
+      s2SwitchView('engine');
+      return;
+    }
+    var exitEngine = e.target.closest && e.target.closest('[data-s2-exit-engine]');
+    if (exitEngine) {
+      e.preventDefault();
+      s2SwitchView('settings');
+      return;
+    }
+    // Settings v2 — stub buttons render but no-op (title="Coming soon"
+    // gives the hover/long-press hint). Suppress the default action so
+    // the stub doesn't accidentally submit or scroll the page.
+    var stub = e.target.closest && e.target.closest('.s2-stub');
+    if (stub) {
+      e.preventDefault();
+      return;
+    }
 
     var chip = e.target.closest && e.target.closest('.tri');
     if (chip) {
@@ -14033,14 +16625,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var themeBtn = e.target.closest && e.target.closest('[data-theme-set]');
     if (themeBtn) {
       setTheme(themeBtn.dataset.themeSet);
+      s2RefreshThemeIcon();
       return;
     }
 
-    // Show-event-scores Settings toggle. Bound to profile.show_score_chip;
+    // Show-scores Settings toggle. Bound to profile.show_score_chip;
     // re-render preserves scores since the field is presentation-only.
     var scoreToggle = e.target.closest && e.target.closest('[data-toggle-score-chip]');
-    if (scoreToggle && scoreToggle.tagName === 'INPUT') {
-      profile.show_score_chip = !!scoreToggle.checked;
+    if (scoreToggle) {
+      e.preventDefault();
+      var cur = scoreToggle.getAttribute('aria-checked') === 'true';
+      var next = !cur;
+      profile.show_score_chip = next;
+      scoreToggle.setAttribute('aria-checked', next ? 'true' : 'false');
       saveProfile();
       applyScoreVisibility();
       renderAll({ preserveScores: true });
@@ -14116,11 +16713,93 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
     var action = e.target.closest && e.target.closest('[data-action]');
     if (action) {
-      var resetKeys = RESET_TARGETS[action.dataset.action];
+      // When a reset link sits inside a <summary> (e.g. the Advanced
+      // disclosure inside Tuning), the click would normally bubble up
+      // and toggle the details element. Suppress that so tapping
+      // "reset" only resets, never closes the panel.
+      if (action.closest('summary')) {
+        e.preventDefault();
+      }
+      var actName = action.dataset.action;
+      // Reset all tags within a single category (one subcollapse
+      // inside the Tags > By category disclosure). Reads catKey from
+      // the button's data-tags-cat and reverts only that subset of
+      // subcategory_tiers to defaults.
+      if (actName === 'reset-tags-cat') {
+        var catKey = action.dataset.tagsCat;
+        if (catKey) {
+          var tax = profile.subcategory_taxonomy || {};
+          var catTags = (tax[catKey] || []).filter(function (t) {
+            return !BROAD_SUBCAT_SET[t];
+          });
+          var tcurTiers = Object.assign({},
+            profile.subcategory_tiers || {});
+          var tdefTiers = defaultProfile.subcategory_tiers || {};
+          for (var cti = 0; cti < catTags.length; cti++) {
+            var ct = catTags[cti];
+            if (ct in tdefTiers) tcurTiers[ct] = tdefTiers[ct];
+            else delete tcurTiers[ct];
+          }
+          profile.subcategory_tiers = tcurTiers;
+          saveProfile();
+          rerenderSettingsPreservingSubtab();
+          requestRenderAll();
+        }
+        return;
+      }
+      // Special case: reset only the Broad / cross-category subcat
+      // tiers (Vibe tags collapse). RESET_TARGETS can't express a
+      // subset of an object's keys; handle inline so the wider
+      // 'reset-tags' (which resets every subcategory) stays intact.
+      if (actName === 'reset-tags-broad') {
+        var curTiers = Object.assign({},
+          profile.subcategory_tiers || {});
+        var defTiers = defaultProfile.subcategory_tiers || {};
+        for (var bi = 0; bi < BROAD_SUBCATS.length; bi++) {
+          var bt = BROAD_SUBCATS[bi];
+          if (bt in defTiers) curTiers[bt] = defTiers[bt];
+          else delete curTiers[bt];
+        }
+        profile.subcategory_tiers = curTiers;
+        saveProfile();
+        rerenderSettingsPreservingSubtab();
+        requestRenderAll();
+        return;
+      }
+      // Rules: special-case the reset path. The generic bulk
+      // overwrite (Object.assign of rule_states) was leaking
+      // user-set entries that weren't in defaultProfile.rule_states
+      // (e.g. alt_lifestyle / special_event toggled off, neither of
+      // which ships as a default state). Reset by walking EVERY
+      // rule from rule_weights and applying its default state
+      // through applyRuleState so rule_states, rule_weights, and
+      // pinning_rules all end up canonical.
+      if (actName === 'reset-rules') {
+        profile.rule_states = {};
+        profile.rule_weights = Object.assign({},
+          defaultProfile.rule_weights || {});
+        profile.pinning_rules = (defaultProfile.pinning_rules || []).slice();
+        var defStates2 = defaultProfile.rule_states || {};
+        var allRules = Object.keys(defaultProfile.rule_weights || {});
+        for (var ri2 = 0; ri2 < allRules.length; ri2++) {
+          var rn2 = allRules[ri2];
+          applyRuleState(rn2, defStates2[rn2] || 'on');
+        }
+        saveProfile();
+        rerenderSettingsPreservingSubtab();
+        requestRenderAll();
+        return;
+      }
+      var resetKeys = RESET_TARGETS[actName];
       if (resetKeys) {
         for (var rki = 0; rki < resetKeys.length; rki++) {
           var key = resetKeys[rki];
           var src = defaultProfile[key];
+          // Fall back to a hardcoded default for keys that aren't
+          // present in defaultProfile (e.g. client-side multipliers).
+          if (src == null && key in RESET_FALLBACKS) {
+            src = RESET_FALLBACKS[key];
+          }
           if (Array.isArray(src)) {
             profile[key] = src.slice();
           } else if (src && typeof src === 'object') {
