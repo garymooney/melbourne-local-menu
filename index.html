@@ -2231,7 +2231,6 @@ body.has-banner > *:not(.deep-link-banner) {
 /* Compact inline copy buttons tucked right after the name. Override
    the 32×30 action-row min-size — at title scale they'd read as heavy
    blocks; here they're light inline glyphs aligned to the text. */
-.title-row .copy-name-btn,
 .title-row .copy-link-btn {
   min-width: 0;
   min-height: 0;
@@ -2239,8 +2238,8 @@ body.has-banner > *:not(.deep-link-banner) {
   margin-left: 2px;
   vertical-align: middle;
 }
-.title-row .title + .copy-name-btn,
-.title-row .match-mark + .copy-name-btn { margin-left: 6px; }
+.title-row .title + .copy-link-btn,
+.title-row .match-mark + .copy-link-btn { margin-left: 6px; }
 /* Match-mark ✦ — appears after the title of the highest-scored
    curated event in each category (the day's pick for that cat). */
 .match-mark {
