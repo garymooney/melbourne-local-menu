@@ -2054,7 +2054,6 @@ body.has-banner > *:not(.deep-link-banner) {
 .add-cal-btn,
 .share-btn,
 .copy-link-btn,
-.copy-name-btn,
 .card-overflow-btn {
   min-width: 32px;
   min-height: 30px;
@@ -2073,7 +2072,6 @@ body.has-banner > *:not(.deep-link-banner) {
 .add-cal-btn svg,
 .share-btn svg,
 .copy-link-btn svg,
-.copy-name-btn svg,
 .card-overflow-btn svg,
 .unhide-btn svg {
   stroke-width: 1.25;
@@ -2628,7 +2626,6 @@ body.has-banner > *:not(.deep-link-banner) {
    in the same action row visually grouped with the calendar picker.
    Single icon each; flash briefly green on success. */
 .copy-link-btn,
-.copy-name-btn,
 .share-btn {
   padding: 4px;
   font: inherit;
@@ -2644,32 +2641,26 @@ body.has-banner > *:not(.deep-link-banner) {
   flex: 0 0 auto;
 }
 .copy-link-btn svg,
-.copy-name-btn svg,
 .share-btn svg {
   width: 14px;
   height: 14px;
   display: block;
 }
 .copy-link-btn:hover,
-.copy-name-btn:hover,
 .share-btn:hover {
   color: var(--text);
   background: var(--soft-warm-tint);
 }
 .copy-link-btn.flash,
-.copy-name-btn.flash,
 .share-btn.flash {
   color: #2a8a3e;
   border-color: #2a8a3e;
 }
 .copy-link-btn .icon-success,
-.copy-name-btn .icon-success,
 .share-btn .icon-success { display: none; }
 .copy-link-btn.flash .icon-default,
-.copy-name-btn.flash .icon-default,
 .share-btn.flash .icon-default { display: none; }
 .copy-link-btn.flash .icon-success,
-.copy-name-btn.flash .icon-success,
 .share-btn.flash .icon-success { display: block; }
 
 .add-cal-popover {
@@ -3201,15 +3192,15 @@ body.has-banner > *:not(.deep-link-banner) {
    when the user has any non-default profile field. */
 .settings-badge {
   position: absolute;
-  top: -6px;
-  right: -6px;
+  top: 4px;
+  right: 4px;
   min-width: 1.1em;
   padding: 0 4px;
   font-size: 0.62em;
   font-weight: 700;
   text-align: center;
   border-radius: 8px;
-  background: var(--accent-warm);
+  background: var(--accent-cool);
   color: #fff;
   line-height: 1.5;
   pointer-events: none;
@@ -7813,32 +7804,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     var matchMark = (opts && opts.isTopScore)
       ? '<span class="match-mark" aria-hidden="true">&#10022;</span>'
       : '';
-    // Copy affordances sit inline right after the event name — the
-    // common "grab this" gestures shouldn't need the ⋯ menu. Two
-    // buttons: copy-name (the title text) then copy-link (landing-page
-    // URL, rich OG unfurl). Each flashes a tick AND fires a toast on
-    // success. Same data-event-id contract + handlers; the ⋯ menu
-    // keeps its own Copy link too.
+    // Copy-link sits inline right after the event name — the common
+    // "grab this link" gesture shouldn't need the ⋯ menu. Flashes a
+    // tick AND fires a toast on success. (Copy name lives in the ⋯
+    // overflow menu.) The ⋯ menu keeps its own Copy link too.
     // NOTE: evIdAttr is declared further down (used by the action row);
-    // var-hoisting makes it `undefined` this early, so the copy buttons
-    // need their own data-event-id built here — without it the handler
+    // var-hoisting makes it `undefined` this early, so the copy button
+    // needs its own data-event-id built here — without it the handler
     // looks up eventsById[undefined] and silently no-ops.
     var copyEvIdAttr = 'data-event-id="' + escapeHtml(String(ev.id)) + '"';
     var iconSuccessSvg =
       '<svg class="icon-success" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
       '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>' +
       '</svg>';
-    var copyNameBtn =
-      '<button class="copy-name-btn" type="button" ' + copyEvIdAttr + ' ' +
-      'aria-label="Copy event name" title="Copy name">' +
-        '<svg class="icon-default" viewBox="0 0 24 24" fill="none" ' +
-        'stroke="currentColor" stroke-width="1.7" stroke-linecap="round" ' +
-        'stroke-linejoin="round" aria-hidden="true">' +
-        '<rect x="9" y="9" width="11" height="11" rx="2"/>' +
-        '<path d="M5 15V5a2 2 0 0 1 2-2h10"/>' +
-        '</svg>' +
-        iconSuccessSvg +
-      '</button>';
     var copyLinkBtn =
       '<button class="copy-link-btn" type="button" ' + copyEvIdAttr + ' ' +
       'aria-label="Copy link" title="Copy link">' +
@@ -7855,7 +7833,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         '<a class="title" href="' + escapeHtml(ev.url) + '" ' +
         'target="_blank" rel="noopener">' + highlightSearch(ev.title, hlTokens) + '</a>' +
         matchMark +
-        copyNameBtn +
         copyLinkBtn +
       '</div>'
     );
@@ -14512,6 +14489,15 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var p = document.createElement('div');
       p.className = 'card-overflow-popover';
       p.setAttribute('role', 'menu');
+      // Copy name — moved here from an inline button beside the title.
+      var copyNameBtn = document.createElement('button');
+      copyNameBtn.type = 'button';
+      copyNameBtn.className = 'card-overflow-option';
+      copyNameBtn.setAttribute('role', 'menuitem');
+      copyNameBtn.dataset.kind = 'copy-name';
+      copyNameBtn.dataset.eventId = String(ev.id);
+      copyNameBtn.textContent = 'Copy name';
+      p.appendChild(copyNameBtn);
       var copyBtn = document.createElement('button');
       copyBtn.type = 'button';
       copyBtn.className = 'card-overflow-option';
@@ -16032,21 +16018,6 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       return;
     }
 
-    // Copy-name button — copy the event's title text. Flash tick +
-    // toast so the action is unmistakably confirmed.
-    var copyNameBtn = e.target.closest && e.target.closest('.copy-name-btn');
-    if (copyNameBtn) {
-      var nameEv = eventsById[copyNameBtn.dataset.eventId];
-      if (nameEv && nameEv.title) {
-        trackEvent('copy/event-name');
-        copyText(nameEv.title).then(function () {
-          flashSuccess(copyNameBtn);
-          showToast('Name copied');
-        });
-      }
-      return;
-    }
-
     // Copy-link button — copy LANDING-PAGE URL (not source URL) to
     // clipboard so paste lands the receiver on our site with a rich
     // OG preview. Flash tick + toast on completion.
@@ -16161,6 +16132,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var ovKind = ovOpt.dataset.kind;
       if (ovEv && ovKind === 'copy') {
         copyText(landingPageUrl(ovEv));
+      } else if (ovEv && ovKind === 'copy-name') {
+        if (ovEv.title) {
+          trackEvent('copy/event-name');
+          copyText(ovEv.title);
+          showToast('Name copied');
+        }
       } else if (ovEv && ovKind === 'hide') {
         // Close the popover first so it doesn't stick around over the
         // re-rendered card. toggleHide handles the rest (toast + render).
