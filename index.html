@@ -8101,12 +8101,19 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     parts.push(
       '<button class="share-btn" type="button" ' + evIdAttr + ' ' +
       'aria-label="Share" title="Share">' +
-        '<svg class="icon-default" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<path d="M.5 9.9a.5.5 0 0 1 .5.5v2.5a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-2.5a.5.5 0 0 1 1 0v2.5a2 2 0 0 1-2 2H2a2 2 0 0 1-2-2v-2.5a.5.5 0 0 1 .5-.5"/>' +
-        '<path d="M7.646 1.146a.5.5 0 0 1 .708 0l3 3a.5.5 0 0 1-.708.708L8.5 2.707V11.5a.5.5 0 0 1-1 0V2.707L5.354 4.854a.5.5 0 1 1-.708-.708z"/>' +
+        // Lucide-style "forward" arrow (curved arrow pointing right, like
+        // YouTube's share button) — replaces the old tray+up-arrow icon
+        // that read as "upload". Stroke outline + 24x24 viewBox to match
+        // the Pin / Calendar / overflow icons; shared CSS sizes it to 14px
+        // at stroke-width 1.25.
+        '<svg class="icon-default" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<polyline points="15 15 20 10 15 5"/>' +
+        '<path d="M4 21v-7a4 4 0 0 1 4-4h12"/>' +
         '</svg>' +
-        '<svg class="icon-success" viewBox="0 0 16 16" fill="currentColor" aria-hidden="true">' +
-        '<path d="M13.854 3.646a.5.5 0 0 1 0 .708l-7 7a.5.5 0 0 1-.708 0l-3.5-3.5a.5.5 0 1 1 .708-.708L6.5 10.293l6.646-6.647a.5.5 0 0 1 .708 0z"/>' +
+        '<svg class="icon-success" viewBox="0 0 24 24" fill="none" stroke="currentColor" ' +
+        'stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true">' +
+        '<polyline points="20 6 9 17 4 12"/>' +
         '</svg>' +
       '</button>'
     );
