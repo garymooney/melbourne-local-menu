@@ -2225,7 +2225,7 @@ body.has-banner > *:not(.deep-link-banner) {
 .title-row .title { display: inline; }
 .title-row .match-mark {
   display: inline;
-  margin-left: 4px;
+  margin-right: 4px;
   vertical-align: baseline;
 }
 /* Compact inline copy buttons tucked right after the name. Override
@@ -2238,9 +2238,8 @@ body.has-banner > *:not(.deep-link-banner) {
   margin-left: 2px;
   vertical-align: middle;
 }
-.title-row .title + .copy-link-btn,
-.title-row .match-mark + .copy-link-btn { margin-left: 6px; }
-/* Match-mark ✦ — appears after the title of the highest-scored
+.title-row .title + .copy-link-btn { margin-left: 6px; }
+/* Match-mark ✦ — appears before the title of the highest-scored
    curated event in each category (the day's pick for that cat). */
 .match-mark {
   color: var(--accent-warm);
@@ -7829,9 +7828,9 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       '</button>';
     parts.push(
       '<div class="title-row">' +
+        matchMark +
         '<a class="title" href="' + escapeHtml(ev.url) + '" ' +
         'target="_blank" rel="noopener">' + highlightSearch(ev.title, hlTokens) + '</a>' +
-        matchMark +
         copyLinkBtn +
       '</div>'
     );
