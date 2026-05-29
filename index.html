@@ -3173,6 +3173,9 @@ body.has-banner > *:not(.deep-link-banner) {
 .site-byline.feedback-byline {
   margin-top: 1.2em;
 }
+.site-byline.donate-byline {
+  margin-top: 0.6em;
+}
 
 /* --- Event count badge on each day tab; live-updated from the ranking.
    Parent (.day-tab / .week-pill) uses align-items: center, so the
@@ -5696,6 +5699,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 <p class="site-byline-sep" aria-hidden="true"><span class="brand-asterisk">✦</span></p>
 <p class="site-byline">This menu is for the moment you feel like doing something but don&#x27;t know what&#x27;s on. — Gary</p>
 <p class="site-byline feedback-byline"><a class="feedback-link" href="#" data-feedback-trigger role="button">Send feedback</a></p>
+<p class="site-byline donate-byline"><a class="feedback-link donate-link" href="https://ko-fi.com/garym4" target="_blank" rel="noopener noreferrer" data-donate-trigger>Buy me a coffee ☕</a></p>
 <footer class="acknowledgement" role="contentinfo">
 <p>This site shares events taking place on the lands of the Wurundjeri Woi-wurrung people of the Kulin Nation. We acknowledge them as the Traditional Owners and pay our respects to their Elders past, present, and emerging, and to all Aboriginal and Torres Strait Islander peoples who continue to care for Country.</p>
 </footer>
@@ -16084,6 +16088,14 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     if (fbTrigger) {
       e.preventDefault();
       openFeedbackModal();
+      return;
+    }
+    // Donation link — count a GoatCounter event, then let the real <a>
+    // navigate. No preventDefault: target=_blank keeps this page alive so
+    // the (async) beacon completes before/while the new tab opens.
+    var donateTrigger = e.target.closest && e.target.closest('[data-donate-trigger]');
+    if (donateTrigger) {
+      trackEvent('donate/click');
       return;
     }
     var fbAction = e.target.closest && e.target.closest('[data-feedback-action]');
