@@ -1716,7 +1716,12 @@ body.search-active .day-toc { display: none; }
   display: grid;
   gap: 12px;
 }
-.events[hidden] { display: none; }
+/* Bare `hidden` collapses an events grid, but NOT `hidden="until-found"`:
+   the show-more panel (.events.events-expanded) uses until-found so the
+   browser's Ctrl+F can find + auto-reveal matches inside a collapsed
+   section. A plain `display:none` here would override the UA's
+   content-visibility:hidden for until-found and make it unfindable. */
+.events[hidden]:not([hidden="until-found"]) { display: none; }
 @media (min-width: 640px) {
   .events { grid-template-columns: repeat(2, 1fr); gap: 14px; }
 }
