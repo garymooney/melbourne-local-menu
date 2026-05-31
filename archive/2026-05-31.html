@@ -4353,7 +4353,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 
 /* Mobile (≤640px) — slider rows stack vertically so the range gets
    the full row width (a 140px-min slider on a 360px viewport with a
-   "Subcategory spread" label squeezes too tight). Chip rows already
+   "Tag spread" label squeezes too tight). Chip rows already
    fit one-line so they're left alone. The native iOS slider thumb
    is ~16px, under WCAG's 24×24 minimum target; bump to 28px on
    touch viewports to clear the bar. */
@@ -5318,8 +5318,8 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
 /* ----- Hint text wraps instead of clipping/truncating ----------- */
 /* The original .rule-hint / .shape-hint / .facet-blurb used
    `white-space: nowrap` + ellipsis + a measure-and-flip fallback to
-   a `?` popover. That truncated long Advanced-row hints (Subcategory
-   spread, Home/Local bonus etc.) so the user couldn't read them in
+   a `?` popover. That truncated long Advanced-row hints (Tag spread,
+   Home/Local bonus etc.) so the user couldn't read them in
    the modal. Inside the settings panel, let the hint flow onto as
    many lines as it needs. The `?` popover affordance stays attached
    to every row (CSS gates its visibility on data-hint-mode), but
@@ -9883,7 +9883,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     {
       key: 'variety',
       label: 'Variety',
-      hint: 'How much category &amp; subcategory mix the menu favours.',
+      hint: 'How much category &amp; tag mix the menu favours.',
       chips: [
         // Monotonic less→more variety. Plain wording so the dial's
         // direction is obvious without context: lower = more
@@ -9898,7 +9898,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     },
     {
       key: 'reward',
-      label: 'Reward strength',
+      label: 'Boost strength',
       hint: 'How much your Love &amp; Like topic tiers pull events up.',
       // Higher number = stronger reward. Colours stay attached to
       // meaning, not position: green/love on Strong (top of scale),
@@ -10443,17 +10443,17 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
     // subcategory penalty (see diversityPenaltyFor) so the curated
     // count stays near a target (~6 per category) as Variety dials
     // sub_pen up or down.
-    { key: 'diversity_subcategory', label: 'Subcategory spread',
-      hint: 'Per-pair penalty when two picks share any subcategory. Higher = more variety within a category. Category cap auto-adjusts to keep ~6 events per category.',
+    { key: 'diversity_subcategory', label: 'Tag spread',
+      hint: 'How much to spread out events that share a tag. Higher = more variety within a category.',
       min: 0, max: 0.3, step: 0.01 },
     { key: 'love_bonus',  label: 'Love tier bonus',
-      hint: 'Score added for a "loved" subcategory tag (averaged across an event\'s tags).',
+      hint: 'Boost for events tagged with something you love.',
       min: 0, max: 0.6, step: 0.02 },
     { key: 'like_bonus',  label: 'Like tier bonus',
-      hint: 'Score added for a "liked" subcategory tag (averaged across an event\'s tags).',
+      hint: 'Boost for events tagged with something you like.',
       min: 0, max: 0.4, step: 0.02 },
     { key: 'avoid_bonus', label: 'Avoid tier penalty',
-      hint: 'Score subtracted for an "avoided" subcategory tag (averaged across an event\'s tags).',
+      hint: 'Penalty for events tagged with something you avoid.',
       min: -2.0, max: 0, step: 0.02 },
   ];
 
@@ -11560,7 +11560,7 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
           '</div>' +
           renderShapePanel() +
         '</section>' +
-        // Profile section — share-link copy works; reset stays a stub.
+        // Profile section — share-link copy + full reset-to-defaults.
         '<section class="s2-danger-zone">' +
           '<div class="s2-section__label">' +
             '<span class="s2-section__name">Profile</span>' +
@@ -11574,8 +11574,10 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
             'data-action="copy-share-link" ' +
             'title="Copy a link that loads these exact settings">' +
             'Copy share link</button>' +
-          '<button type="button" class="s2-danger-button s2-danger-button--reset s2-stub" ' +
-            'title="Coming soon">Reset everything to defaults</button>' +
+          '<button type="button" class="s2-danger-button s2-danger-button--reset" ' +
+            'data-action="reset-everything" ' +
+            'title="Restore every setting on this page to its default">' +
+            'Reset everything to defaults</button>' +
         '</section>' +
       '</div>'
     );
@@ -13131,6 +13133,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
       var disc = discs[dI];
       var allHidden = disc.querySelectorAll('.hidden-item').length;
       var visHidden = disc.querySelectorAll('.hidden-item:not(.search-hidden)').length;
+      // During search, hide the whole disclosure when nothing inside
+      // matches — otherwise it shows a pointless "0 hidden matching your
+      // search" line on categories whose visible cards matched but whose
+      // hidden items didn't. (The full-rebuild path only emits the
+      // disclosure when matches exist; the fast path must hide it here.)
+      disc.hidden = active && visHidden === 0;
       var summary = disc.querySelector('summary');
       if (summary) {
         summary.textContent = active
@@ -16811,6 +16819,22 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
         saveProfile();
         rerenderSettingsPreservingSubtab();
         requestRenderAll();
+        return;
+      }
+      // Reset EVERYTHING — wipe the stored profile and reload, so the
+      // page re-initialises straight from defaultProfile (re-merge, the
+      // watchlist auto-pin, etc.). Simpler and more complete than
+      // resetting every key by hand, and it also clears user state that
+      // isn't in RESET_TARGETS (pins, hides, auto-pin ledger).
+      if (actName === 'reset-everything') {
+        e.preventDefault();
+        if (window.confirm(
+              'Reset everything to defaults? This clears all your settings '
+              + 'on this device — tiers, rules, watchlist, pinned and hidden '
+              + 'events.')) {
+          try { localStorage.removeItem(STORAGE_KEY); } catch (_) {}
+          location.reload();
+        }
         return;
       }
       var resetKeys = RESET_TARGETS[actName];
