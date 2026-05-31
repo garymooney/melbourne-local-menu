@@ -10542,12 +10542,12 @@ body[data-show-scores="true"] .row-score-effect:not(:empty) {
   // not boosted" tier. Outside tier is hard-filtered, so no slider.
   var SUBURB_WEIGHT_FIELDS = [
     { tier: 'home',  label: 'Home bonus',
-      hint: 'Score boost added to events in any suburb tiered as Home. ' +
-        'Higher = your home suburb pulls events to the top harder.',
+      hint: 'Score boost added to events in any home suburb. ' +
+        'Higher = your home suburbs boost events more strongly.',
       min: 0, max: 0.4, step: 0.01 },
     { tier: 'local', label: 'Local bonus',
-      hint: 'Score boost added to events in any suburb tiered as Local. ' +
-        'Higher = nearby suburbs rank above the rest more strongly.',
+      hint: 'Score boost added to events in local suburbs. ' +
+        'Higher = nearby suburbs boost events more strongly.',
       min: 0, max: 0.4, step: 0.01 },
   ];
 
