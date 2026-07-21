@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ca9d101d80b58d2c">Kirin J Callinan live from the fatal shore</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ca9d101d80b58d2c');</script>
+<script>
+var T = '../#event-ca9d101d80b58d2c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

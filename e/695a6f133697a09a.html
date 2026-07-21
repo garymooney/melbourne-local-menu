@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-695a6f133697a09a">Core Financial Skills for Professionals – 1 Day Workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-695a6f133697a09a');</script>
+<script>
+var T = '../#event-695a6f133697a09a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-458764094df30fed">Up All Night: One Direction 16th Anniversary Party</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-458764094df30fed');</script>
+<script>
+var T = '../#event-458764094df30fed';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

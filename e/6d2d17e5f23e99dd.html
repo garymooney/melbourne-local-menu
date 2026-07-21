@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-6d2d17e5f23e99dd">Adult Intermediate Commercial Jazz Classes with Roxane Soyard</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-6d2d17e5f23e99dd');</script>
+<script>
+var T = '../#event-6d2d17e5f23e99dd';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

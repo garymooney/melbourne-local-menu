@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-0e3a97bfb3182712">Max Aurora &amp; The Southern Lights Double Single Launch at The Retreat Hotel Brunswick w/ Meraki Minds + Grevillea Hedge</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-0e3a97bfb3182712');</script>
+<script>
+var T = '../#event-0e3a97bfb3182712';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

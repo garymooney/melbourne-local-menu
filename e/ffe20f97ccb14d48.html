@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ffe20f97ccb14d48">A Series of Spirit Art Events with José Medrado</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ffe20f97ccb14d48');</script>
+<script>
+var T = '../#event-ffe20f97ccb14d48';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f0d3a681c40a5e9b">KAOTIK - DJ JUANCHO BONILLA (Ryan Castro DJ)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f0d3a681c40a5e9b');</script>
+<script>
+var T = '../#event-f0d3a681c40a5e9b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

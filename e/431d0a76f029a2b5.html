@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-431d0a76f029a2b5">North - Intermediate One Course - Peer Rope Melbourne</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-431d0a76f029a2b5');</script>
+<script>
+var T = '../#event-431d0a76f029a2b5';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

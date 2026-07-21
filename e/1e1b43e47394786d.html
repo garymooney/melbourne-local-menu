@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-1e1b43e47394786d">Crochet Workshop Series – Beginners Welcome</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-1e1b43e47394786d');</script>
+<script>
+var T = '../#event-1e1b43e47394786d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

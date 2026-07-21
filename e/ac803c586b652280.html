@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ac803c586b652280">Men&#x27;s Nude Yoga: 75min-90min Yin</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ac803c586b652280');</script>
+<script>
+var T = '../#event-ac803c586b652280';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

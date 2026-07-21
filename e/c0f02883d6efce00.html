@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c0f02883d6efce00">R&amp;B Trivia Day Party | Games + Afterparty | Melbourne Edition</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c0f02883d6efce00');</script>
+<script>
+var T = '../#event-c0f02883d6efce00';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

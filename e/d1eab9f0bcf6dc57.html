@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d1eab9f0bcf6dc57">Hck4G Meetup #0x17 – RIP Essential Eight — What&#x27;s Next for Australian Cyber?</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d1eab9f0bcf6dc57');</script>
+<script>
+var T = '../#event-d1eab9f0bcf6dc57';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

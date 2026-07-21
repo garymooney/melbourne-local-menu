@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f11f0884b6f4c1bf">[English x Japanese Language Exchange] 【英語×日本語の言語交換】</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f11f0884b6f4c1bf');</script>
+<script>
+var T = '../#event-f11f0884b6f4c1bf';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

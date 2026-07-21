@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-2db38d14ca2df4f6">Nianfo Meditation &amp; Wisdom Talk | Weekly Gathering</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-2db38d14ca2df4f6');</script>
+<script>
+var T = '../#event-2db38d14ca2df4f6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

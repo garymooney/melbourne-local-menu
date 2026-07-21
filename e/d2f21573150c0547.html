@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d2f21573150c0547">Tromba Latin Fiesta Senorita&#x27;s Night Out Offer !</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d2f21573150c0547');</script>
+<script>
+var T = '../#event-d2f21573150c0547';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

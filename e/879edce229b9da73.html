@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-879edce229b9da73">The Slow Pour; Meditation, Breathwork &amp; Coffee</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-879edce229b9da73');</script>
+<script>
+var T = '../#event-879edce229b9da73';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

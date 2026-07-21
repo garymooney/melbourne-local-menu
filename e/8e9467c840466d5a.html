@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8e9467c840466d5a">LESTOPIA</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8e9467c840466d5a');</script>
+<script>
+var T = '../#event-8e9467c840466d5a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

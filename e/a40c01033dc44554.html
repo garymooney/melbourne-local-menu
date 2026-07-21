@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a40c01033dc44554">Hemene et Hel</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a40c01033dc44554');</script>
+<script>
+var T = '../#event-a40c01033dc44554';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

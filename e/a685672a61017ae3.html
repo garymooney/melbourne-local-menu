@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a685672a61017ae3">Jazz Pop Classes for 15 years and Over</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a685672a61017ae3');</script>
+<script>
+var T = '../#event-a685672a61017ae3';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

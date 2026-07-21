@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ccf0854cec6a2c92">RARRÌ: Drake On Repeat at Glamorama</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ccf0854cec6a2c92');</script>
+<script>
+var T = '../#event-ccf0854cec6a2c92';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

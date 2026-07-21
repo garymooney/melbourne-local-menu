@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-89764fbf78a9287a">Hit It Off - Singles Walk - Recommended 20 to 35 - Princess Park, Carlton</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-89764fbf78a9287a');</script>
+<script>
+var T = '../#event-89764fbf78a9287a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

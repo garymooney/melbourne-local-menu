@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-90da85eb85237a34">Crossbones Boogie + Garry Allen does The songs of Robert Johnson</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-90da85eb85237a34');</script>
+<script>
+var T = '../#event-90da85eb85237a34';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

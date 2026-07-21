@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-5d7a8ba51506c882">WOE PLAYS JAZZ Vol 1 (feat Hugo Turudia)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-5d7a8ba51506c882');</script>
+<script>
+var T = '../#event-5d7a8ba51506c882';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

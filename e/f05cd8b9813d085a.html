@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f05cd8b9813d085a">Instinctual Boundaries Somatic Journey</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f05cd8b9813d085a');</script>
+<script>
+var T = '../#event-f05cd8b9813d085a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

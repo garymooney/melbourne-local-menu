@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-9540464fc1041738">Free Thursday Trivia Night | Union Hotel Windsor | Chapel Street | 7PM</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-9540464fc1041738');</script>
+<script>
+var T = '../#event-9540464fc1041738';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

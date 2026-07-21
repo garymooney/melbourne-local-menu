@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-65d4752f81ebf10d">Central Comedy Club Hotel</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-65d4752f81ebf10d');</script>
+<script>
+var T = '../#event-65d4752f81ebf10d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

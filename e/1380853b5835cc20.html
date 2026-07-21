@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-1380853b5835cc20">jazz vocal workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-1380853b5835cc20');</script>
+<script>
+var T = '../#event-1380853b5835cc20';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

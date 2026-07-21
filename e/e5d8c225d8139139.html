@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e5d8c225d8139139">Wunderbuild Workshop: Expanding Your Wunderbuild Knowledge – Victoria</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e5d8c225d8139139');</script>
+<script>
+var T = '../#event-e5d8c225d8139139';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

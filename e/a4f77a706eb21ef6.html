@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a4f77a706eb21ef6">Nature as Art Tour of 1 Hotel Melbourne</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a4f77a706eb21ef6');</script>
+<script>
+var T = '../#event-a4f77a706eb21ef6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

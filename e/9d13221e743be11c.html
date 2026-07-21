@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-9d13221e743be11c">Christian Speed Dating 25 to 35 yrs</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-9d13221e743be11c');</script>
+<script>
+var T = '../#event-9d13221e743be11c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

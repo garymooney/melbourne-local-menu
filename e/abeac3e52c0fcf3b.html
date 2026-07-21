@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-abeac3e52c0fcf3b">Jimmy O&#x27;Neills and Sacred Heart Christmas in July Cold Dip</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-abeac3e52c0fcf3b');</script>
+<script>
+var T = '../#event-abeac3e52c0fcf3b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d1019344f4404a9e">Kinbaku Performance Night</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d1019344f4404a9e');</script>
+<script>
+var T = '../#event-d1019344f4404a9e';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f52df9da119eebb8">ODD BALL 3: MARTHOUSE FOREVER</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f52df9da119eebb8');</script>
+<script>
+var T = '../#event-f52df9da119eebb8';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

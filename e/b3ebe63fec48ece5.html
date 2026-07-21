@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b3ebe63fec48ece5">Birrarung</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b3ebe63fec48ece5');</script>
+<script>
+var T = '../#event-b3ebe63fec48ece5';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

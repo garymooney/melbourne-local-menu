@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8a9062d0114c2d74">No Lights No Lycra Fairfield: DISCO, FUNK &amp; SOUL</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8a9062d0114c2d74');</script>
+<script>
+var T = '../#event-8a9062d0114c2d74';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

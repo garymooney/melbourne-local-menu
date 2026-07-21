@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-aa0fc4f5faf4364c">O_T AND TOXOID // CIECMATE &amp; VILIANI</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-aa0fc4f5faf4364c');</script>
+<script>
+var T = '../#event-aa0fc4f5faf4364c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

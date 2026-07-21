@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d2febdd23ae55404">Wild At Heart 20 Year Anniversary Showcase</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d2febdd23ae55404');</script>
+<script>
+var T = '../#event-d2febdd23ae55404';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

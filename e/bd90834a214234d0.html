@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bd90834a214234d0">Country Struts St Kilda Wednesdays</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bd90834a214234d0');</script>
+<script>
+var T = '../#event-bd90834a214234d0';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

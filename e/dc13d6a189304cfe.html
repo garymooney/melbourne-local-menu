@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-dc13d6a189304cfe">Fawkner Fastbreak</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-dc13d6a189304cfe');</script>
+<script>
+var T = '../#event-dc13d6a189304cfe';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

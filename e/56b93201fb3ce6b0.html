@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-56b93201fb3ce6b0">The Paperback Bookshop x Eclipse Cinema: Barcelona (1994)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-56b93201fb3ce6b0');</script>
+<script>
+var T = '../#event-56b93201fb3ce6b0';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

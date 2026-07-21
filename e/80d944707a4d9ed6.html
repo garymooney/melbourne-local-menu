@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-80d944707a4d9ed6">DRAG AID 12: Mike Rush&#x27;s Medical Bills</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-80d944707a4d9ed6');</script>
+<script>
+var T = '../#event-80d944707a4d9ed6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

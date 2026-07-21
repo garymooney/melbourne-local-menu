@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a85af42e68b4561c">Ben Sorensen’s Game Show Experience</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a85af42e68b4561c');</script>
+<script>
+var T = '../#event-a85af42e68b4561c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

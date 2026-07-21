@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-4bba524fd7266daa">Storytime for Grown-Ups (A &#x27;Picture Book&#x27; Book Club)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-4bba524fd7266daa');</script>
+<script>
+var T = '../#event-4bba524fd7266daa';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

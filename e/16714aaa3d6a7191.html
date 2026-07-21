@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-16714aaa3d6a7191">CALLYSTHA and the C-listers Free Arvo Show at The Retreat Hotel Brunswick with Pretty Good Sofa</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-16714aaa3d6a7191');</script>
+<script>
+var T = '../#event-16714aaa3d6a7191';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

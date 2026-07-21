@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-df94a5118c18ed63">Capoeira Angola: Ecamar</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-df94a5118c18ed63');</script>
+<script>
+var T = '../#event-df94a5118c18ed63';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

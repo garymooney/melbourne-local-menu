@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-99ab53cbbbf04c29">Confirmation Seminar | Topic - Investigating the relationship between the circadian clock and nitrogen use efficiency | Speaker - Chinaza Okafor</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-99ab53cbbbf04c29');</script>
+<script>
+var T = '../#event-99ab53cbbbf04c29';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

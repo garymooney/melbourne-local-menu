@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ef8bc71a59e0929b">Antonia Kay with Jacinta Bennett and Do Not Disturb - Freshly Squeezed Sessions R&amp;B Night</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ef8bc71a59e0929b');</script>
+<script>
+var T = '../#event-ef8bc71a59e0929b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

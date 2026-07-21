@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-0bf3595b20fc721c">Beginner Salsa Class</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-0bf3595b20fc721c');</script>
+<script>
+var T = '../#event-0bf3595b20fc721c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

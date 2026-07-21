@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-da05e5bd5fe5c057">Prof Sandra Nicholson (WEHI): New insights into SOCS1 regulation of interferon signalling</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-da05e5bd5fe5c057');</script>
+<script>
+var T = '../#event-da05e5bd5fe5c057';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-2a2dbb37949e7dfd">Shure Advanced Wireless Training Melbourne</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-2a2dbb37949e7dfd');</script>
+<script>
+var T = '../#event-2a2dbb37949e7dfd';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

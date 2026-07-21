@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-5ecdc9f0529cd4aa">Smells Like a Song: An Improvised Musical</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-5ecdc9f0529cd4aa');</script>
+<script>
+var T = '../#event-5ecdc9f0529cd4aa';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

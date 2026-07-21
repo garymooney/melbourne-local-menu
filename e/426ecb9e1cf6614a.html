@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-426ecb9e1cf6614a">Speed Dating 2.0 in South Melbourne | Cityswoon | Ages 30-45</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-426ecb9e1cf6614a');</script>
+<script>
+var T = '../#event-426ecb9e1cf6614a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

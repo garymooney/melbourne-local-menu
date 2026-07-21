@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-29770da1a65c6013">MIELE PRE Purchase Cooking Demo</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-29770da1a65c6013');</script>
+<script>
+var T = '../#event-29770da1a65c6013';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

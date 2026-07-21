@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-dd464f32ad14edbf">Stand Up Comedy Show @ Dirty Secrets Comedy Club</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-dd464f32ad14edbf');</script>
+<script>
+var T = '../#event-dd464f32ad14edbf';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

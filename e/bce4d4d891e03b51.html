@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bce4d4d891e03b51">Treaty Yarn Conversations</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bce4d4d891e03b51');</script>
+<script>
+var T = '../#event-bce4d4d891e03b51';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

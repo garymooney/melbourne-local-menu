@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-22f71d30a7a8e87b">Adult Advanced Jazz 8 Week Course</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-22f71d30a7a8e87b');</script>
+<script>
+var T = '../#event-22f71d30a7a8e87b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

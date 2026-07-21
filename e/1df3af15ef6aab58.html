@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-1df3af15ef6aab58">Leveraging Robotics for Success</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-1df3af15ef6aab58');</script>
+<script>
+var T = '../#event-1df3af15ef6aab58';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

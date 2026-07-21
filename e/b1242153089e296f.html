@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b1242153089e296f">CODE &amp; GMAR Fundraiser with Worker &amp; Parasite + guests</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b1242153089e296f');</script>
+<script>
+var T = '../#event-b1242153089e296f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

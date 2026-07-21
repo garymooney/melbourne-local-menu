@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a81631531a5d072d">Yah Yahs &amp; Leaps and Bounds Presents: STAGE DIVE w JULAI + my dog,satellite</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a81631531a5d072d');</script>
+<script>
+var T = '../#event-a81631531a5d072d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

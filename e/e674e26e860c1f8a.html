@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e674e26e860c1f8a">A Beginner&#x27;s Guide to Woodcarving with Alma</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e674e26e860c1f8a');</script>
+<script>
+var T = '../#event-e674e26e860c1f8a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

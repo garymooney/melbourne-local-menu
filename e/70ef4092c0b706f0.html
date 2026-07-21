@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-70ef4092c0b706f0">Mrs Smith&#x27;s Trivia</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-70ef4092c0b706f0');</script>
+<script>
+var T = '../#event-70ef4092c0b706f0';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

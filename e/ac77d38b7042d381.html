@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ac77d38b7042d381">Comedy Fridays at Piper&#x27;s Playhouse</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ac77d38b7042d381');</script>
+<script>
+var T = '../#event-ac77d38b7042d381';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

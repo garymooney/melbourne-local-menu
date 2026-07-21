@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e6b11d34bc9c6a42">Honeysmack Live Techno Masterclass</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e6b11d34bc9c6a42');</script>
+<script>
+var T = '../#event-e6b11d34bc9c6a42';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

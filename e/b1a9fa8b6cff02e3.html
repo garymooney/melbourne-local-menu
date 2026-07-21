@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b1a9fa8b6cff02e3">Team Up Tuesdays FREE @FortressMelbourne</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b1a9fa8b6cff02e3');</script>
+<script>
+var T = '../#event-b1a9fa8b6cff02e3';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

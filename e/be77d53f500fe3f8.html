@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-be77d53f500fe3f8">Kirtan Beats</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-be77d53f500fe3f8');</script>
+<script>
+var T = '../#event-be77d53f500fe3f8';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

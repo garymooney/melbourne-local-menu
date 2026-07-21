@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d3b10b74a28c31d6">Ground &amp; Grow - Weekly Vinyasa Yoga at Flagstaff Gardens (English Class)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d3b10b74a28c31d6');</script>
+<script>
+var T = '../#event-d3b10b74a28c31d6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

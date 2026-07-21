@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f61a635e382f24f7">Pizza e Pesto Masterclass</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f61a635e382f24f7');</script>
+<script>
+var T = '../#event-f61a635e382f24f7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

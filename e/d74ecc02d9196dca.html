@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d74ecc02d9196dca">Feel Good Flows - Sunday Rooftop Yoga - Sunday Sangha!</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d74ecc02d9196dca');</script>
+<script>
+var T = '../#event-d74ecc02d9196dca';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

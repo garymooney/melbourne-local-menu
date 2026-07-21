@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f2027200acf07020">Virtue &amp; Vice + Second Story present &#x27;PLAY&#x27;</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f2027200acf07020');</script>
+<script>
+var T = '../#event-f2027200acf07020';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

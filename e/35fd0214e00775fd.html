@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-35fd0214e00775fd">Rabbit &amp; Watson by Shane Woon</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-35fd0214e00775fd');</script>
+<script>
+var T = '../#event-35fd0214e00775fd';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

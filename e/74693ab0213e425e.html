@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-74693ab0213e425e">Volume in the Quiet 2.0</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-74693ab0213e425e');</script>
+<script>
+var T = '../#event-74693ab0213e425e';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

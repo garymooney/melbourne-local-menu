@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-77c8dc762ff0a03d">Dave Graney and Clare Moore - Laburnum Of The Mind Album Launch</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-77c8dc762ff0a03d');</script>
+<script>
+var T = '../#event-77c8dc762ff0a03d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ced154256f9229c2">老八月赛：中式八球 M8 Monthly Tournament: Chinese 8 Ball_25/07/2026-26/07/2026</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ced154256f9229c2');</script>
+<script>
+var T = '../#event-ced154256f9229c2';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

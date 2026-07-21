@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8171868c3b7d225f">Montana Papadinis Farewell Comedy Show</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8171868c3b7d225f');</script>
+<script>
+var T = '../#event-8171868c3b7d225f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

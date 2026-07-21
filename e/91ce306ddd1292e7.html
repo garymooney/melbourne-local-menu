@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-91ce306ddd1292e7">Full Moon Sound Bath</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-91ce306ddd1292e7');</script>
+<script>
+var T = '../#event-91ce306ddd1292e7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

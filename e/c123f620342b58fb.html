@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c123f620342b58fb">Sports Mad: How Australia Became the World’s Strangest Sporting Nation</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c123f620342b58fb');</script>
+<script>
+var T = '../#event-c123f620342b58fb';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

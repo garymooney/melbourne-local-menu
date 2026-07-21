@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-7adb48f42037012d">Matcha + Meetup: Melbourne | Film + Music Industry Monthly Mingle</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-7adb48f42037012d');</script>
+<script>
+var T = '../#event-7adb48f42037012d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

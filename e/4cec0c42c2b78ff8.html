@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-4cec0c42c2b78ff8">BAGGY TROUSERS - THE SOUND OF MADNESS &amp; THE SPECIALS</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-4cec0c42c2b78ff8');</script>
+<script>
+var T = '../#event-4cec0c42c2b78ff8';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

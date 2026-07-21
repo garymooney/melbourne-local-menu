@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a6df7b6938ada2a6">Acid Chess Club Presents: Chesstivus</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a6df7b6938ada2a6');</script>
+<script>
+var T = '../#event-a6df7b6938ada2a6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

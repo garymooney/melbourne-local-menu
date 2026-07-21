@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-4e6158e514017f9a">Mince Issue 02 Community Party</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-4e6158e514017f9a');</script>
+<script>
+var T = '../#event-4e6158e514017f9a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

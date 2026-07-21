@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-23604dc6eba3f8df">Harvey&#x27;s Sports Bar &amp; Throwing Shade Podcast Present - Tszyu vs Spence Jr</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-23604dc6eba3f8df');</script>
+<script>
+var T = '../#event-23604dc6eba3f8df';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

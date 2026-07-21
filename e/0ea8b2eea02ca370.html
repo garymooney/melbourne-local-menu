@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-0ea8b2eea02ca370">Melbourne Zoo Wildlife Photography Course-Wildlife Photography Course</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-0ea8b2eea02ca370');</script>
+<script>
+var T = '../#event-0ea8b2eea02ca370';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

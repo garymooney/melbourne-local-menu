@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-5ff1d59471f8b2e7">Exhale Together ~ An Intimate Evening of Slow Movement &amp; Visual Meditation</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-5ff1d59471f8b2e7');</script>
+<script>
+var T = '../#event-5ff1d59471f8b2e7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

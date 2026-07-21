@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ef92cf1c1a9c762a">&#x27;SHARARAT&#x27; Bollywood Night at Decibles</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ef92cf1c1a9c762a');</script>
+<script>
+var T = '../#event-ef92cf1c1a9c762a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

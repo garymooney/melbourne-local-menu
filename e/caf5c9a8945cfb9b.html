@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-caf5c9a8945cfb9b">Akoma Nkoso - The Red Shift - Winter Edition</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-caf5c9a8945cfb9b');</script>
+<script>
+var T = '../#event-caf5c9a8945cfb9b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

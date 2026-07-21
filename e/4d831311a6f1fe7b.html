@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-4d831311a6f1fe7b">Sunday Night Stand Up Comedy Show at Club Voltaire Comedy</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-4d831311a6f1fe7b');</script>
+<script>
+var T = '../#event-4d831311a6f1fe7b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

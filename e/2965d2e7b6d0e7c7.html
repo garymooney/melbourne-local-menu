@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-2965d2e7b6d0e7c7">Girls&#x27; and women-only boxing classes</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-2965d2e7b6d0e7c7');</script>
+<script>
+var T = '../#event-2965d2e7b6d0e7c7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

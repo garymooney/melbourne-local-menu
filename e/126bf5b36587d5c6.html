@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-126bf5b36587d5c6">Born to Boogie Dance Classes BRUNSWICK Mondays 7pm - 14 Week Dance Course</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-126bf5b36587d5c6');</script>
+<script>
+var T = '../#event-126bf5b36587d5c6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

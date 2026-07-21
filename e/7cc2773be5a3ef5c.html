@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-7cc2773be5a3ef5c">The Top Wineries of Australia Dinner by The Real Review</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-7cc2773be5a3ef5c');</script>
+<script>
+var T = '../#event-7cc2773be5a3ef5c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

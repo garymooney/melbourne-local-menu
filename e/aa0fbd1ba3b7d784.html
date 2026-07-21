@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-aa0fbd1ba3b7d784">Prince Daddy &amp; The Hyena + Macseal - NOW AT HOWLER</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-aa0fbd1ba3b7d784');</script>
+<script>
+var T = '../#event-aa0fbd1ba3b7d784';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

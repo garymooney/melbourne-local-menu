@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-3e0c5cab84e907a3">Downtown: The Petula Clark and Carole King Essentials</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-3e0c5cab84e907a3');</script>
+<script>
+var T = '../#event-3e0c5cab84e907a3';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

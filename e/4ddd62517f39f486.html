@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-4ddd62517f39f486">‘Social Sanctuary’ with HYLA, Che Arthur (USA) + CVRNs</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-4ddd62517f39f486');</script>
+<script>
+var T = '../#event-4ddd62517f39f486';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

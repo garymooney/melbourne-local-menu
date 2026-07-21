@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d82e22b26098cf9b">EMILY WILLIAMS PRESENTS… &quot;LOVE SONGS with a twist....&quot; Ft. Blush’ko</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d82e22b26098cf9b');</script>
+<script>
+var T = '../#event-d82e22b26098cf9b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c0ac1b8d02c94e28">Pumpy&#x27;s Pub Quiz (every Monday and Tuesday)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c0ac1b8d02c94e28');</script>
+<script>
+var T = '../#event-c0ac1b8d02c94e28';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

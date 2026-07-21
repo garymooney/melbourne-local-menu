@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-1da76b8ce50824bf">$10 Entry &amp; Free Shot @ Lucky Thursdays</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-1da76b8ce50824bf');</script>
+<script>
+var T = '../#event-1da76b8ce50824bf';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ed82f2cc78600bc3">Brush Calligraphy &amp; The Art of Handwriting</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ed82f2cc78600bc3');</script>
+<script>
+var T = '../#event-ed82f2cc78600bc3';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

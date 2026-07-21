@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ebca0ea4691f78aa">State Library Victoria: Rebel Heart: Love letters and other declarations tour</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ebca0ea4691f78aa');</script>
+<script>
+var T = '../#event-ebca0ea4691f78aa';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

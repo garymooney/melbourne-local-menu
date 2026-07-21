@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ea188da9a07a971a">Copy of Le Bop Modern Jive Dance Classes</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ea188da9a07a971a');</script>
+<script>
+var T = '../#event-ea188da9a07a971a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

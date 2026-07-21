@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-fe5782b14ac46f45">Pop, Rock, &amp; Beyond: Contemporary Voice in Practice</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-fe5782b14ac46f45');</script>
+<script>
+var T = '../#event-fe5782b14ac46f45';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

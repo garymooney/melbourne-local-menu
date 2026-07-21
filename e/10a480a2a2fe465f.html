@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-10a480a2a2fe465f">88 Doors Live: Australia, Asia &amp; the AI Opportunity</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-10a480a2a2fe465f');</script>
+<script>
+var T = '../#event-10a480a2a2fe465f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

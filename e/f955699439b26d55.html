@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f955699439b26d55">Elijah Quartet - Mozart, Beethoven</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f955699439b26d55');</script>
+<script>
+var T = '../#event-f955699439b26d55';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

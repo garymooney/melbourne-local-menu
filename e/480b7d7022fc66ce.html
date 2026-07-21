@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-480b7d7022fc66ce">MSO Chamber: Old ideas, new stories (Relaxed Performance)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-480b7d7022fc66ce');</script>
+<script>
+var T = '../#event-480b7d7022fc66ce';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

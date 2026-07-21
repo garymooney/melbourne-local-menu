@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-df7cf12818642dcf">Hand Embroidery for Beginners</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-df7cf12818642dcf');</script>
+<script>
+var T = '../#event-df7cf12818642dcf';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

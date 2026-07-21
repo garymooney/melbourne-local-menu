@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-9bf28c531447f6bb">AM:CLUB</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-9bf28c531447f6bb');</script>
+<script>
+var T = '../#event-9bf28c531447f6bb';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

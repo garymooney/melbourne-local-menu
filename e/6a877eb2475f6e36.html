@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-6a877eb2475f6e36">Scan and save your photos and memories</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-6a877eb2475f6e36');</script>
+<script>
+var T = '../#event-6a877eb2475f6e36';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

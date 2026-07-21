@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-538b18bb7a5dd59d">DnD Dice Making Workshop - Design a custom set of dice</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-538b18bb7a5dd59d');</script>
+<script>
+var T = '../#event-538b18bb7a5dd59d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

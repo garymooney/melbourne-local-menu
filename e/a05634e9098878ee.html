@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a05634e9098878ee">Club Crochet</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a05634e9098878ee');</script>
+<script>
+var T = '../#event-a05634e9098878ee';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

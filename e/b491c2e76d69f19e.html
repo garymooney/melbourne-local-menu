@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b491c2e76d69f19e">ONE PIECE - Pirate Party Vol.2 - Gameology BRUNSWICK - 29/07/2026</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b491c2e76d69f19e');</script>
+<script>
+var T = '../#event-b491c2e76d69f19e';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

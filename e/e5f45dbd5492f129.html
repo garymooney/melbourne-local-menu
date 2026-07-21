@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e5f45dbd5492f129">Melbourne Ice: Australian Ice Hockey League</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e5f45dbd5492f129');</script>
+<script>
+var T = '../#event-e5f45dbd5492f129';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

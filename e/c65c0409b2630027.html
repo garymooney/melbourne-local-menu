@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c65c0409b2630027">ANDHealth Unfiltered: Not Just Another AI Summit</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c65c0409b2630027');</script>
+<script>
+var T = '../#event-c65c0409b2630027';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

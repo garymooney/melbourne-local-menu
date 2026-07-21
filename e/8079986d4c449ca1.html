@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8079986d4c449ca1">Paint and Sip in Melbourne: Italy&#x27;s Blue Lemon Haven</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8079986d4c449ca1');</script>
+<script>
+var T = '../#event-8079986d4c449ca1';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

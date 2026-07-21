@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-baa7e0f1aa2a5b7c">Born to Boogie Dance Class YARRAVILLE Wednesdays 7pm-14 Week Dance Course</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-baa7e0f1aa2a5b7c');</script>
+<script>
+var T = '../#event-baa7e0f1aa2a5b7c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

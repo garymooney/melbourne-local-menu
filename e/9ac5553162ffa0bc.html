@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-9ac5553162ffa0bc">Spanish Amigos Language Exchange [English x Spanish]</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-9ac5553162ffa0bc');</script>
+<script>
+var T = '../#event-9ac5553162ffa0bc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

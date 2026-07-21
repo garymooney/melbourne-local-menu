@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-dc00b8fb192a4599">A Room of One’s Own: Women Writers Fund at State Library Victoria</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-dc00b8fb192a4599');</script>
+<script>
+var T = '../#event-dc00b8fb192a4599';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

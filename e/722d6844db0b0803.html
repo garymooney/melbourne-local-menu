@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-722d6844db0b0803">Cloisonne Enamel Painting Workshop for Beginners</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-722d6844db0b0803');</script>
+<script>
+var T = '../#event-722d6844db0b0803';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-161b3b45fd9c8804">EVER+EVER #1 with Porcelain Boy, Nabii, LucidX0, Kenta204 and Erika Ever</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-161b3b45fd9c8804');</script>
+<script>
+var T = '../#event-161b3b45fd9c8804';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

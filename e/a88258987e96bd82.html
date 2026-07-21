@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a88258987e96bd82">The Emma Gilmartin Quartet</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a88258987e96bd82');</script>
+<script>
+var T = '../#event-a88258987e96bd82';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

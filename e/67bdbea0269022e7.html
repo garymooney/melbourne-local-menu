@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-67bdbea0269022e7">Cameron Gould - Single Launch</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-67bdbea0269022e7');</script>
+<script>
+var T = '../#event-67bdbea0269022e7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

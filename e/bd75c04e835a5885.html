@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bd75c04e835a5885">Bennetts Beans &amp; Banter - Costa Rican Microlots</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bd75c04e835a5885');</script>
+<script>
+var T = '../#event-bd75c04e835a5885';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

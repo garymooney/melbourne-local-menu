@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-efa95a3a55b8fc1e">Beginners Street Salsa Dance Classes at Ela Rose Studios</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-efa95a3a55b8fc1e');</script>
+<script>
+var T = '../#event-efa95a3a55b8fc1e';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

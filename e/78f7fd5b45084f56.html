@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-78f7fd5b45084f56">Bottomless Homemade Lasagna, Wine and Social Game Night! 29th July</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-78f7fd5b45084f56');</script>
+<script>
+var T = '../#event-78f7fd5b45084f56';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-3b3e08a13f725c03">Fast Friending: Meet new friends! (21-40/Happy Hour)Mel</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-3b3e08a13f725c03');</script>
+<script>
+var T = '../#event-3b3e08a13f725c03';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

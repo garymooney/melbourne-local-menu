@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-897fb4b45877fd5b">Isolation ∎ Collingwood Basement</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-897fb4b45877fd5b');</script>
+<script>
+var T = '../#event-897fb4b45877fd5b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

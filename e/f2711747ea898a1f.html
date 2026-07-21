@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f2711747ea898a1f">MenXclusive The Show | Melbourne 25 July</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f2711747ea898a1f');</script>
+<script>
+var T = '../#event-f2711747ea898a1f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

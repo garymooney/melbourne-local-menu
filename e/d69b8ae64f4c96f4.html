@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d69b8ae64f4c96f4">SWEET BOY SONNET MELBOURNE - The &#x27;Where Do I Put My Love?&#x27; Tour</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d69b8ae64f4c96f4');</script>
+<script>
+var T = '../#event-d69b8ae64f4c96f4';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e059f202b13fddb7">Broadway Jazz Beg/Inter Performance Class</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e059f202b13fddb7');</script>
+<script>
+var T = '../#event-e059f202b13fddb7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

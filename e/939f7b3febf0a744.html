@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-939f7b3febf0a744">Book Arts from the Medieval to the Contemporary</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-939f7b3febf0a744');</script>
+<script>
+var T = '../#event-939f7b3febf0a744';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

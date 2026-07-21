@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bd7ea61bc2c81cff">HARRIET BENNETT / ATTICUS FLYNN / JOSHUA BILLINGS</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bd7ea61bc2c81cff');</script>
+<script>
+var T = '../#event-bd7ea61bc2c81cff';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-dbdf7e2e53b3ed95">Enviro Film Club: Itu Ninu (2023)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-dbdf7e2e53b3ed95');</script>
+<script>
+var T = '../#event-dbdf7e2e53b3ed95';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

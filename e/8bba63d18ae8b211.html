@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8bba63d18ae8b211">From Manuscript to Print: Self-Publishing Prepress Workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8bba63d18ae8b211');</script>
+<script>
+var T = '../#event-8bba63d18ae8b211';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

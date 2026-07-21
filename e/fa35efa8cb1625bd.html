@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-fa35efa8cb1625bd">Lesbian, Trans and Gender-Diverse (LTGD) Gaming Session</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-fa35efa8cb1625bd');</script>
+<script>
+var T = '../#event-fa35efa8cb1625bd';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

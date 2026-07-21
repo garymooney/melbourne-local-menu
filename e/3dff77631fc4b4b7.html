@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-3dff77631fc4b4b7">Maribyrnong Civic Precinct and Community Hub</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-3dff77631fc4b4b7');</script>
+<script>
+var T = '../#event-3dff77631fc4b4b7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

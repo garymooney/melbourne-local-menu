@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-70460ecb83f9c0c4">RIFTBOUND - Vendetta Pre-Rift - Gameology BRUNSWICK - 25/07/26</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-70460ecb83f9c0c4');</script>
+<script>
+var T = '../#event-70460ecb83f9c0c4';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

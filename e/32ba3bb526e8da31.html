@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-32ba3bb526e8da31">IMAX FILM - ODYSSEY! Monthly Movie Sessions - (TICKET INCLUDED) Easy - 2km</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-32ba3bb526e8da31');</script>
+<script>
+var T = '../#event-32ba3bb526e8da31';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

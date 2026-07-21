@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f2e0bce76ba271ec">Laird Life Drawing</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f2e0bce76ba271ec');</script>
+<script>
+var T = '../#event-f2e0bce76ba271ec';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-dccc2ca90211d27b">Dino Days</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-dccc2ca90211d27b');</script>
+<script>
+var T = '../#event-dccc2ca90211d27b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

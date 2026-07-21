@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d8d14837b9360f4b">ANH TEN LA BANG - 24K.RIGHT - ZICO - DAI AN - BINH HO - CAM - CODY</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d8d14837b9360f4b');</script>
+<script>
+var T = '../#event-d8d14837b9360f4b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

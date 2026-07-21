@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d8b4f6b60545e1d6">Moonee Valley Park</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d8b4f6b60545e1d6');</script>
+<script>
+var T = '../#event-d8b4f6b60545e1d6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

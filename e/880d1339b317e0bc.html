@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-880d1339b317e0bc">The Trust: (Still) Equity’s Child</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-880d1339b317e0bc');</script>
+<script>
+var T = '../#event-880d1339b317e0bc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

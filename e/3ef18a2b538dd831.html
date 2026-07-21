@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-3ef18a2b538dd831">Lomond Acoustica presents Thomas Hugh &amp; Shannon Bourne</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-3ef18a2b538dd831');</script>
+<script>
+var T = '../#event-3ef18a2b538dd831';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e48f7f96c8a6813d">Shibori: Japanese Tie Dye Tote Bags with Robyn</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e48f7f96c8a6813d');</script>
+<script>
+var T = '../#event-e48f7f96c8a6813d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

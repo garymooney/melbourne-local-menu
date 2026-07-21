@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-65f27b703d08733f">Next Wave x EWF Masterclass: Authorship, Algorithms and Access in the Digital Commons</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-65f27b703d08733f');</script>
+<script>
+var T = '../#event-65f27b703d08733f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

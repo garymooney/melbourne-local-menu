@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ade98fd11d0829ee">Film Screening: Cerebral Organoid</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ade98fd11d0829ee');</script>
+<script>
+var T = '../#event-ade98fd11d0829ee';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

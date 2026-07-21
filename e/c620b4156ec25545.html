@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c620b4156ec25545">Bulgarian Cooking: Filo Pastry Magic with Sonya</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c620b4156ec25545');</script>
+<script>
+var T = '../#event-c620b4156ec25545';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

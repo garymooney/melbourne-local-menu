@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bf6f3c8c31b3eb31">Mid-Century Makeover: Beginner Furniture Restoration Workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bf6f3c8c31b3eb31');</script>
+<script>
+var T = '../#event-bf6f3c8c31b3eb31';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

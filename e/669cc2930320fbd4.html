@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-669cc2930320fbd4">Motley Openhaus: Poetry Open Mic</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-669cc2930320fbd4');</script>
+<script>
+var T = '../#event-669cc2930320fbd4';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

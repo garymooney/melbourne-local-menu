@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a973f5e62d05a962">The Songs of Josh Groban</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a973f5e62d05a962');</script>
+<script>
+var T = '../#event-a973f5e62d05a962';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

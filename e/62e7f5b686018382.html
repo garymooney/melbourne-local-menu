@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-62e7f5b686018382">JEMIMA RAE - &#x27;DESIRE MAKES YOU UGLY&#x27; RELEASE SHOW</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-62e7f5b686018382');</script>
+<script>
+var T = '../#event-62e7f5b686018382';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

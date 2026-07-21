@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f5534f2b460ec3d1">Evies Karaoke Thursdays!</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f5534f2b460ec3d1');</script>
+<script>
+var T = '../#event-f5534f2b460ec3d1';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

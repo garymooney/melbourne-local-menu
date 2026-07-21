@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-88e6c2a5d98915c0">Linguas Melbourne Language Exchange &amp; Social at The Asian Beer Cafe</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-88e6c2a5d98915c0');</script>
+<script>
+var T = '../#event-88e6c2a5d98915c0';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-64f9840251a8c613">Fly Me to the Moon: Tracey Roberts</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-64f9840251a8c613');</script>
+<script>
+var T = '../#event-64f9840251a8c613';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a64782140a5f202e">Leffler Leather 1-day Harness Workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a64782140a5f202e');</script>
+<script>
+var T = '../#event-a64782140a5f202e';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

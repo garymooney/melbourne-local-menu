@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d8e5f758b7c1c71b">Make Your Room Work: Fundamentals of Space Planning &amp; Furniture Placement with Joey</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d8e5f758b7c1c71b');</script>
+<script>
+var T = '../#event-d8e5f758b7c1c71b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

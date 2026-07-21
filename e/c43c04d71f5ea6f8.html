@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c43c04d71f5ea6f8">Azure Ryder live by Candlelight</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c43c04d71f5ea6f8');</script>
+<script>
+var T = '../#event-c43c04d71f5ea6f8';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

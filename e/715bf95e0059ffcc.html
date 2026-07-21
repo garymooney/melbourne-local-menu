@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-715bf95e0059ffcc">Tarantella Workshop—Come dance with us!</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-715bf95e0059ffcc');</script>
+<script>
+var T = '../#event-715bf95e0059ffcc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ef9d0431a9409157">Holy Trinity Young Adults&#x27; Group</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ef9d0431a9409157');</script>
+<script>
+var T = '../#event-ef9d0431a9409157';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-2679b5dccae5a194">Yin &amp; Cello</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-2679b5dccae5a194');</script>
+<script>
+var T = '../#event-2679b5dccae5a194';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

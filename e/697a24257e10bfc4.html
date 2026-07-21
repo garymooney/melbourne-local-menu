@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-697a24257e10bfc4">Asian Cinema Collective presents: Once a Thief (1991)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-697a24257e10bfc4');</script>
+<script>
+var T = '../#event-697a24257e10bfc4';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

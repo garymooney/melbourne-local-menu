@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ef86bd7431901766">[FREE TRIAL] Easy Pilates &amp; Community for International Students &amp; WHMs</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ef86bd7431901766');</script>
+<script>
+var T = '../#event-ef86bd7431901766';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e7935834514e85a4">Analog Girls: femme-forward vinyl workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e7935834514e85a4');</script>
+<script>
+var T = '../#event-e7935834514e85a4';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

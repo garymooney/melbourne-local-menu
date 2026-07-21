@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-177f3ac8566588bc">Where It Began - Conversation with St Martins Alumnus Adam Howard</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-177f3ac8566588bc');</script>
+<script>
+var T = '../#event-177f3ac8566588bc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

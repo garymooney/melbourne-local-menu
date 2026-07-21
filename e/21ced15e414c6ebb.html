@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-21ced15e414c6ebb">BackBeat &quot;RocknRoll Music&quot;- early Beatles &amp; 60’s Merseybeat free show!</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-21ced15e414c6ebb');</script>
+<script>
+var T = '../#event-21ced15e414c6ebb';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

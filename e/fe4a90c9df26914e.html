@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-fe4a90c9df26914e">DOLE NIGHT w/ Sam Curtis Collective + Big Village</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-fe4a90c9df26914e');</script>
+<script>
+var T = '../#event-fe4a90c9df26914e';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a2509aead871741f">Speed Dating 2.0 @ Bobbie Peels | Cityswoon | Ages 42-52</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a2509aead871741f');</script>
+<script>
+var T = '../#event-a2509aead871741f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

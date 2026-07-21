@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-cffbd5915993352b">Flavours of Melbourne Night Trail: Laneways, Dining &amp; Secret Speakeasies</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-cffbd5915993352b');</script>
+<script>
+var T = '../#event-cffbd5915993352b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

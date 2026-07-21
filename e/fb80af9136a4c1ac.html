@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-fb80af9136a4c1ac">Moving into Practice: monthly somatic labs</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-fb80af9136a4c1ac');</script>
+<script>
+var T = '../#event-fb80af9136a4c1ac';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

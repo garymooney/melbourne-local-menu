@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-56a760db1984838f">South Asian Queerspace July Meet Up</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-56a760db1984838f');</script>
+<script>
+var T = '../#event-56a760db1984838f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

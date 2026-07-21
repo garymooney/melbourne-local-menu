@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-cdf80f16d60b694b">30 YEARS OF STONES THROW RECORDS</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-cdf80f16d60b694b');</script>
+<script>
+var T = '../#event-cdf80f16d60b694b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

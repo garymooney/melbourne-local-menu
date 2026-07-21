@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e383ab75438a4c41">A Night of Spirit Art with Brazilian Medium José Medrado</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e383ab75438a4c41');</script>
+<script>
+var T = '../#event-e383ab75438a4c41';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

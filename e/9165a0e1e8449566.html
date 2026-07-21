@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-9165a0e1e8449566">Intensive Motivational Interviewing Skills– 1 Day Course, Canberra</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-9165a0e1e8449566');</script>
+<script>
+var T = '../#event-9165a0e1e8449566';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

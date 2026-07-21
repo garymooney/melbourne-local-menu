@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-79d8eb17aa9f7e03">PILATES POP UP WINTER WELLNESS SERIES</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-79d8eb17aa9f7e03');</script>
+<script>
+var T = '../#event-79d8eb17aa9f7e03';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

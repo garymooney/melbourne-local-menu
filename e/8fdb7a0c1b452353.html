@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8fdb7a0c1b452353">Marcus Whale &quot;Nether&quot; Album Launch</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8fdb7a0c1b452353');</script>
+<script>
+var T = '../#event-8fdb7a0c1b452353';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-7c5406e3a87556a8">Trivia Night at Brunswick Bowling Club</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-7c5406e3a87556a8');</script>
+<script>
+var T = '../#event-7c5406e3a87556a8';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-46ab47e2ad40fc65">Hit It Off: Sip, Yap &amp; Play (30 to 45)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-46ab47e2ad40fc65');</script>
+<script>
+var T = '../#event-46ab47e2ad40fc65';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

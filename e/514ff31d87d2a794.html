@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-514ff31d87d2a794">An Evening of Songs and Stories with Shiel Street Press &amp; The Taylor Project</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-514ff31d87d2a794');</script>
+<script>
+var T = '../#event-514ff31d87d2a794';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

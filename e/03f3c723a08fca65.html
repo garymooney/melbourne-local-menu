@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-03f3c723a08fca65">Pan Party: All Dolls on Decks: Ft Rakhi, Stev Zar, Kiti + more</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-03f3c723a08fca65');</script>
+<script>
+var T = '../#event-03f3c723a08fca65';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

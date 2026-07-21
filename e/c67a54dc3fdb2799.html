@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c67a54dc3fdb2799">Safeguarding the Fossil Fuel Industry: How Carbon Offsetting Undermines Australia’s Flagship Climate Policy</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c67a54dc3fdb2799');</script>
+<script>
+var T = '../#event-c67a54dc3fdb2799';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

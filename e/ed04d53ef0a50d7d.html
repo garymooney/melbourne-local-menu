@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ed04d53ef0a50d7d">NGV Friday Nights: Cartier</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ed04d53ef0a50d7d');</script>
+<script>
+var T = '../#event-ed04d53ef0a50d7d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-29230ae200f66291">The Craft of Mending: Sashiko Workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-29230ae200f66291');</script>
+<script>
+var T = '../#event-29230ae200f66291';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

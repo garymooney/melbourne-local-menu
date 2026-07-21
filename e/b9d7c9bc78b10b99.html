@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b9d7c9bc78b10b99">MERPIRE - FULL BAND, FULL HEARTS SHOW</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b9d7c9bc78b10b99');</script>
+<script>
+var T = '../#event-b9d7c9bc78b10b99';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c300c591986ea6dd">AEG PRE Purchase Cooking Demo</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c300c591986ea6dd');</script>
+<script>
+var T = '../#event-c300c591986ea6dd';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

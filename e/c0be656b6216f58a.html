@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c0be656b6216f58a">Movie Night V2.0 - Nanak Naarm</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c0be656b6216f58a');</script>
+<script>
+var T = '../#event-c0be656b6216f58a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

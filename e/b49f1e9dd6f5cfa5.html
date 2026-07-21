@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b49f1e9dd6f5cfa5">Ripe Open Mic Night</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b49f1e9dd6f5cfa5');</script>
+<script>
+var T = '../#event-b49f1e9dd6f5cfa5';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

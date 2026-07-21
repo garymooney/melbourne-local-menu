@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-cea1b5b9641afc1a">Good Vibes Improv Jam</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-cea1b5b9641afc1a');</script>
+<script>
+var T = '../#event-cea1b5b9641afc1a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

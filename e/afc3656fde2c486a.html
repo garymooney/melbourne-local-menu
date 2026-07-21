@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-afc3656fde2c486a">Sleep Box Hotel (Single launch) w/ Slow Exposure + Signal Chain</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-afc3656fde2c486a');</script>
+<script>
+var T = '../#event-afc3656fde2c486a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

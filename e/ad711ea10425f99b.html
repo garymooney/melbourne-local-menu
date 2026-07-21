@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ad711ea10425f99b">Talks Club: Exploring NGV’s Cartier Exhibition</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ad711ea10425f99b');</script>
+<script>
+var T = '../#event-ad711ea10425f99b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

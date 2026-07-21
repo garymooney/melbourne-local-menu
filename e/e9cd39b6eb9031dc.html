@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e9cd39b6eb9031dc">Holly Moore Quartet</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e9cd39b6eb9031dc');</script>
+<script>
+var T = '../#event-e9cd39b6eb9031dc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

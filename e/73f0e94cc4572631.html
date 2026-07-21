@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-73f0e94cc4572631">Carlton Cinema Nova Screening: Forest Country – The End of Logging in Vic? Unpacking the Truth</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-73f0e94cc4572631');</script>
+<script>
+var T = '../#event-73f0e94cc4572631';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

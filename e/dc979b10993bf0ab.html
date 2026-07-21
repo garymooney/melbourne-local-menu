@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-dc979b10993bf0ab">Deep Peace Guided Meditation</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-dc979b10993bf0ab');</script>
+<script>
+var T = '../#event-dc979b10993bf0ab';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-3ce64ef0f8c2c347">Sam Docherty Book Launch: What It Takes</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-3ce64ef0f8c2c347');</script>
+<script>
+var T = '../#event-3ce64ef0f8c2c347';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

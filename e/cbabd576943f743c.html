@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-cbabd576943f743c">Opulent Intimacy: Royal Presentation Jewellery</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-cbabd576943f743c');</script>
+<script>
+var T = '../#event-cbabd576943f743c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

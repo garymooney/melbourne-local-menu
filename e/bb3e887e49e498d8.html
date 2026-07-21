@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bb3e887e49e498d8">Connect Your Body Language Through Movement with Chara</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bb3e887e49e498d8');</script>
+<script>
+var T = '../#event-bb3e887e49e498d8';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

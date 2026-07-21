@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-bab53440093dafc6">Rock Posters Printing Factory: Australia’s Music Story Revealed Through the Art of the Street Poster</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-bab53440093dafc6');</script>
+<script>
+var T = '../#event-bab53440093dafc6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

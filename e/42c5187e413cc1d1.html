@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-42c5187e413cc1d1">MELBOURNE: Earth&#x27;s Greatest Enemy - Film Screening and Discussion with Abby Martin and Dave Sweeney</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-42c5187e413cc1d1');</script>
+<script>
+var T = '../#event-42c5187e413cc1d1';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

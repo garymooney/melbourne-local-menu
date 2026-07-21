@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-719d8fbb93d5b906">Free Iyengar Yoga classes</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-719d8fbb93d5b906');</script>
+<script>
+var T = '../#event-719d8fbb93d5b906';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-6386fa7a5f31c13a">Cinema Yarra x Leaps and Bounds 2026: Anonymous Club (2022)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-6386fa7a5f31c13a');</script>
+<script>
+var T = '../#event-6386fa7a5f31c13a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

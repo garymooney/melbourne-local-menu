@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b120bde21265f55d">MINK FRIDAYS | AFROBEATS - RNB - HIPHOP</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b120bde21265f55d');</script>
+<script>
+var T = '../#event-b120bde21265f55d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

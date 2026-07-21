@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d25e86b33190b06c">Witching Hour - Horror RPGs</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d25e86b33190b06c');</script>
+<script>
+var T = '../#event-d25e86b33190b06c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

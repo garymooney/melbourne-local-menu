@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ff1f82112a1b2413">Anstey Village</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ff1f82112a1b2413');</script>
+<script>
+var T = '../#event-ff1f82112a1b2413';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ad25c1bc6028e86d">EMICC Cardiac Surgery (Effective Management of Intensive Care Crises)</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ad25c1bc6028e86d');</script>
+<script>
+var T = '../#event-ad25c1bc6028e86d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

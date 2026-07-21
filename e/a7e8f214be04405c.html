@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a7e8f214be04405c">AFL Round 20: Melbourne v Geelong Cats</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a7e8f214be04405c');</script>
+<script>
+var T = '../#event-a7e8f214be04405c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

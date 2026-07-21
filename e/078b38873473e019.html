@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-078b38873473e019">Maker Lab — Bargoonga Nganjin</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-078b38873473e019');</script>
+<script>
+var T = '../#event-078b38873473e019';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

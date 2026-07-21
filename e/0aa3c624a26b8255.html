@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-0aa3c624a26b8255">Scooting at The City of Melbourne Bowls Club - Flagstaff Gardens</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-0aa3c624a26b8255');</script>
+<script>
+var T = '../#event-0aa3c624a26b8255';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

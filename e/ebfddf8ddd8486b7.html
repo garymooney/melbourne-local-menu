@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ebfddf8ddd8486b7">CHRIS G LE BON &amp; THE C&#x27;EST SI LE BON BAND</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ebfddf8ddd8486b7');</script>
+<script>
+var T = '../#event-ebfddf8ddd8486b7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

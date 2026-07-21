@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e609269c5afe2c6b">Skid Steer ‘Crushed Rock’ Ep Launch</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e609269c5afe2c6b');</script>
+<script>
+var T = '../#event-e609269c5afe2c6b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d3b6b32ab8aa8ba0">Keira J &amp; the Mice /w Keets &amp; The Whyb</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d3b6b32ab8aa8ba0');</script>
+<script>
+var T = '../#event-d3b6b32ab8aa8ba0';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e8c4a776cf9f52d4">Rare Book Week Lecture: Of madness and miracles</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e8c4a776cf9f52d4');</script>
+<script>
+var T = '../#event-e8c4a776cf9f52d4';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

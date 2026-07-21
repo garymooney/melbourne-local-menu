@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a061188eb6104ff1">The Smith Street Band - Return from Europe &amp; Return to The Tote</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a061188eb6104ff1');</script>
+<script>
+var T = '../#event-a061188eb6104ff1';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

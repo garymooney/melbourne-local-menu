@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ffddf9d189d44290">School Sport Australia Games 04 (SSAG04) Opening Ceremony</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ffddf9d189d44290');</script>
+<script>
+var T = '../#event-ffddf9d189d44290';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

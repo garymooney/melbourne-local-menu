@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e23933fb76aaa6d3">Royals, Rulers &amp; Rebels: A Winter Mystery Ball</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e23933fb76aaa6d3');</script>
+<script>
+var T = '../#event-e23933fb76aaa6d3';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-1871c5fddc236984">Half Man - &#x27;I CAN SEE GOD&#x27; Melbourne Record Release</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-1871c5fddc236984');</script>
+<script>
+var T = '../#event-1871c5fddc236984';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e29352a4a2c0df67">ROWENA HANNAN/ LIMINAL THREADS/ PEOPLE AND PLACES/ LINDA WEIL/MAIKO SENTINA</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e29352a4a2c0df67');</script>
+<script>
+var T = '../#event-e29352a4a2c0df67';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

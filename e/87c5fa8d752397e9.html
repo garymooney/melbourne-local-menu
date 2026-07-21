@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-87c5fa8d752397e9">Harry Potter Trivia Night - Wednesday Night! $22 Schnitz or $25 Parma</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-87c5fa8d752397e9');</script>
+<script>
+var T = '../#event-87c5fa8d752397e9';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

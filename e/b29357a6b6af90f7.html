@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b29357a6b6af90f7">The Little Bourke Big Band Presents: &#x27;The Music of Cowboy Bebop&#x27;</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b29357a6b6af90f7');</script>
+<script>
+var T = '../#event-b29357a6b6af90f7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

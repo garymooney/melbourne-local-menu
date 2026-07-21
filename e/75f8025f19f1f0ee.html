@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-75f8025f19f1f0ee">Off Leash: Monthly Live Comedy Show</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-75f8025f19f1f0ee');</script>
+<script>
+var T = '../#event-75f8025f19f1f0ee';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

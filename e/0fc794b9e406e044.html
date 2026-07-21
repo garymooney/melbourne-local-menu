@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-0fc794b9e406e044">AI Implementation in Business</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-0fc794b9e406e044');</script>
+<script>
+var T = '../#event-0fc794b9e406e044';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

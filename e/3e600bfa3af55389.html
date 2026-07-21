@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-3e600bfa3af55389">SAMSCOUT: &#x27;warm night&#x27; single launch</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-3e600bfa3af55389');</script>
+<script>
+var T = '../#event-3e600bfa3af55389';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

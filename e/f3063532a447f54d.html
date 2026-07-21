@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f3063532a447f54d">YINOMA - Somatic Movement Classes for Embodied Healing</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f3063532a447f54d');</script>
+<script>
+var T = '../#event-f3063532a447f54d';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

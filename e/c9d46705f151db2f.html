@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c9d46705f151db2f">The Resignators return to Last Chance with Roarcuss &amp; The Lexlies</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c9d46705f151db2f');</script>
+<script>
+var T = '../#event-c9d46705f151db2f';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

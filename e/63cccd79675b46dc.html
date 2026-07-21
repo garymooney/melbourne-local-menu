@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-63cccd79675b46dc">Painting a Winter Palette - Oil Painting Workshop</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-63cccd79675b46dc');</script>
+<script>
+var T = '../#event-63cccd79675b46dc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

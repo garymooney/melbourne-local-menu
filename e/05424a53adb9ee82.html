@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-05424a53adb9ee82">Introduction to shibari - the erotic art of japanese rope bondage</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-05424a53adb9ee82');</script>
+<script>
+var T = '../#event-05424a53adb9ee82';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

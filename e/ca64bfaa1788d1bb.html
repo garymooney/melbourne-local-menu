@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ca64bfaa1788d1bb">Things We Built - &quot;Daddy&#x27;s Gone Disco&quot; Single Launch</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ca64bfaa1788d1bb');</script>
+<script>
+var T = '../#event-ca64bfaa1788d1bb';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

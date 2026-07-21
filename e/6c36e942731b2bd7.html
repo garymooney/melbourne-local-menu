@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-6c36e942731b2bd7">Heartfulness Meditation and Wellness</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-6c36e942731b2bd7');</script>
+<script>
+var T = '../#event-6c36e942731b2bd7';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

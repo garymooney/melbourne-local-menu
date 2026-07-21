@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-f4cfed4f2bb4ba4c">Fitzroy Garba Dance Class - Jhoom Bollywood</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-f4cfed4f2bb4ba4c');</script>
+<script>
+var T = '../#event-f4cfed4f2bb4ba4c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

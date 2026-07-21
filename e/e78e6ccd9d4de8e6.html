@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-e78e6ccd9d4de8e6">Saturday Live Jazz Dinner Show at DOLLY, Le Méridien</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-e78e6ccd9d4de8e6');</script>
+<script>
+var T = '../#event-e78e6ccd9d4de8e6';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

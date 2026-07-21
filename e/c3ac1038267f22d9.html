@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-c3ac1038267f22d9">NAKED MANNEQUIN</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-c3ac1038267f22d9');</script>
+<script>
+var T = '../#event-c3ac1038267f22d9';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

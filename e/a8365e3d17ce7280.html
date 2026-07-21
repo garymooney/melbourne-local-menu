@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-a8365e3d17ce7280">Community String Ensemble for Adult Beginners</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-a8365e3d17ce7280');</script>
+<script>
+var T = '../#event-a8365e3d17ce7280';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

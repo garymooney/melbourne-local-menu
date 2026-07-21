@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-d6db3e195a3f0b00">Piccolo House Gore Street</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-d6db3e195a3f0b00');</script>
+<script>
+var T = '../#event-d6db3e195a3f0b00';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

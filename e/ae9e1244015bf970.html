@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-ae9e1244015bf970">July Book Club - The Tainted Cup</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-ae9e1244015bf970');</script>
+<script>
+var T = '../#event-ae9e1244015bf970';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

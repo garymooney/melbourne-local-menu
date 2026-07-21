@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b75db05c8611ed2a">RIBBY247 — BIG BOPPA TOUR | MELBOURNE BOURKE STREET COURTYARD</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b75db05c8611ed2a');</script>
+<script>
+var T = '../#event-b75db05c8611ed2a';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

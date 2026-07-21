@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8f4b570d673f7c7c">Tromba Latin Fiesta Birthday Bookings</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8f4b570d673f7c7c');</script>
+<script>
+var T = '../#event-8f4b570d673f7c7c';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-b89942ec97b7a2bc">Future Groove | LIVE MUSIC at Acidity. Neo Soul/Jazz/Fusion/Gospel</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-b89942ec97b7a2bc');</script>
+<script>
+var T = '../#event-b89942ec97b7a2bc';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

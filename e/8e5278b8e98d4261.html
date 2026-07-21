@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-8e5278b8e98d4261">Yoga with Dhyan Foundation, Docklands VIC</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-8e5278b8e98d4261');</script>
+<script>
+var T = '../#event-8e5278b8e98d4261';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>

@@ -24,6 +24,10 @@
 </head>
 <body>
 <p>Loading <a href="../#event-615f71dd91cea35b">SEMESTER 2 PARKVILLE RUN CLUB</a> on FlowMenu…</p>
-<script>window.location.replace('../#event-615f71dd91cea35b');</script>
+<script>
+var T = '../#event-615f71dd91cea35b';
+var m = /[?&]d=(\d{4}-\d{2}-\d{2})(?:&|$)/.exec(window.location.search);
+window.location.replace(m ? T + '@' + m[1] : T);
+</script>
 </body>
 </html>
